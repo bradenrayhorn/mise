@@ -10,7 +10,7 @@ pub struct Server {
 
 impl Server {
     pub fn new(config: Config) -> Self {
-        return Server { config };
+        Server { config }
     }
 
     pub async fn start(&self) -> Result<(), std::io::Error> {

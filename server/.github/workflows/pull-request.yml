@@ -1,0 +1,27 @@
+name: Pull request
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+jobs:
+  lint:
+    name: Lint Rust
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./server
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@1d96c772d19495a3b5c517cd2bc0cb401ea0529f # v4
+
+      - name: format
+        if: always()
+        run: cargo fmt --check
+      - name: check
+        if: always()
+        run: cargo check
+      - name: clippy
+        if: always()
+        run: cargo clippy
+
