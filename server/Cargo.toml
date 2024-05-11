@@ -9,5 +9,6 @@ edition = "2021"
 tokio = { version = "1", features = ["full"] }
 rusqlite = { version = "0.31.0", features = ["bundled"] }
 thiserror = "1.0"
-axum = "0.7.5"
+anyhow = "1.0"
+axum = { version = "0.7.5" }
 serde = { version = "1.0.199", features = ["derive"] }
