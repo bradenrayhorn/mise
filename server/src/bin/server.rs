@@ -1,8 +1,15 @@
-use mise::{config::Config, datastore, http::Server, sqlite};
+use mise::{config, datastore, http::Server, sqlite};
 
 #[tokio::main]
 async fn main() {
-    let config = Config { port: 3000 };
+    let config = match config::from_filesystem() {
+        Ok(config) => config,
+        Err(err) => {
+            println!("error with config: {:?}", err);
+            return;
+        }
+    };
+
     let (_worker_pool, senders) = match sqlite::worker_pool() {
         Ok(pool) => pool,
         Err(err) => {
