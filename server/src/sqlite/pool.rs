@@ -16,8 +16,9 @@ impl From<rusqlite::Error> for Error {
 
 const MIGRATION: &str = "
 CREATE TABLE users (
-    id CHAR(27) PRIMARY KEY,
-    username VARCHAR(255) NOT NULL UNIQUE,
+    id TEXT PRIMARY KEY,
+    oauth_id TEXT NOT NULL UNIQUE,
+    name TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 ";
@@ -78,12 +79,8 @@ impl ThreadWorker {
                     DatastoreMessage::GetUser { respond_to, id } => {
                         let _ = respond_to.send(get_user(&conn, &id));
                     }
-                    DatastoreMessage::InsertUser {
-                        respond_to,
-                        id,
-                        username,
-                    } => {
-                        let _ = respond_to.send(insert_user(&conn, &id, &username));
+                    DatastoreMessage::UpsertUserByOauthId { respond_to, user } => {
+                        let _ = respond_to.send(upsert_user_by_oauth_id(&conn, &user));
                     }
                 }
             }
@@ -93,11 +90,11 @@ impl ThreadWorker {
     }
 }
 
-fn insert_user(conn: &Connection, id: &str, username: &str) -> Result<(), Error> {
-    let q = "INSERT INTO users (id,username) VALUES (?1,?2)";
+fn upsert_user_by_oauth_id(conn: &Connection, user: &User) -> Result<(), Error> {
+    let q = "INSERT INTO users (id,oauth_id,name) VALUES (?1,?2,?3) ON CONFLICT (oauth_id) DO UPDATE SET name = ?3";
 
     let mut stmt = conn.prepare_cached(q)?;
-    stmt.execute([id, username])?;
+    stmt.execute([&user.id, &user.oauth_id, &user.name])?;
     Ok(())
 }
 
@@ -108,7 +105,8 @@ fn get_user(conn: &Connection, id: &str) -> Result<User, Error> {
     let user = stmt.query_row([id], |row| {
         Ok(User {
             id: row.get(0)?,
-            name: row.get(1)?,
+            oauth_id: row.get(1)?,
+            name: row.get(2)?,
         })
     })?;
     Ok(user)

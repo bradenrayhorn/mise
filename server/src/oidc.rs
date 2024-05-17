@@ -130,6 +130,7 @@ pub struct CallbackParams<'a> {
 #[derive(Serialize, Deserialize)]
 pub struct Authenticated {
     pub subject: String,
+    pub name: String,
     pub refresh_token: String,
     pub expires_at: SystemTime,
 }
@@ -190,8 +191,20 @@ pub async fn complete_auth<'a>(
         .checked_add(expires_in)
         .ok_or(Error::InvalidExpiresIn(expires_in))?;
 
+    let subject = claims.subject();
+
+    let default_name = subject.to_string();
+    let name = match claims.name() {
+        Some(localized_name) => match localized_name.iter().next() {
+            Some((_, name)) => name.as_str().to_string(),
+            None => default_name,
+        },
+        None => default_name,
+    };
+
     Ok(Authenticated {
-        subject: claims.subject().to_string(),
+        subject: subject.to_string(),
+        name,
         refresh_token: refresh_token.secret().to_owned(),
         expires_at,
     })

@@ -80,12 +80,11 @@ impl Pool {
         rx.await?
     }
 
-    pub async fn insert_user(&self, id: String, username: String) -> Result<(), Error> {
+    pub async fn upsert_user_by_oauth_id(&self, user: User) -> Result<(), Error> {
         let conn = self.conn()?;
         let (tx, rx) = oneshot::channel();
-        let msg = DatastoreMessage::InsertUser {
-            id,
-            username,
+        let msg = DatastoreMessage::UpsertUserByOauthId {
+            user,
             respond_to: tx,
         };
 
@@ -102,9 +101,8 @@ pub enum DatastoreMessage {
         id: String,
         respond_to: oneshot::Sender<Result<User, Error>>,
     },
-    InsertUser {
-        id: String,
-        username: String,
+    UpsertUserByOauthId {
+        user: User,
         respond_to: oneshot::Sender<Result<(), Error>>,
     },
 }
