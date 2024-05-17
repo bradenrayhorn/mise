@@ -1,3 +1,5 @@
+pub mod user;
+
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
     #[error("{self}")]

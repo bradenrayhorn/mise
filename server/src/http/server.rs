@@ -1,23 +1,18 @@
 use std::{net::SocketAddr, sync::Arc};
 
-use anyhow::anyhow;
 use axum::{
-    extract::{FromRef, Query, State},
+    extract::{FromRef, State},
     http::StatusCode,
-    response::{IntoResponse, Redirect, Response},
+    response::{IntoResponse, Response},
     Router,
 };
-use axum_extra::extract::{
-    cookie::{Cookie, Key, SameSite},
-    PrivateCookieJar,
-};
-use serde::Deserialize;
+use axum_extra::extract::cookie::Key;
 
 use crate::{
     config::Config,
-    core::Error,
-    datastore::{self, Pool},
-    oidc,
+    core::{self, Error},
+    datastore::Pool,
+    http, oidc,
 };
 
 pub struct Server {
@@ -26,10 +21,10 @@ pub struct Server {
 }
 
 #[derive(Clone)]
-struct AppState {
-    datasource: Pool,
-    key: Key,
-    oidc_provider: Arc<oidc::Provider>,
+pub struct AppState {
+    pub datasource: Pool,
+    pub key: Key,
+    pub oidc_provider: Arc<oidc::Provider>,
 }
 
 impl FromRef<AppState> for Key {
@@ -55,10 +50,10 @@ impl Server {
         };
 
         let router: Router = Router::new()
-            .route("/health-check", axum::routing::get(health))
+            .route("/health-check", axum::routing::get(|| async { "ok" }))
             .route("/get-a-user", axum::routing::get(get_user))
-            .route("/auth/init", axum::routing::get(init_auth))
-            .route("/auth/complete", axum::routing::get(auth_complete))
+            .route("/auth/init", axum::routing::get(http::auth::init))
+            .route("/auth/complete", axum::routing::get(http::auth::callback))
             .with_state(state);
 
         let addr = SocketAddr::from(([127, 0, 0, 1], self.config.http_port));
@@ -69,80 +64,8 @@ impl Server {
     }
 }
 
-async fn health() -> &'static str {
-    "ok"
-}
-
 async fn get_user(State(state): State<AppState>) -> Result<String, Error> {
-    get_user_logic(state.datasource, "123").await
-}
-
-async fn init_auth(
-    State(state): State<AppState>,
-    jar: PrivateCookieJar,
-) -> Result<(PrivateCookieJar, Redirect), Error> {
-    let (auth_url, oidc_state) = oidc::begin_auth(&state.oidc_provider);
-
-    let jar = jar.add(
-        Cookie::build((
-            "s",
-            serde_json::to_string(&oidc_state).map_err(|err| Error::Other(err.into()))?,
-        ))
-        .http_only(true)
-        .secure(true)
-        // must be lax so that the cookie is attached upon redirect from the authorization server
-        .same_site(SameSite::Lax)
-        .max_age(cookie::time::Duration::seconds(180))
-        .build(),
-    );
-
-    Ok((jar, Redirect::temporary(&auth_url.to_string())))
-}
-
-#[derive(Deserialize)]
-struct AuthCompleteParams {
-    state: String,
-    code: String,
-}
-
-async fn auth_complete(
-    jar: PrivateCookieJar,
-    State(state): State<AppState>,
-    params: Query<AuthCompleteParams>,
-) -> Result<String, Error> {
-    let oidc_state = serde_json::from_str::<oidc::AuthState>(
-        jar.get("s")
-            .ok_or(Error::Unauthenticated(anyhow!(
-                "Missing OIDC state cookie."
-            )))?
-            .value(),
-    )
-    .map_err(|err| Error::Other(err.into()))?;
-
-    let authenticated = oidc::complete_auth(
-        &state.oidc_provider,
-        oidc_state,
-        oidc::CallbackParams {
-            state: &params.state,
-            code: &params.code,
-        },
-    )
-    .await
-    .map_err(|err| Error::Unauthenticated(err.into()))?;
-
-    Ok(format!("authenticated = {}", authenticated.subject))
-}
-
-async fn get_user_logic(datasource: Pool, id: &str) -> Result<String, Error> {
-    let user = datasource
-        .get_user(id.to_owned())
-        .await
-        .map_err(|err| match err {
-            datastore::Error::NotFound => Error::NotFound(format!("user {} does not exist", id)),
-            _ => Error::Other(err.into()),
-        })?;
-
-    Ok(user.name)
+    core::user::get(&state.datasource, "123").await
 }
 
 impl IntoResponse for Error {
