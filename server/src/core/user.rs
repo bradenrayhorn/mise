@@ -1,10 +1,14 @@
 use uuid::Uuid;
 
 use crate::{
+    cache::Cache,
     core::Error,
     datastore::{self, Pool},
-    domain::User,
+    domain::{RegisteringUser, SessionKey},
+    oidc,
 };
+
+use super::session;
 
 pub async fn get(datasource: &Pool, id: &str) -> Result<String, Error> {
     let user = datasource
@@ -18,20 +22,23 @@ pub async fn get(datasource: &Pool, id: &str) -> Result<String, Error> {
     Ok(user.name)
 }
 
-pub async fn upsert(
+pub async fn on_authenticated(
     datasource: &Pool,
-    oauth_src: &str,
-    oauth_id: &str,
-    name: &str,
-) -> Result<(), Error> {
-    let user = User {
-        id: Uuid::new_v4().to_string(),
-        oauth_id: format!("{}|{}", oauth_src, oauth_id),
-        name: name.to_owned(),
+    cache: &Cache,
+    authenticated: &oidc::Authenticated,
+) -> Result<SessionKey, Error> {
+    let registering = RegisteringUser {
+        potential_id: Uuid::new_v4().to_string(),
+        oauth_id: format!("custom|{}", authenticated.subject),
+        name: authenticated.name.to_string(),
     };
 
-    datasource
-        .upsert_user_by_oauth_id(user)
+    let user = datasource
+        .upsert_user_by_oauth_id(registering)
         .await
-        .map_err(|err| Error::Other(err.into()))
+        .map_err(|err| Error::Other(err.into()))?;
+
+    let session_key = session::begin(cache, &user, authenticated).await?;
+
+    Ok(session_key)
 }

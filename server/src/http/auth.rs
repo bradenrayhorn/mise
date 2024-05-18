@@ -5,7 +5,7 @@ use axum::{
 };
 use axum_extra::extract::{
     cookie::{Cookie, SameSite},
-    PrivateCookieJar,
+    CookieJar,
 };
 use serde::Deserialize;
 
@@ -24,8 +24,8 @@ pub struct AuthCompleteParams {
 
 pub async fn init(
     State(state): State<AppState>,
-    jar: PrivateCookieJar,
-) -> Result<(PrivateCookieJar, Redirect), Error> {
+    jar: CookieJar,
+) -> Result<(CookieJar, Redirect), Error> {
     let (auth_url, oidc_state) = oidc::begin_auth(&state.oidc_provider);
 
     let jar = jar.add(
@@ -45,10 +45,10 @@ pub async fn init(
 }
 
 pub async fn callback(
-    jar: PrivateCookieJar,
+    jar: CookieJar,
     State(state): State<AppState>,
     params: Query<AuthCompleteParams>,
-) -> Result<String, Error> {
+) -> Result<(CookieJar, String), Error> {
     let oidc_state = serde_json::from_str::<oidc::AuthState>(
         jar.get("s")
             .ok_or(Error::Unauthenticated(anyhow!(
@@ -58,6 +58,10 @@ pub async fn callback(
     )
     .map_err(|err| Error::Other(err.into()))?;
 
+    // remove state cookie now that it has been used
+    let jar = jar.remove(Cookie::from("s"));
+
+    // exchange with oidc provider
     let authenticated = oidc::complete_auth(
         &state.oidc_provider,
         oidc_state,
@@ -69,14 +73,19 @@ pub async fn callback(
     .await
     .map_err(|err| Error::Unauthenticated(err.into()))?;
 
-    // persist user
-    core::user::upsert(
-        &state.datasource,
-        "custom",
-        &authenticated.subject,
-        &authenticated.name,
-    )
-    .await?;
+    // persist user and create session
+    let session_key =
+        core::user::on_authenticated(&state.datasource, &state.cache, &authenticated).await?;
 
-    Ok(format!("authenticated = {}", authenticated.subject))
+    let jar = jar.add(
+        Cookie::build(("id", session_key.to_string()))
+            .http_only(true)
+            .secure(true)
+            .same_site(SameSite::Strict)
+            .max_age(cookie::time::Duration::seconds(
+                core::session::SESSION_EXPIRES_IN,
+            )),
+    );
+
+    Ok((jar, format!("authenticated = {}", authenticated.subject)))
 }

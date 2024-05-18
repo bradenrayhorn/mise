@@ -4,7 +4,7 @@ use anyhow::anyhow;
 use thiserror::Error;
 use tokio::sync::oneshot;
 
-use crate::domain::User;
+use crate::domain::{RegisteringUser, User};
 
 // Error
 
@@ -80,7 +80,7 @@ impl Pool {
         rx.await?
     }
 
-    pub async fn upsert_user_by_oauth_id(&self, user: User) -> Result<(), Error> {
+    pub async fn upsert_user_by_oauth_id(&self, user: RegisteringUser) -> Result<User, Error> {
         let conn = self.conn()?;
         let (tx, rx) = oneshot::channel();
         let msg = DatastoreMessage::UpsertUserByOauthId {
@@ -102,7 +102,7 @@ pub enum DatastoreMessage {
         respond_to: oneshot::Sender<Result<User, Error>>,
     },
     UpsertUserByOauthId {
-        user: User,
-        respond_to: oneshot::Sender<Result<(), Error>>,
+        user: RegisteringUser,
+        respond_to: oneshot::Sender<Result<User, Error>>,
     },
 }

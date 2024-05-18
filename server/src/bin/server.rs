@@ -1,4 +1,4 @@
-use mise::{config, datastore, http::Server, sqlite};
+use mise::{cache, config, datastore, http::Server, inmem, sqlite};
 
 #[tokio::main]
 async fn main() {
@@ -18,8 +18,9 @@ async fn main() {
         }
     };
     let pool = datastore::Pool::new(senders);
+    let cache = cache::Cache::new(inmem::cache());
 
-    let s = Server::new(config, pool);
+    let s = Server::new(config, pool, cache);
 
     if let Err(err) = s.start().await {
         println!("Failed to start http server: {:?}", err)

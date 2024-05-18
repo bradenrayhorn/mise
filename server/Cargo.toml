@@ -20,3 +20,9 @@ cookie = "0.18.1"
 sha256 = "1.5.0"
 toml = "0.8.13"
 uuid = { version = "1.8.0", features = ["v4", "fast-rng"] }
+chrono = { version = "0.4.38", default-features = false, features = [
+	"now",
+	"serde",
+] }
+ring = "0.17.8"
+base64 = "0.22.1"
