@@ -1,13 +1,12 @@
 use anyhow::anyhow;
 use base64::Engine;
 use ring::rand::SecureRandom;
-use serde::{Deserialize, Serialize};
 
 use crate::{
-    cache::{self, Cache},
     core,
-    domain::{SessionKey, User},
+    domain::{Session, SessionKey, User},
     oidc,
+    session_store::{self, SessionStore},
 };
 
 #[derive(thiserror::Error, Debug)]
@@ -28,17 +27,8 @@ impl From<Error> for core::Error {
 // maximum number of seconds a session may last without refresh
 pub const SESSION_EXPIRES_IN: i64 = 60 * 60 * 24;
 
-#[derive(Clone, Serialize, Deserialize)]
-struct Session {
-    pub key: String,
-    pub user_id: String,
-    pub refresh_token: String,
-    pub revalidate_at: chrono::DateTime<chrono::Utc>,
-    pub expires_at: chrono::DateTime<chrono::Utc>,
-}
-
 pub async fn begin(
-    cache: &Cache,
+    store: &SessionStore,
     user: &User,
     authenticated: &oidc::Authenticated,
 ) -> Result<SessionKey, core::Error> {
@@ -54,21 +44,23 @@ pub async fn begin(
         expires_at,
     };
 
-    // TODO - also encrypt session value before inserting
-    cache
-        .set(cache_key(&session.key), &session, expires_at)
-        .await?;
+    let session_key = session.key.clone();
 
-    Ok(SessionKey(session.key))
+    // TODO - also encrypt session value before inserting
+    store.set(session).await?;
+
+    Ok(SessionKey(session_key))
 }
 
 pub async fn get(
-    cache: &Cache,
+    store: &SessionStore,
     oidc: &oidc::Provider,
     key: SessionKey,
 ) -> Result<(String, SessionKey), core::Error> {
-    let session: Session = cache.get(cache_key(&key)).await.map_err(|err| match err {
-        cache::Error::NoMatchingValue => core::Error::Unauthenticated(anyhow!("session not found")),
+    let session: Session = store.get(key.clone()).await.map_err(|err| match err {
+        session_store::Error::NotFound => {
+            core::Error::Unauthenticated(anyhow!("session not found"))
+        }
         _ => err.into(),
     })?;
 
@@ -87,9 +79,10 @@ pub async fn get(
             .checked_add_signed(chrono::TimeDelta::seconds(SESSION_EXPIRES_IN))
             .ok_or(Error::TimeOutOfBounds)?;
 
+        let new_key = new_session_id()?;
         let new_session = Session {
-            key: new_session_id()?,
-            user_id: session.user_id,
+            key: new_key.clone(),
+            user_id: session.user_id.clone(),
             refresh_token: authenticated.refresh_token,
             revalidate_at: authenticated.expires_at,
             expires_at,
@@ -97,21 +90,15 @@ pub async fn get(
 
         // TODO - instead of removing old session right away, give grace period by setting the
         // expiration to 15 seconds in future.
-        cache.remove(cache_key(&key)).await?;
-        cache
-            .set(cache_key(&new_session.key), &new_session, expires_at)
-            .await?;
+        store.delete(key).await?;
+        store.set(new_session).await?;
 
-        Ok((new_session.user_id, SessionKey(new_session.key)))
+        Ok((session.user_id, SessionKey(new_key)))
     } else if session.expires_at < chrono::Utc::now() {
         return Err(core::Error::Unauthenticated(anyhow!("session expired")));
     } else {
         Ok((session.user_id, SessionKey(session.key)))
     }
-}
-
-fn cache_key(session_key: &str) -> String {
-    format!("session:{}", session_key)
 }
 
 fn new_session_id() -> Result<String, Error> {

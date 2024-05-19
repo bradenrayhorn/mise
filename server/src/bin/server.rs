@@ -1,4 +1,4 @@
-use mise::{cache, config, datastore, http::Server, inmem, sqlite};
+use mise::{config, datastore, http::Server, session_store::SessionStore, sqlite};
 
 #[tokio::main]
 async fn main() {
@@ -17,8 +17,17 @@ async fn main() {
             return;
         }
     };
+
+    let session_store_sender = match sqlite::session_store("mise_sessions.db".to_owned()) {
+        Ok(sender) => sender,
+        Err(err) => {
+            println!("error with sqlite session store: {:?}", err);
+            return;
+        }
+    };
+
     let pool = datastore::Pool::new(senders);
-    let cache = cache::Cache::new(inmem::cache());
+    let cache = SessionStore::new(session_store_sender);
 
     let s = Server::new(config, pool, cache);
 

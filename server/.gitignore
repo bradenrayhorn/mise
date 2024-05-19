@@ -1,3 +1,4 @@
 target/
 mise.db*
+mise_sessions.db*
 mise.toml

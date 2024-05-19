@@ -12,24 +12,24 @@ use axum_extra::extract::{cookie::Key, CookieJar};
 use cookie::Cookie;
 
 use crate::{
-    cache,
     config::Config,
     core::{self, Error},
     datastore::Pool,
     domain::SessionKey,
     http, oidc,
+    session_store::SessionStore,
 };
 
 pub struct Server {
     config: Config,
     datasource: Pool,
-    cache: cache::Cache,
+    session_store: SessionStore,
 }
 
 #[derive(Clone)]
 pub struct AppState {
     pub datasource: Pool,
-    pub cache: cache::Cache,
+    pub session_store: SessionStore,
     pub key: Key,
     pub oidc_provider: Arc<oidc::Provider>,
 }
@@ -41,11 +41,11 @@ impl FromRef<AppState> for Key {
 }
 
 impl Server {
-    pub fn new(config: Config, datasource: Pool, cache: cache::Cache) -> Self {
+    pub fn new(config: Config, datasource: Pool, session_store: SessionStore) -> Self {
         Server {
             config,
             datasource,
-            cache,
+            session_store,
         }
     }
 
@@ -56,7 +56,7 @@ impl Server {
 
         let state = AppState {
             key: Key::generate(),
-            cache: self.cache.clone(),
+            session_store: self.session_store.clone(),
             datasource: self.datasource.clone(),
             oidc_provider: Arc::new(oidc_provider),
         };
@@ -107,7 +107,7 @@ async fn auth(
         .value();
 
     let (user_id, new_session_key) = core::session::get(
-        &state.cache,
+        &state.session_store,
         &state.oidc_provider,
         SessionKey(cookie.to_string()),
     )

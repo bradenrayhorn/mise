@@ -75,7 +75,8 @@ pub async fn callback(
 
     // persist user and create session
     let session_key =
-        core::user::on_authenticated(&state.datasource, &state.cache, &authenticated).await?;
+        core::user::on_authenticated(&state.datasource, &state.session_store, &authenticated)
+            .await?;
 
     let jar = jar.add(
         Cookie::build(("id", session_key.to_string()))

@@ -1,4 +1,4 @@
-use crate::cache;
+use crate::session_store;
 
 pub mod session;
 pub mod user;
@@ -15,8 +15,8 @@ pub enum Error {
     Other(#[from] anyhow::Error),
 }
 
-impl From<cache::Error> for Error {
-    fn from(value: cache::Error) -> Self {
+impl From<session_store::Error> for Error {
+    fn from(value: session_store::Error) -> Self {
         Error::Other(value.into())
     }
 }

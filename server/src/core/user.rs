@@ -1,11 +1,11 @@
 use uuid::Uuid;
 
 use crate::{
-    cache::Cache,
     core::Error,
     datastore::{self, Pool},
     domain::{RegisteringUser, SessionKey},
     oidc,
+    session_store::SessionStore,
 };
 
 use super::session;
@@ -24,7 +24,7 @@ pub async fn get(datasource: &Pool, id: &str) -> Result<String, Error> {
 
 pub async fn on_authenticated(
     datasource: &Pool,
-    cache: &Cache,
+    session_store: &SessionStore,
     authenticated: &oidc::Authenticated,
 ) -> Result<SessionKey, Error> {
     let registering = RegisteringUser {
@@ -38,7 +38,7 @@ pub async fn on_authenticated(
         .await
         .map_err(|err| Error::Other(err.into()))?;
 
-    let session_key = session::begin(cache, &user, authenticated).await?;
+    let session_key = session::begin(session_store, &user, authenticated).await?;
 
     Ok(session_key)
 }
