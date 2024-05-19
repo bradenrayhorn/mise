@@ -5,7 +5,7 @@ use rusqlite::Connection;
 
 use crate::{
     datastore::{DatastoreMessage, Error},
-    domain::User,
+    domain::{RegisteringUser, User},
 };
 
 impl From<rusqlite::Error> for Error {
@@ -90,12 +90,29 @@ impl ThreadWorker {
     }
 }
 
-fn upsert_user_by_oauth_id(conn: &Connection, user: &User) -> Result<(), Error> {
+fn upsert_user_by_oauth_id(
+    conn: &Connection,
+    registering: &RegisteringUser,
+) -> Result<User, Error> {
     let q = "INSERT INTO users (id,oauth_id,name) VALUES (?1,?2,?3) ON CONFLICT (oauth_id) DO UPDATE SET name = ?3";
 
     let mut stmt = conn.prepare_cached(q)?;
-    stmt.execute([&user.id, &user.oauth_id, &user.name])?;
-    Ok(())
+    stmt.execute([
+        &registering.potential_id,
+        &registering.oauth_id,
+        &registering.name,
+    ])?;
+
+    // fetch user back from the database so that the id is known
+    let mut stmt = conn.prepare_cached("SELECT * FROM users WHERE oauth_id = ?1")?;
+    let user = stmt.query_row([&registering.oauth_id], |row| {
+        Ok(User {
+            id: row.get(0)?,
+            oauth_id: row.get(1)?,
+            name: row.get(2)?,
+        })
+    })?;
+    Ok(user)
 }
 
 fn get_user(conn: &Connection, id: &str) -> Result<User, Error> {

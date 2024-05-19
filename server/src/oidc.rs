@@ -1,10 +1,16 @@
-use std::time::{Duration, SystemTime};
+use std::time::Duration;
 
 use anyhow::Context;
+use chrono::Utc;
 use openidconnect::{
-    core::{CoreAuthenticationFlow, CoreClient, CoreProviderMetadata},
-    AuthorizationCode, ClientId, ClientSecret, CsrfToken, IssuerUrl, Nonce, OAuth2TokenResponse,
-    PkceCodeChallenge, PkceCodeVerifier, RedirectUrl, Scope, TokenResponse,
+    core::{
+        CoreAuthenticationFlow, CoreClient, CoreGenderClaim, CoreJweContentEncryptionAlgorithm,
+        CoreJwsSigningAlgorithm, CoreProviderMetadata,
+    },
+    AuthorizationCode, ClientId, ClientSecret, CsrfToken, EmptyAdditionalClaims,
+    EmptyExtraTokenFields, IdTokenFields, IssuerUrl, Nonce, OAuth2TokenResponse, PkceCodeChallenge,
+    PkceCodeVerifier, RedirectUrl, RefreshToken, Scope, StandardTokenResponse, TokenResponse,
+    TokenType,
 };
 use serde::{Deserialize, Serialize};
 
@@ -132,7 +138,7 @@ pub struct Authenticated {
     pub subject: String,
     pub name: String,
     pub refresh_token: String,
-    pub expires_at: SystemTime,
+    pub expires_at: chrono::DateTime<Utc>,
 }
 
 pub fn begin_auth(provider: &Provider) -> (openidconnect::url::Url, AuthState) {
@@ -145,8 +151,9 @@ pub fn begin_auth(provider: &Provider) -> (openidconnect::url::Url, AuthState) {
             Nonce::new_random,
         )
         .set_pkce_challenge(pkce_challenge)
-        .add_scope(Scope::new("openid".into()))
         .add_scope(Scope::new("access".into()))
+        .add_scope(Scope::new("offline_access".into()))
+        .add_scope(Scope::new("profile".into()))
         .url();
 
     (
@@ -176,10 +183,44 @@ pub async fn complete_auth<'a>(
         .await
         .context("Code exchange failure.")?;
 
+    to_authenticated(provider, Some(&state.nonce), token_response)
+}
+
+pub async fn refresh_auth(
+    provider: &Provider,
+    refresh_token: String,
+) -> Result<Authenticated, Error> {
+    let token_response = provider
+        .openid_client
+        .exchange_refresh_token(&RefreshToken::new(refresh_token))?
+        .request_async(&provider.http_client)
+        .await
+        .context("Refresh token exchange failure.")?;
+
+    to_authenticated(provider, None, token_response)
+}
+
+fn to_authenticated<TT: TokenType>(
+    provider: &Provider,
+    nonce: Option<&Nonce>,
+    token_response: StandardTokenResponse<
+        IdTokenFields<
+            EmptyAdditionalClaims,
+            EmptyExtraTokenFields,
+            CoreGenderClaim,
+            CoreJweContentEncryptionAlgorithm,
+            CoreJwsSigningAlgorithm,
+        >,
+        TT,
+    >,
+) -> Result<Authenticated, Error> {
     let id_token = token_response.id_token().ok_or(Error::MissingIdToken)?;
     let id_token_verifier = provider.openid_client.id_token_verifier();
 
-    let claims = id_token.claims(&id_token_verifier, &state.nonce)?;
+    let claims = match nonce {
+        Some(nonce) => id_token.claims(&id_token_verifier, nonce)?,
+        None => id_token.claims(&id_token_verifier, ignore_nonce_verification)?,
+    };
 
     let refresh_token = token_response
         .refresh_token()
@@ -187,8 +228,8 @@ pub async fn complete_auth<'a>(
 
     let expires_in = token_response.expires_in().ok_or(Error::MissingExpiresIn)?;
 
-    let expires_at = SystemTime::now()
-        .checked_add(expires_in)
+    let expires_at = chrono::Utc::now()
+        .checked_add_signed(chrono::TimeDelta::from_std(expires_in).context("Invalid duration.")?)
         .ok_or(Error::InvalidExpiresIn(expires_in))?;
 
     let subject = claims.subject();
@@ -208,4 +249,8 @@ pub async fn complete_auth<'a>(
         refresh_token: refresh_token.secret().to_owned(),
         expires_at,
     })
+}
+
+fn ignore_nonce_verification(_nonce: Option<&Nonce>) -> Result<(), String> {
+    Ok(())
 }

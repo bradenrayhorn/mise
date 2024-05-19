@@ -1,3 +1,6 @@
+use crate::cache;
+
+pub mod session;
 pub mod user;
 
 #[derive(thiserror::Error, Debug)]
@@ -10,4 +13,10 @@ pub enum Error {
 
     #[error(transparent)]
     Other(#[from] anyhow::Error),
+}
+
+impl From<cache::Error> for Error {
+    fn from(value: cache::Error) -> Self {
+        Error::Other(value.into())
+    }
 }
