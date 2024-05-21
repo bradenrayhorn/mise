@@ -101,23 +101,32 @@ async fn auth(
     mut req: Request,
     next: Next,
 ) -> Result<(CookieJar, Response), Error> {
-    let cookie = jar
+    let session_key = jar
         .get("id")
         .ok_or(Error::Unauthenticated(anyhow!("missing session cookie")))?
         .value();
 
-    let (user_id, new_session_key) = core::session::get(
+    let session = match core::session::get(
         &state.session_store,
         &state.oidc_provider,
-        SessionKey(cookie.to_string()),
+        SessionKey(session_key.to_string()),
     )
-    .await?;
+    .await
+    {
+        Ok(session) => session,
+        Err(err) => {
+            let jar = jar.remove(Cookie::from("id"));
+            return Ok((jar, err.into_response()));
+        }
+    };
 
-    let jar = if cookie != new_session_key.to_string() {
+    // Update the cookie if the session key changed.
+    let jar = if session_key != session.key.to_string() {
         jar.add(
-            Cookie::build(("id", new_session_key.to_string()))
+            Cookie::build(("id", session.key.to_string()))
                 .http_only(true)
                 .secure(true)
+                .path("/")
                 .same_site(cookie::SameSite::Strict)
                 .max_age(cookie::time::Duration::seconds(
                     core::session::SESSION_EXPIRES_IN,
@@ -127,7 +136,9 @@ async fn auth(
         jar
     };
 
-    let user = AuthenticatedUser { id: user_id };
+    let user = AuthenticatedUser {
+        id: session.user_id,
+    };
     req.extensions_mut().insert(user);
 
     Ok((jar, next.run(req).await))
