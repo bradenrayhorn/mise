@@ -1,10 +1,9 @@
-use anyhow::anyhow;
 use base64::Engine;
 use ring::rand::SecureRandom;
 
 use crate::{
     core,
-    domain::{Session, SessionKey, User},
+    domain::{Session, SessionKey, SessionStatus, User},
     oidc,
     session_store::{self, SessionStore},
 };
@@ -14,18 +13,30 @@ enum Error {
     #[error("crypto random error")]
     CryptoRandom,
 
+    #[error("session is expired")]
+    Expired,
+
     #[error("time out of bounds")]
     TimeOutOfBounds,
 }
 
 impl From<Error> for core::Error {
     fn from(value: Error) -> Self {
-        core::Error::Other(value.into())
+        match value {
+            Error::Expired => core::Error::Unauthenticated(value.into()),
+            _ => core::Error::Other(value.into()),
+        }
     }
 }
 
-// maximum number of seconds a session may last without refresh
+// maximum number of seconds a session may last before refresh
 pub const SESSION_EXPIRES_IN: i64 = 60 * 60 * 24;
+
+pub struct ActiveSession {
+    pub key: SessionKey,
+    pub user_id: String,
+    pub expires_at: chrono::DateTime<chrono::Utc>,
+}
 
 pub async fn begin(
     store: &SessionStore,
@@ -56,48 +67,101 @@ pub async fn get(
     store: &SessionStore,
     oidc: &oidc::Provider,
     key: SessionKey,
-) -> Result<(String, SessionKey), core::Error> {
-    let session: Session = store.get(key.clone()).await.map_err(|err| match err {
-        session_store::Error::NotFound => {
-            core::Error::Unauthenticated(anyhow!("session not found"))
+) -> Result<ActiveSession, core::Error> {
+    let session = find_session(store, key.clone()).await?;
+
+    match session.status() {
+        SessionStatus::Ok => Ok(ActiveSession {
+            key: SessionKey(session.key),
+            user_id: session.user_id,
+            expires_at: session.expires_at,
+        }),
+        SessionStatus::Expired => Err(Error::Expired.into()),
+        SessionStatus::MustRevalidate => {
+            // A refresh token can only be used once, therefore only one request to refresh must
+            // be attempted at a time otherwise multiple requests could try to use
+            // the same refresh token.
+            store.lock_refresh(key.clone()).await?;
+
+            let result = refresh_session(store, oidc, key.clone()).await;
+
+            store.unlock_refresh(key).await?;
+
+            result
+        }
+    }
+}
+
+async fn find_session(store: &SessionStore, key: SessionKey) -> Result<Session, core::Error> {
+    store.get(key).await.map_err(|err| match err {
+        session_store::Error::NotFound(err) => {
+            core::Error::Unauthenticated(err.context("session not found"))
         }
         _ => err.into(),
-    })?;
+    })
+}
 
-    if session.revalidate_at < chrono::Utc::now() {
-        // TODO - need to acquire lock on session key before attempting to refresh
-        //      - add a new feature to cache, locks, separate from normal cache value.
-        //      - prevents two requests from the same session trying to use the same refresh token.
-        //
-        let authenticated = match oidc::refresh_auth(oidc, session.refresh_token.clone()).await {
-            Ok(authenticated) => Ok(authenticated),
-            // TODO - can delete session from cache if refresh fails
-            Err(err) => Err(core::Error::Unauthenticated(err.into())),
-        }?;
+async fn refresh_session(
+    store: &SessionStore,
+    oidc: &oidc::Provider,
+    key: SessionKey,
+) -> Result<ActiveSession, core::Error> {
+    let session = find_session(store, key.clone()).await?;
 
-        let expires_at = chrono::Utc::now()
-            .checked_add_signed(chrono::TimeDelta::seconds(SESSION_EXPIRES_IN))
-            .ok_or(Error::TimeOutOfBounds)?;
+    match session.status() {
+        SessionStatus::Ok => Ok(ActiveSession {
+            key: SessionKey(session.key),
+            user_id: session.user_id,
+            expires_at: session.expires_at,
+        }),
+        SessionStatus::Expired => Err(Error::Expired.into()),
+        SessionStatus::MustRevalidate => {
+            let authenticated = match oidc::refresh_auth(oidc, session.refresh_token.clone()).await
+            {
+                Ok(authenticated) => Ok(authenticated),
+                Err(err) => {
+                    store.delete(key.clone()).await?;
+                    Err(core::Error::Unauthenticated(err.into()))
+                }
+            }?;
 
-        let new_key = new_session_id()?;
-        let new_session = Session {
-            key: new_key.clone(),
-            user_id: session.user_id.clone(),
-            refresh_token: authenticated.refresh_token,
-            revalidate_at: authenticated.expires_at,
-            expires_at,
-        };
+            // build a new session
+            let expires_at = chrono::Utc::now()
+                .checked_add_signed(chrono::TimeDelta::seconds(SESSION_EXPIRES_IN))
+                .ok_or(Error::TimeOutOfBounds)?;
 
-        // TODO - instead of removing old session right away, give grace period by setting the
-        // expiration to 15 seconds in future.
-        store.delete(key).await?;
-        store.set(new_session).await?;
+            let new_key = new_session_id()?;
+            let new_session = Session {
+                key: new_key.clone(),
+                user_id: session.user_id.clone(),
+                refresh_token: authenticated.refresh_token,
+                revalidate_at: authenticated.expires_at,
+                expires_at,
+            };
 
-        Ok((session.user_id, SessionKey(new_key)))
-    } else if session.expires_at < chrono::Utc::now() {
-        return Err(core::Error::Unauthenticated(anyhow!("session expired")));
-    } else {
-        Ok((session.user_id, SessionKey(session.key)))
+            // the old session should be kept alive for a short grace period to allow any requests
+            // still using the old session key to process successfully.
+            let original_session_grace = chrono::Utc::now()
+                .checked_add_signed(chrono::TimeDelta::seconds(15))
+                .ok_or(Error::TimeOutOfBounds)?;
+
+            let original_session = Session {
+                key: key.to_string(),
+                user_id: session.user_id.clone(),
+                refresh_token: session.refresh_token,
+                revalidate_at: original_session_grace,
+                expires_at: original_session_grace,
+            };
+
+            store.set(original_session).await?;
+            store.set(new_session).await?;
+
+            Ok(ActiveSession {
+                key: SessionKey(new_key),
+                user_id: session.user_id.clone(),
+                expires_at,
+            })
+        }
     }
 }
 

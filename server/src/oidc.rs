@@ -93,6 +93,7 @@ impl Provider {
     pub async fn new(config: Config) -> Result<Self, Error> {
         let client = reqwest::ClientBuilder::new()
             .redirect(reqwest::redirect::Policy::none())
+            .timeout(Duration::from_secs(30))
             .build()
             .context("Could not build HTTP client.")?;
 

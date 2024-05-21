@@ -1,6 +1,5 @@
-use std::{ops::Deref, thread};
+use std::{ops::Deref, thread, time::Duration};
 
-use anyhow::anyhow;
 use rusqlite::{params, Connection};
 use tokio::sync::mpsc;
 
@@ -11,7 +10,10 @@ use crate::{
 
 impl From<rusqlite::Error> for Error {
     fn from(value: rusqlite::Error) -> Self {
-        Error::Other(anyhow!(value))
+        match value {
+            rusqlite::Error::QueryReturnedNoRows => Error::NotFound(value.into()),
+            _ => Error::Other(value.into()),
+        }
     }
 }
 
@@ -23,10 +25,15 @@ CREATE TABLE sessions (
     revalidate_at TIMESTAMP NOT NULL,
     expires_at TIMESTAMP NOT NULL
 );
+CREATE TABLE refresh_locks (
+    key TEXT PRIMARY KEY,
+    lock_invalid_at TIMESTAMP NOT NULL
+);
 ";
 
 fn prepare_connection(conn: &Connection) -> Result<(), Error> {
     conn.pragma_update(None, "journal_mode", "WAL")?;
+    conn.pragma_update(None, "synchronous", "FULL")?;
     Ok(())
 }
 
@@ -39,7 +46,7 @@ pub fn session_store(path: String) -> Result<mpsc::Sender<Message>, Error> {
     let user_version: u32 = tx.pragma_query_value(None, "user_version", |row| row.get(0))?;
     let desired_version: u32 = 1;
     if user_version < desired_version {
-        tx.execute(MIGRATION, ())?;
+        tx.execute_batch(MIGRATION)?;
         tx.pragma_update(None, "user_version", desired_version)?;
     }
     tx.commit()?;
@@ -56,7 +63,7 @@ impl ThreadWorker {
     fn new(path: String) -> Result<(Self, mpsc::Sender<Message>), Error> {
         let (sender, mut receiver) = mpsc::channel(8);
 
-        let conn = Connection::open(path)?;
+        let mut conn = Connection::open(path)?;
         prepare_connection(&conn)?;
 
         thread::spawn(move || {
@@ -73,6 +80,17 @@ impl ThreadWorker {
                         respond_to,
                     } => {
                         let _ = respond_to.send(set(&conn, &session));
+                    }
+                    Message::LockRefresh {
+                        key,
+                        max_lock,
+                        respond_to,
+                    } => {
+                        let res = lock_refresh(&mut conn, &key, &max_lock);
+                        let _ = respond_to.send(res);
+                    }
+                    Message::UnlockRefresh { key, respond_to } => {
+                        let _ = respond_to.send(unlock_refresh(&conn, &key));
                     }
                 }
             }
@@ -105,11 +123,11 @@ fn get(conn: &Connection, key: &SessionKey) -> Result<Session, Error> {
     let mut stmt = conn.prepare_cached(q)?;
     let session = stmt.query_row(params![key.deref()], |row| {
         Ok(Session {
-            key: row.get(0)?,
-            user_id: row.get(1)?,
-            refresh_token: row.get(2)?,
-            revalidate_at: row.get(3)?,
-            expires_at: row.get(4)?,
+            key: row.get("key")?,
+            user_id: row.get("user_id")?,
+            refresh_token: row.get("refresh_token")?,
+            revalidate_at: row.get("revalidate_at")?,
+            expires_at: row.get("expires_at")?,
         })
     })?;
 
@@ -118,6 +136,44 @@ fn get(conn: &Connection, key: &SessionKey) -> Result<Session, Error> {
 
 fn delete(conn: &Connection, key: &SessionKey) -> Result<(), Error> {
     let q = "DELETE FROM sessions WHERE key = ?1";
+
+    let mut stmt = conn.prepare_cached(q)?;
+    stmt.execute([key.deref()])?;
+
+    Ok(())
+}
+
+fn lock_refresh(
+    conn: &mut Connection,
+    key: &SessionKey,
+    lock_until: &Duration,
+) -> Result<bool, Error> {
+    let mut tx = conn.transaction_with_behavior(rusqlite::TransactionBehavior::Exclusive)?;
+    tx.set_drop_behavior(rusqlite::DropBehavior::Commit);
+
+    // check if lock is already set
+    let mut stmt = tx.prepare_cached(
+        "SELECT key FROM refresh_locks WHERE key = ?1 AND lock_invalid_at > datetime('now')",
+    )?;
+    let lock_exists = stmt.exists(params![key.deref()])?;
+
+    match lock_exists {
+        true => Ok(false),
+
+        false => {
+            // acquire lock
+            let mut stmt = tx.prepare_cached(
+                "INSERT INTO refresh_locks VALUES (?1, datetime('now', '+' || ?2 || ' seconds'))",
+            )?;
+            stmt.execute(params![key.deref(), lock_until.as_secs()])?;
+
+            Ok(true)
+        }
+    }
+}
+
+fn unlock_refresh(conn: &Connection, key: &SessionKey) -> Result<(), Error> {
+    let q = "DELETE FROM refresh_locks WHERE key = ?1";
 
     let mut stmt = conn.prepare_cached(q)?;
     stmt.execute([key.deref()])?;

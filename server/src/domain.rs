@@ -35,3 +35,23 @@ pub struct Session {
     pub revalidate_at: chrono::DateTime<chrono::Utc>,
     pub expires_at: chrono::DateTime<chrono::Utc>,
 }
+
+pub enum SessionStatus {
+    MustRevalidate,
+    Expired,
+    Ok,
+}
+
+impl Session {
+    pub fn status(&self) -> SessionStatus {
+        let now = chrono::Utc::now();
+
+        if self.expires_at <= now {
+            return SessionStatus::Expired;
+        } else if self.revalidate_at <= now {
+            return SessionStatus::MustRevalidate;
+        } else {
+            return SessionStatus::Ok;
+        }
+    }
+}
