@@ -10,7 +10,7 @@ async fn main() {
         }
     };
 
-    let (_worker_pool, senders) = match sqlite::worker_pool() {
+    let (_worker_pool, senders) = match sqlite::worker_pool("mise.db".to_owned()) {
         Ok(pool) => pool,
         Err(err) => {
             println!("error with pool: {:?}", err);
