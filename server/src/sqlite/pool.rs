@@ -1,6 +1,5 @@
 use std::{sync::mpsc, thread};
 
-use anyhow::anyhow;
 use rusqlite::Connection;
 
 use crate::{
@@ -10,7 +9,10 @@ use crate::{
 
 impl From<rusqlite::Error> for Error {
     fn from(value: rusqlite::Error) -> Self {
-        Error::Unknown(anyhow!(value))
+        match value {
+            rusqlite::Error::QueryReturnedNoRows => Error::NotFound,
+            _ => Error::Unknown(value.into()),
+        }
     }
 }
 
@@ -31,9 +33,10 @@ fn prepare_connection(conn: &Connection) -> Result<(), Error> {
 
 pub struct WorkerPool {}
 
-pub fn worker_pool() -> Result<(WorkerPool, Vec<mpsc::Sender<DatastoreMessage>>), Error> {
-    let path = "mise.db";
-    let mut conn = Connection::open(path)?;
+pub fn worker_pool(
+    path: String,
+) -> Result<(WorkerPool, Vec<mpsc::Sender<DatastoreMessage>>), Error> {
+    let mut conn = Connection::open(path.clone())?;
     prepare_connection(&conn)?;
 
     // run migrations
@@ -52,7 +55,7 @@ pub fn worker_pool() -> Result<(WorkerPool, Vec<mpsc::Sender<DatastoreMessage>>)
     let mut senders: Vec<mpsc::Sender<DatastoreMessage>> = Vec::new();
 
     for _ in 0..5 {
-        let (_, sender) = ThreadWorker::new()?;
+        let (_, sender) = ThreadWorker::new(path.clone())?;
         senders.push(sender);
     }
 
@@ -62,10 +65,9 @@ pub fn worker_pool() -> Result<(WorkerPool, Vec<mpsc::Sender<DatastoreMessage>>)
 struct ThreadWorker {}
 
 impl ThreadWorker {
-    fn new() -> Result<(Self, mpsc::Sender<DatastoreMessage>), Error> {
+    fn new(path: String) -> Result<(Self, mpsc::Sender<DatastoreMessage>), Error> {
         let (sender, receiver) = mpsc::channel();
 
-        let path = "mise.db";
         let conn = Connection::open(path)?;
         prepare_connection(&conn)?;
 

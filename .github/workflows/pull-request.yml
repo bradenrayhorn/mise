@@ -25,3 +25,16 @@ jobs:
         if: always()
         run: cargo clippy
 
+  test:
+    name: Test Rust
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./server
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@1d96c772d19495a3b5c517cd2bc0cb401ea0529f # v4
+
+      - name: test
+        run: cargo test
+
