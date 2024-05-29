@@ -16,10 +16,10 @@ pub fn get(conn: &Connection, id: &str) -> Result<domain::RecipeDocument, Error>
             document: row.get(2)?,
         })
     })
-    .map_err(|err| err.into())
+    .map_err(std::convert::Into::into)
 }
 
-pub fn insert(conn: &mut Connection, recipe: domain::RecipeDocument) -> Result<(), Error> {
+pub fn insert(conn: &mut Connection, recipe: &domain::RecipeDocument) -> Result<(), Error> {
     let q = "INSERT INTO recipes (id,title,document) VALUES (?1,?2,?3)";
     let mut stmt = conn.prepare_cached(q)?;
     stmt.insert(params![recipe.id, recipe.title, recipe.document])?;
@@ -27,7 +27,7 @@ pub fn insert(conn: &mut Connection, recipe: domain::RecipeDocument) -> Result<(
     Ok(())
 }
 
-pub fn update(conn: &mut Connection, recipe: domain::RecipeDocument) -> Result<(), Error> {
+pub fn update(conn: &mut Connection, recipe: &domain::RecipeDocument) -> Result<(), Error> {
     let q = "UPDATE recipes SET title=?2, document=?3 WHERE id=?1";
     let mut stmt = conn.prepare_cached(q)?;
     stmt.execute(params![recipe.id, recipe.title, recipe.document])?;

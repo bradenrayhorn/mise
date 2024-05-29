@@ -32,7 +32,7 @@ impl From<Error> for core::Error {
 // maximum number of seconds a session may last before refresh
 pub const SESSION_EXPIRES_IN: i64 = 60 * 60 * 24;
 
-pub struct ActiveSession {
+pub struct Active {
     pub key: SessionKey,
     pub user_id: String,
     pub expires_at: chrono::DateTime<chrono::Utc>,
@@ -67,11 +67,11 @@ pub async fn get(
     store: &SessionStore,
     oidc: &oidc::Provider,
     key: SessionKey,
-) -> Result<ActiveSession, core::Error> {
+) -> Result<Active, core::Error> {
     let session = find_session(store, key.clone()).await?;
 
     match session.status() {
-        SessionStatus::Ok => Ok(ActiveSession {
+        SessionStatus::Ok => Ok(Active {
             key: SessionKey(session.key),
             user_id: session.user_id,
             expires_at: session.expires_at,
@@ -105,11 +105,11 @@ async fn refresh_session(
     store: &SessionStore,
     oidc: &oidc::Provider,
     key: SessionKey,
-) -> Result<ActiveSession, core::Error> {
+) -> Result<Active, core::Error> {
     let session = find_session(store, key.clone()).await?;
 
     match session.status() {
-        SessionStatus::Ok => Ok(ActiveSession {
+        SessionStatus::Ok => Ok(Active {
             key: SessionKey(session.key),
             user_id: session.user_id,
             expires_at: session.expires_at,
@@ -156,7 +156,7 @@ async fn refresh_session(
             store.set(original_session).await?;
             store.set(new_session).await?;
 
-            Ok(ActiveSession {
+            Ok(Active {
                 key: SessionKey(new_key),
                 user_id: session.user_id.clone(),
                 expires_at,

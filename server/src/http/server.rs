@@ -41,6 +41,7 @@ impl FromRef<AppState> for Key {
 }
 
 impl Server {
+    #[must_use]
     pub fn new(config: Config, datasource: Pool, session_store: SessionStore) -> Self {
         Server {
             config,
@@ -121,7 +122,9 @@ async fn auth(
     };
 
     // Update the cookie if the session key changed.
-    let jar = if session_key != session.key.to_string() {
+    let jar = if session_key == session.key.to_string() {
+        jar
+    } else {
         jar.add(
             Cookie::build(("id", session.key.to_string()))
                 .http_only(true)
@@ -132,8 +135,6 @@ async fn auth(
                     core::session::SESSION_EXPIRES_IN,
                 )),
         )
-    } else {
-        jar
     };
 
     let user = AuthenticatedUser {
@@ -150,11 +151,11 @@ impl IntoResponse for Error {
             // TODO - log all errors, not just unknown, if debug logging is on
             Error::NotFound(msg) => (StatusCode::NOT_FOUND, msg).into_response(),
             Error::Unauthenticated(err) => {
-                println!("error: {:?}", err);
+                println!("error: {err:?}");
                 (StatusCode::UNAUTHORIZED, "Unauthenticated.").into_response()
             }
             Error::Other(err) => {
-                println!("error: {:?}", err);
+                println!("error: {err:?}");
                 (StatusCode::INTERNAL_SERVER_ERROR, "Internal error").into_response()
             }
         }

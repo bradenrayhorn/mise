@@ -10,7 +10,7 @@ async fn main() {
         }
     };
 
-    let (_worker_pool, senders) = match sqlite::worker_pool("mise.db".to_owned()) {
+    let (_worker_pool, senders) = match sqlite::datastore_handler("mise.db") {
         Ok(pool) => pool,
         Err(err) => {
             println!("error with pool: {:?}", err);
@@ -18,7 +18,7 @@ async fn main() {
         }
     };
 
-    let session_store_sender = match sqlite::session_store("mise_sessions.db".to_owned()) {
+    let session_store_sender = match sqlite::session_store("mise_sessions.db") {
         Ok(sender) => sender,
         Err(err) => {
             println!("error with sqlite session store: {:?}", err);

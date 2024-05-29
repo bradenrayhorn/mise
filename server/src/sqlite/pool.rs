@@ -4,7 +4,7 @@ use anyhow::anyhow;
 use rusqlite::Connection;
 
 use crate::{
-    datastore::{DatastoreMessage, Error},
+    datastore::{Error, Message},
     domain::{RegisteringUser, User},
 };
 
@@ -19,7 +19,7 @@ impl From<rusqlite::Error> for Error {
     }
 }
 
-const MIGRATION: [&'static str; 2] = [
+const MIGRATION: [&str; 2] = [
     "
 CREATE TABLE users (
     id TEXT PRIMARY KEY,
@@ -42,12 +42,12 @@ fn prepare_connection(conn: &Connection) -> Result<(), Error> {
     Ok(())
 }
 
-pub struct WorkerPool {}
+pub struct DatastoreHandler {}
 
-pub fn worker_pool(
-    path: String,
-) -> Result<(WorkerPool, Vec<mpsc::Sender<DatastoreMessage>>), Error> {
-    let mut conn = Connection::open(path.clone())?;
+pub fn datastore_handler(
+    path: &str,
+) -> Result<(DatastoreHandler, Vec<mpsc::Sender<Message>>), Error> {
+    let mut conn = Connection::open(path)?;
     prepare_connection(&conn)?;
 
     // run migrations
@@ -68,20 +68,20 @@ pub fn worker_pool(
     }
     tx.commit()?;
 
-    let mut senders: Vec<mpsc::Sender<DatastoreMessage>> = Vec::new();
+    let mut senders: Vec<mpsc::Sender<Message>> = Vec::new();
 
     for _ in 0..5 {
-        let (_, sender) = ThreadWorker::new(path.clone())?;
+        let (_, sender) = ThreadWorker::new(path)?;
         senders.push(sender);
     }
 
-    Ok((WorkerPool {}, senders))
+    Ok((DatastoreHandler {}, senders))
 }
 
 struct ThreadWorker {}
 
 impl ThreadWorker {
-    fn new(path: String) -> Result<(Self, mpsc::Sender<DatastoreMessage>), Error> {
+    fn new(path: &str) -> Result<(Self, mpsc::Sender<Message>), Error> {
         let (sender, receiver) = mpsc::channel();
 
         let mut conn = Connection::open(path)?;
@@ -90,24 +90,24 @@ impl ThreadWorker {
         thread::spawn(move || {
             while let Ok(msg) = receiver.recv() {
                 match msg {
-                    DatastoreMessage::Health { respond_to } => {
+                    Message::Health { respond_to } => {
                         // TODO - check health
                         let _ = respond_to.send(Ok(()));
                     }
-                    DatastoreMessage::GetUser { respond_to, id } => {
+                    Message::GetUser { respond_to, id } => {
                         let _ = respond_to.send(get_user(&conn, &id));
                     }
-                    DatastoreMessage::UpsertUserByOauthId { respond_to, user } => {
+                    Message::UpsertUserByOauthId { respond_to, user } => {
                         let _ = respond_to.send(upsert_user_by_oauth_id(&conn, &user));
                     }
-                    DatastoreMessage::GetRecipe { id, respond_to } => {
+                    Message::GetRecipe { id, respond_to } => {
                         let _ = respond_to.send(recipe::get(&conn, &id));
                     }
-                    DatastoreMessage::CreateRecipe { recipe, respond_to } => {
-                        let _ = respond_to.send(recipe::insert(&mut conn, recipe));
+                    Message::CreateRecipe { recipe, respond_to } => {
+                        let _ = respond_to.send(recipe::insert(&mut conn, &recipe));
                     }
-                    DatastoreMessage::UpdateRecipe { recipe, respond_to } => {
-                        let _ = respond_to.send(recipe::update(&mut conn, recipe));
+                    Message::UpdateRecipe { recipe, respond_to } => {
+                        let _ = respond_to.send(recipe::update(&mut conn, &recipe));
                     }
                 }
             }

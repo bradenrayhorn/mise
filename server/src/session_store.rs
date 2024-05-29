@@ -37,6 +37,7 @@ pub struct RefreshLockStatus {
 }
 
 impl SessionStore {
+    #[must_use]
     pub fn new(sender: mpsc::Sender<Message>) -> Self {
         SessionStore { sender }
     }
