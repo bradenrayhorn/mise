@@ -27,6 +27,12 @@ impl Deref for SessionKey {
     }
 }
 
+impl From<SessionKey> for String {
+    fn from(value: SessionKey) -> Self {
+        value.0
+    }
+}
+
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Session {
     pub key: String,
@@ -43,6 +49,7 @@ pub enum SessionStatus {
 }
 
 impl Session {
+    #[must_use]
     pub fn status(&self) -> SessionStatus {
         let now = chrono::Utc::now();
 
@@ -50,9 +57,9 @@ impl Session {
             return SessionStatus::Expired;
         } else if self.revalidate_at <= now {
             return SessionStatus::MustRevalidate;
-        } else {
-            return SessionStatus::Ok;
         }
+
+        SessionStatus::Ok
     }
 }
 

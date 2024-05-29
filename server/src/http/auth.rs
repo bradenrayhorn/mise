@@ -17,7 +17,7 @@ use crate::{
 use super::server::AppState;
 
 #[derive(Deserialize)]
-pub struct AuthCompleteParams {
+pub struct CallbackParams {
     state: String,
     code: String,
 }
@@ -41,13 +41,13 @@ pub async fn init(
         .build(),
     );
 
-    Ok((jar, Redirect::temporary(&auth_url.to_string())))
+    Ok((jar, Redirect::temporary(auth_url.as_ref())))
 }
 
 pub async fn callback(
     jar: CookieJar,
     State(state): State<AppState>,
-    params: Query<AuthCompleteParams>,
+    params: Query<CallbackParams>,
 ) -> Result<(CookieJar, String), Error> {
     let oidc_state = serde_json::from_str::<oidc::AuthState>(
         jar.get("s")

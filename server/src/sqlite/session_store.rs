@@ -1,6 +1,6 @@
-use std::{ops::Deref, thread, time::Duration};
+use std::{thread, time::Duration};
 
-use rusqlite::{params, Connection};
+use rusqlite::{params, Connection, ToSql};
 use tokio::sync::mpsc;
 
 use crate::{
@@ -37,8 +37,8 @@ fn prepare_connection(conn: &Connection) -> Result<(), Error> {
     Ok(())
 }
 
-pub fn session_store(path: String) -> Result<mpsc::Sender<Message>, Error> {
-    let mut conn = Connection::open(&path)?;
+pub fn session_store(path: &str) -> Result<mpsc::Sender<Message>, Error> {
+    let mut conn = Connection::open(path)?;
     prepare_connection(&conn)?;
 
     // run migration
@@ -57,10 +57,16 @@ pub fn session_store(path: String) -> Result<mpsc::Sender<Message>, Error> {
     Ok(sender)
 }
 
+impl ToSql for SessionKey {
+    fn to_sql(&self) -> rusqlite::Result<rusqlite::types::ToSqlOutput<'_>> {
+        self.0.to_sql()
+    }
+}
+
 struct ThreadWorker {}
 
 impl ThreadWorker {
-    fn new(path: String) -> Result<(Self, mpsc::Sender<Message>), Error> {
+    fn new(path: &str) -> Result<(Self, mpsc::Sender<Message>), Error> {
         let (sender, mut receiver) = mpsc::channel(8);
 
         let mut conn = Connection::open(path)?;
@@ -121,7 +127,7 @@ fn get(conn: &Connection, key: &SessionKey) -> Result<Session, Error> {
     let q = "SELECT * FROM sessions WHERE key = ?1 AND expires_at > datetime('now')";
 
     let mut stmt = conn.prepare_cached(q)?;
-    let session = stmt.query_row(params![key.deref()], |row| {
+    let session = stmt.query_row(params![key], |row| {
         Ok(Session {
             key: row.get("key")?,
             user_id: row.get("user_id")?,
@@ -138,7 +144,7 @@ fn delete(conn: &Connection, key: &SessionKey) -> Result<(), Error> {
     let q = "DELETE FROM sessions WHERE key = ?1";
 
     let mut stmt = conn.prepare_cached(q)?;
-    stmt.execute([key.deref()])?;
+    stmt.execute([key])?;
 
     Ok(())
 }
@@ -155,20 +161,18 @@ fn lock_refresh(
     let mut stmt = tx.prepare_cached(
         "SELECT key FROM refresh_locks WHERE key = ?1 AND lock_invalid_at > datetime('now')",
     )?;
-    let lock_exists = stmt.exists(params![key.deref()])?;
+    let lock_exists = stmt.exists(params![key])?;
 
-    match lock_exists {
-        true => Ok(false),
+    if lock_exists {
+        Ok(false)
+    } else {
+        // acquire lock
+        let mut stmt = tx.prepare_cached(
+            "INSERT INTO refresh_locks VALUES (?1, datetime('now', '+' || ?2 || ' seconds'))",
+        )?;
+        stmt.execute(params![key, lock_until.as_secs()])?;
 
-        false => {
-            // acquire lock
-            let mut stmt = tx.prepare_cached(
-                "INSERT INTO refresh_locks VALUES (?1, datetime('now', '+' || ?2 || ' seconds'))",
-            )?;
-            stmt.execute(params![key.deref(), lock_until.as_secs()])?;
-
-            Ok(true)
-        }
+        Ok(true)
     }
 }
 
@@ -176,7 +180,7 @@ fn unlock_refresh(conn: &Connection, key: &SessionKey) -> Result<(), Error> {
     let q = "DELETE FROM refresh_locks WHERE key = ?1";
 
     let mut stmt = conn.prepare_cached(q)?;
-    stmt.execute([key.deref()])?;
+    stmt.execute([key])?;
 
     Ok(())
 }

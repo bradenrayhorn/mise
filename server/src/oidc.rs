@@ -64,7 +64,7 @@ impl TryFrom<&config::Config> for Config {
     type Error = Error;
 
     fn try_from(value: &config::Config) -> Result<Self, Self::Error> {
-        if value.oidc.origin.ends_with("/") {
+        if value.oidc.origin.ends_with('/') {
             return Err(Error::OriginMustNotEndWithSlash);
         }
 
@@ -111,7 +111,14 @@ impl Provider {
             ClientId::new(config.client_id),
             Some(ClientSecret::new(config.client_secret)),
         )
-        .set_redirect_uri(RedirectUrl::new(format!("{}/auth/complete", config.origin)).unwrap());
+        .set_redirect_uri(
+            RedirectUrl::new(format!("{}/auth/complete", config.origin)).map_err(|err| {
+                Error::InvalidUrl {
+                    msg: "Invalid Redirect URL".to_string(),
+                    source: err,
+                }
+            })?,
+        );
 
         Ok(Provider {
             http_client: client,
@@ -184,7 +191,7 @@ pub async fn complete_auth<'a>(
         .await
         .context("Code exchange failure.")?;
 
-    to_authenticated(provider, Some(&state.nonce), token_response)
+    to_authenticated(provider, Some(&state.nonce), &token_response)
 }
 
 pub async fn refresh_auth(
@@ -198,13 +205,13 @@ pub async fn refresh_auth(
         .await
         .context("Refresh token exchange failure.")?;
 
-    to_authenticated(provider, None, token_response)
+    to_authenticated(provider, None, &token_response)
 }
 
 fn to_authenticated<TT: TokenType>(
     provider: &Provider,
     nonce: Option<&Nonce>,
-    token_response: StandardTokenResponse<
+    token_response: &StandardTokenResponse<
         IdTokenFields<
             EmptyAdditionalClaims,
             EmptyExtraTokenFields,
@@ -252,6 +259,7 @@ fn to_authenticated<TT: TokenType>(
     })
 }
 
+#[allow(clippy::unnecessary_wraps)]
 fn ignore_nonce_verification(_nonce: Option<&Nonce>) -> Result<(), String> {
     Ok(())
 }

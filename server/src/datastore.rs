@@ -34,25 +34,26 @@ impl From<tokio::sync::oneshot::error::RecvError> for Error {
 #[derive(Clone)]
 pub struct Pool {
     // TODO - More efficient locking and data structure could be used, but this is fine for now.
-    connections: Arc<Mutex<Vec<mpsc::Sender<DatastoreMessage>>>>,
+    connections: Arc<Mutex<Vec<mpsc::Sender<Message>>>>,
 }
 
 #[derive(Clone)]
 struct PoolConnection {
-    sender: mpsc::Sender<DatastoreMessage>,
-    connections: Arc<Mutex<Vec<mpsc::Sender<DatastoreMessage>>>>,
+    sender: mpsc::Sender<Message>,
+    connections: Arc<Mutex<Vec<mpsc::Sender<Message>>>>,
 }
 
 impl Drop for PoolConnection {
     fn drop(&mut self) {
         // release thread back to pool when connection is done
         let mut connections = self.connections.lock().unwrap();
-        connections.push(self.sender.clone())
+        connections.push(self.sender.clone());
     }
 }
 
 impl Pool {
-    pub fn new(connections: Vec<mpsc::Sender<DatastoreMessage>>) -> Self {
+    #[must_use]
+    pub fn new(connections: Vec<mpsc::Sender<Message>>) -> Self {
         Pool {
             connections: Arc::new(Mutex::new(connections)),
         }
@@ -74,7 +75,7 @@ impl Pool {
     pub async fn get_user(&self, id: String) -> Result<User, Error> {
         let conn = self.conn()?;
         let (tx, rx) = oneshot::channel();
-        let msg = DatastoreMessage::GetUser { id, respond_to: tx };
+        let msg = Message::GetUser { id, respond_to: tx };
 
         let _ = conn.sender.send(msg);
         rx.await?
@@ -83,7 +84,7 @@ impl Pool {
     pub async fn upsert_user_by_oauth_id(&self, user: RegisteringUser) -> Result<User, Error> {
         let conn = self.conn()?;
         let (tx, rx) = oneshot::channel();
-        let msg = DatastoreMessage::UpsertUserByOauthId {
+        let msg = Message::UpsertUserByOauthId {
             user,
             respond_to: tx,
         };
@@ -97,7 +98,7 @@ impl Pool {
     pub async fn get_recipe(&self, id: String) -> Result<RecipeDocument, Error> {
         let conn = self.conn()?;
         let (tx, rx) = oneshot::channel();
-        let msg = DatastoreMessage::GetRecipe { id, respond_to: tx };
+        let msg = Message::GetRecipe { id, respond_to: tx };
 
         let _ = conn.sender.send(msg);
         rx.await?
@@ -106,7 +107,7 @@ impl Pool {
     pub async fn create_recipe(&self, recipe: RecipeDocument) -> Result<(), Error> {
         let conn = self.conn()?;
         let (tx, rx) = oneshot::channel();
-        let msg = DatastoreMessage::CreateRecipe {
+        let msg = Message::CreateRecipe {
             recipe,
             respond_to: tx,
         };
@@ -118,7 +119,7 @@ impl Pool {
     pub async fn update_recipe(&self, recipe: RecipeDocument) -> Result<(), Error> {
         let conn = self.conn()?;
         let (tx, rx) = oneshot::channel();
-        let msg = DatastoreMessage::UpdateRecipe {
+        let msg = Message::UpdateRecipe {
             recipe,
             respond_to: tx,
         };
@@ -128,7 +129,7 @@ impl Pool {
     }
 }
 
-pub enum DatastoreMessage {
+pub enum Message {
     Health {
         respond_to: oneshot::Sender<Result<(), Error>>,
     },

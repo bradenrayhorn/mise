@@ -15,7 +15,7 @@ pub async fn get(datasource: &Pool, id: &str) -> Result<String, Error> {
         .get_user(id.to_owned())
         .await
         .map_err(|err| match err {
-            datastore::Error::NotFound => Error::NotFound(format!("user {} does not exist", id)),
+            datastore::Error::NotFound => Error::NotFound(format!("user {id} does not exist")),
             _ => Error::Other(err.into()),
         })?;
 

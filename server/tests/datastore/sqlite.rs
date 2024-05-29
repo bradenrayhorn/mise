@@ -34,7 +34,7 @@ impl CreatesDatastore for SqliteCreator {
             .collect();
         let file_path = format!("/tmp/{}-mise-test.db", file_name);
 
-        let (_, connections) = sqlite::worker_pool(file_path.clone()).unwrap();
+        let (_, connections) = sqlite::datastore_handler(&file_path).unwrap();
         TestPool {
             pool: datastore::Pool::new(connections),
             path: file_path,
