@@ -55,3 +55,10 @@ impl Session {
         }
     }
 }
+
+#[derive(Debug, Clone)]
+pub struct RecipeDocument {
+    pub id: String,
+    pub title: String,
+    pub document: String,
+}

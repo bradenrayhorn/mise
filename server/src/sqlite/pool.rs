@@ -1,11 +1,14 @@
 use std::{sync::mpsc, thread};
 
+use anyhow::anyhow;
 use rusqlite::Connection;
 
 use crate::{
     datastore::{DatastoreMessage, Error},
     domain::{RegisteringUser, User},
 };
+
+use super::recipe;
 
 impl From<rusqlite::Error> for Error {
     fn from(value: rusqlite::Error) -> Self {
@@ -16,14 +19,22 @@ impl From<rusqlite::Error> for Error {
     }
 }
 
-const MIGRATION: &str = "
+const MIGRATION: [&'static str; 2] = [
+    "
 CREATE TABLE users (
     id TEXT PRIMARY KEY,
     oauth_id TEXT NOT NULL UNIQUE,
     name TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-";
+);",
+    "
+CREATE TABLE recipes (
+    id TEXT PRIMARY KEY,
+    title TEXT NOT NULL,
+    document TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);",
+];
 
 fn prepare_connection(conn: &Connection) -> Result<(), Error> {
     conn.pragma_update(None, "journal_mode", "WAL")?;
@@ -41,14 +52,19 @@ pub fn worker_pool(
 
     // run migrations
     let tx = conn.transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)?;
-    let user_version: u32 = tx.pragma_query_value(None, "user_version", |row| row.get(0))?;
-    let desired_version: u32 = 1;
-    // TODO - be able to run multiple migrations
-    // TODO - handle if migrations have some version problems
+    let user_version: usize = tx.pragma_query_value(None, "user_version", |row| row.get(0))?;
+    let desired_version = MIGRATION.len();
     if user_version < desired_version {
         // need to run migrations
-        tx.execute(MIGRATION, ())?;
+        for query in &MIGRATION[user_version..] {
+            tx.execute(query, ())?;
+        }
         tx.pragma_update(None, "user_version", desired_version)?;
+    } else {
+        return Err(Error::Unknown(anyhow!(
+            "Database at unknown migration: {}",
+            user_version
+        )));
     }
     tx.commit()?;
 
@@ -68,7 +84,7 @@ impl ThreadWorker {
     fn new(path: String) -> Result<(Self, mpsc::Sender<DatastoreMessage>), Error> {
         let (sender, receiver) = mpsc::channel();
 
-        let conn = Connection::open(path)?;
+        let mut conn = Connection::open(path)?;
         prepare_connection(&conn)?;
 
         thread::spawn(move || {
@@ -83,6 +99,15 @@ impl ThreadWorker {
                     }
                     DatastoreMessage::UpsertUserByOauthId { respond_to, user } => {
                         let _ = respond_to.send(upsert_user_by_oauth_id(&conn, &user));
+                    }
+                    DatastoreMessage::GetRecipe { id, respond_to } => {
+                        let _ = respond_to.send(recipe::get(&conn, &id));
+                    }
+                    DatastoreMessage::CreateRecipe { recipe, respond_to } => {
+                        let _ = respond_to.send(recipe::insert(&mut conn, recipe));
+                    }
+                    DatastoreMessage::UpdateRecipe { recipe, respond_to } => {
+                        let _ = respond_to.send(recipe::update(&mut conn, recipe));
                     }
                 }
             }
