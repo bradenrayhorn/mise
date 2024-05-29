@@ -4,7 +4,7 @@ use anyhow::anyhow;
 use thiserror::Error;
 use tokio::sync::oneshot;
 
-use crate::domain::{RegisteringUser, User};
+use crate::domain::{RecipeDocument, RegisteringUser, User};
 
 // Error
 
@@ -91,12 +91,49 @@ impl Pool {
         let _ = conn.sender.send(msg);
         rx.await?
     }
+
+    // recipe
+
+    pub async fn get_recipe(&self, id: String) -> Result<RecipeDocument, Error> {
+        let conn = self.conn()?;
+        let (tx, rx) = oneshot::channel();
+        let msg = DatastoreMessage::GetRecipe { id, respond_to: tx };
+
+        let _ = conn.sender.send(msg);
+        rx.await?
+    }
+
+    pub async fn create_recipe(&self, recipe: RecipeDocument) -> Result<(), Error> {
+        let conn = self.conn()?;
+        let (tx, rx) = oneshot::channel();
+        let msg = DatastoreMessage::CreateRecipe {
+            recipe,
+            respond_to: tx,
+        };
+
+        let _ = conn.sender.send(msg);
+        rx.await?
+    }
+
+    pub async fn update_recipe(&self, recipe: RecipeDocument) -> Result<(), Error> {
+        let conn = self.conn()?;
+        let (tx, rx) = oneshot::channel();
+        let msg = DatastoreMessage::UpdateRecipe {
+            recipe,
+            respond_to: tx,
+        };
+
+        let _ = conn.sender.send(msg);
+        rx.await?
+    }
 }
 
 pub enum DatastoreMessage {
     Health {
         respond_to: oneshot::Sender<Result<(), Error>>,
     },
+
+    // user
     GetUser {
         id: String,
         respond_to: oneshot::Sender<Result<User, Error>>,
@@ -104,5 +141,19 @@ pub enum DatastoreMessage {
     UpsertUserByOauthId {
         user: RegisteringUser,
         respond_to: oneshot::Sender<Result<User, Error>>,
+    },
+
+    // recipe
+    GetRecipe {
+        id: String,
+        respond_to: oneshot::Sender<Result<RecipeDocument, Error>>,
+    },
+    CreateRecipe {
+        recipe: RecipeDocument,
+        respond_to: oneshot::Sender<Result<(), Error>>,
+    },
+    UpdateRecipe {
+        recipe: RecipeDocument,
+        respond_to: oneshot::Sender<Result<(), Error>>,
     },
 }
