@@ -63,9 +63,21 @@ impl Session {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RecipeDocument {
-    pub id: String,
     pub title: String,
-    pub document: String,
+    pub ingredients: String,
+    pub instructions: String,
+    pub notes: Option<String>,
+}
+
+#[derive(Debug, Clone)]
+pub struct HashedRecipeDocument {
+    pub document: RecipeDocument,
+    pub hash: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct RecipeRevision {
+    pub revision: usize,
 }

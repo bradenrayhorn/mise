@@ -4,7 +4,7 @@ use anyhow::anyhow;
 use thiserror::Error;
 use tokio::sync::oneshot;
 
-use crate::domain::{RecipeDocument, RegisteringUser, User};
+use crate::domain::{HashedRecipeDocument, RecipeDocument, RecipeRevision, RegisteringUser, User};
 
 // Error
 
@@ -13,8 +13,8 @@ pub enum Error {
     #[error("record not found")]
     NotFound,
 
-    #[error("not in a transaction")]
-    NotTransaction,
+    #[error("invalid state when mutating record")]
+    Conflict,
 
     #[error("no available connections")]
     NoConnections,
@@ -95,7 +95,7 @@ impl Pool {
 
     // recipe
 
-    pub async fn get_recipe(&self, id: String) -> Result<RecipeDocument, Error> {
+    pub async fn get_recipe(&self, id: String) -> Result<HashedRecipeDocument, Error> {
         let conn = self.conn()?;
         let (tx, rx) = oneshot::channel();
         let msg = Message::GetRecipe { id, respond_to: tx };
@@ -104,10 +104,11 @@ impl Pool {
         rx.await?
     }
 
-    pub async fn create_recipe(&self, recipe: RecipeDocument) -> Result<(), Error> {
+    pub async fn create_recipe(&self, id: String, recipe: RecipeDocument) -> Result<(), Error> {
         let conn = self.conn()?;
         let (tx, rx) = oneshot::channel();
         let msg = Message::CreateRecipe {
+            id,
             recipe,
             respond_to: tx,
         };
@@ -116,11 +117,50 @@ impl Pool {
         rx.await?
     }
 
-    pub async fn update_recipe(&self, recipe: RecipeDocument) -> Result<(), Error> {
+    pub async fn update_recipe(
+        &self,
+        id: String,
+        recipe: RecipeDocument,
+        current_hash: String,
+    ) -> Result<(), Error> {
         let conn = self.conn()?;
         let (tx, rx) = oneshot::channel();
         let msg = Message::UpdateRecipe {
+            id,
             recipe,
+            current_hash,
+            respond_to: tx,
+        };
+
+        let _ = conn.sender.send(msg);
+        rx.await?
+    }
+
+    pub async fn get_recipe_revisions(
+        &self,
+        recipe_id: String,
+    ) -> Result<Vec<RecipeRevision>, Error> {
+        let conn = self.conn()?;
+        let (tx, rx) = oneshot::channel();
+        let msg = Message::GetRevisions {
+            recipe_id,
+            respond_to: tx,
+        };
+
+        let _ = conn.sender.send(msg);
+        rx.await?
+    }
+
+    pub async fn get_recipe_revision(
+        &self,
+        recipe_id: String,
+        revision: usize,
+    ) -> Result<HashedRecipeDocument, Error> {
+        let conn = self.conn()?;
+        let (tx, rx) = oneshot::channel();
+        let msg = Message::GetRevision {
+            recipe_id,
+            revision,
             respond_to: tx,
         };
 
@@ -147,14 +187,26 @@ pub enum Message {
     // recipe
     GetRecipe {
         id: String,
-        respond_to: oneshot::Sender<Result<RecipeDocument, Error>>,
+        respond_to: oneshot::Sender<Result<HashedRecipeDocument, Error>>,
     },
     CreateRecipe {
+        id: String,
         recipe: RecipeDocument,
         respond_to: oneshot::Sender<Result<(), Error>>,
     },
     UpdateRecipe {
+        id: String,
         recipe: RecipeDocument,
+        current_hash: String,
         respond_to: oneshot::Sender<Result<(), Error>>,
+    },
+    GetRevisions {
+        recipe_id: String,
+        respond_to: oneshot::Sender<Result<Vec<RecipeRevision>, Error>>,
+    },
+    GetRevision {
+        recipe_id: String,
+        revision: usize,
+        respond_to: oneshot::Sender<Result<HashedRecipeDocument, Error>>,
     },
 }

@@ -19,7 +19,7 @@ impl From<rusqlite::Error> for Error {
     }
 }
 
-const MIGRATION: [&str; 2] = [
+const MIGRATION: [&str; 3] = [
     "
 CREATE TABLE users (
     id TEXT PRIMARY KEY,
@@ -31,8 +31,18 @@ CREATE TABLE users (
 CREATE TABLE recipes (
     id TEXT PRIMARY KEY,
     title TEXT NOT NULL,
-    document TEXT,
+    document BLOB NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);",
+    "
+CREATE TABLE recipe_revisions (
+    id INTEGER PRIMARY KEY,
+    recipe_id TEXT NOT NULL,
+    revision INTEGER NOT NULL,
+    patch BLOB,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (recipe_id, revision),
+    FOREIGN KEY (recipe_id) REFERENCES recipes (id) ON DELETE CASCADE
 );",
 ];
 
@@ -103,11 +113,34 @@ impl ThreadWorker {
                     Message::GetRecipe { id, respond_to } => {
                         let _ = respond_to.send(recipe::get(&conn, &id));
                     }
-                    Message::CreateRecipe { recipe, respond_to } => {
-                        let _ = respond_to.send(recipe::insert(&mut conn, &recipe));
+                    Message::CreateRecipe {
+                        id,
+                        recipe,
+                        respond_to,
+                    } => {
+                        let _ = respond_to.send(recipe::insert(&mut conn, &id, &recipe));
                     }
-                    Message::UpdateRecipe { recipe, respond_to } => {
-                        let _ = respond_to.send(recipe::update(&mut conn, &recipe));
+                    Message::UpdateRecipe {
+                        id,
+                        recipe,
+                        current_hash,
+                        respond_to,
+                    } => {
+                        let _ =
+                            respond_to.send(recipe::update(&mut conn, &id, &recipe, &current_hash));
+                    }
+                    Message::GetRevisions {
+                        recipe_id,
+                        respond_to,
+                    } => {
+                        let _ = respond_to.send(recipe::get_revisions(&conn, &recipe_id));
+                    }
+                    Message::GetRevision {
+                        recipe_id,
+                        revision,
+                        respond_to,
+                    } => {
+                        let _ = respond_to.send(recipe::get_revision(&conn, &recipe_id, revision));
                     }
                 }
             }
