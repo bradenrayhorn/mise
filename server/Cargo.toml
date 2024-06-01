@@ -27,3 +27,7 @@ chrono = { version = "0.4.38", default-features = false, features = [
 ring = "0.17.8"
 base64 = "0.22.1"
 rand = "0.8.5"
+bidiff = "1.0.0"
+bipatch = "1.0.0"
+postcard = { version = "1.0.8", features = ["alloc"] }
+zstd = "0.13.1"
