@@ -1,4 +1,4 @@
-use std::{sync::mpsc, thread};
+use std::{cmp::Ordering, sync::mpsc, thread};
 
 use anyhow::anyhow;
 use rusqlite::Connection;
@@ -64,17 +64,21 @@ pub fn datastore_handler(
     let tx = conn.transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)?;
     let user_version: usize = tx.pragma_query_value(None, "user_version", |row| row.get(0))?;
     let desired_version = MIGRATION.len();
-    if user_version < desired_version {
-        // need to run migrations
-        for query in &MIGRATION[user_version..] {
-            tx.execute(query, ())?;
+    match user_version.cmp(&desired_version) {
+        Ordering::Less => {
+            // need to run migrations
+            for query in &MIGRATION[user_version..] {
+                tx.execute(query, ())?;
+            }
+            tx.pragma_update(None, "user_version", desired_version)?;
         }
-        tx.pragma_update(None, "user_version", desired_version)?;
-    } else {
-        return Err(Error::Unknown(anyhow!(
-            "Database at unknown migration: {}",
-            user_version
-        )));
+        Ordering::Equal => {}
+        Ordering::Greater => {
+            return Err(Error::Unknown(anyhow!(
+                "Database at unknown migration: {}",
+                user_version
+            )));
+        }
     }
     tx.commit()?;
 

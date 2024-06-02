@@ -1,4 +1,5 @@
 mod auth;
+mod recipe;
 mod responses;
 mod server;
 

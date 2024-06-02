@@ -1,5 +1,6 @@
-use crate::session_store;
+use crate::{domain, session_store};
 
+pub mod recipe;
 pub mod session;
 pub mod user;
 
@@ -10,6 +11,9 @@ pub enum Error {
 
     #[error("Unauthenticated")]
     Unauthenticated(#[source] anyhow::Error),
+
+    #[error(transparent)]
+    DomainValidation(#[from] domain::ValidationError),
 
     #[error(transparent)]
     Other(#[from] anyhow::Error),

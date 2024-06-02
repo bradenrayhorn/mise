@@ -71,9 +71,11 @@ impl Server {
             //
             // Authenticated routes
             .nest(
-                "/",
+                "/api/v1",
                 Router::new()
                     .route("/auth/me", axum::routing::get(get_me))
+                    .route("/recipes", axum::routing::post(http::recipe::create))
+                    .route("/recipes/:id", axum::routing::get(http::recipe::get))
                     .layer(middleware::from_fn_with_state(state.clone(), auth)),
             )
             //
@@ -153,6 +155,10 @@ impl IntoResponse for Error {
             Error::Unauthenticated(err) => {
                 println!("error: {err:?}");
                 (StatusCode::UNAUTHORIZED, "Unauthenticated.").into_response()
+            }
+            Error::DomainValidation(err) => {
+                println!("error: {err:?}");
+                (StatusCode::UNPROCESSABLE_ENTITY, err.to_string()).into_response()
             }
             Error::Other(err) => {
                 println!("error: {err:?}");

@@ -1,5 +1,5 @@
 use anyhow::Result;
-use mise::{datastore, domain::RecipeDocument};
+use mise::datastore::{self, RecipeDocument};
 
 #[macro_export]
 macro_rules! recipes_tests {

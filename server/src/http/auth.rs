@@ -33,6 +33,7 @@ pub async fn init(
             "s",
             serde_json::to_string(&oidc_state).map_err(|err| Error::Other(err.into()))?,
         ))
+        .path("/")
         .http_only(true)
         .secure(true)
         // must be lax so that the cookie is attached upon redirect from the authorization server
@@ -80,6 +81,7 @@ pub async fn callback(
 
     let jar = jar.add(
         Cookie::build(("id", session_key.to_string()))
+            .path("/")
             .http_only(true)
             .secure(true)
             .same_site(SameSite::Strict)

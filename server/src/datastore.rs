@@ -1,10 +1,25 @@
 use std::sync::{mpsc, Arc, Mutex};
 
 use anyhow::anyhow;
+use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use tokio::sync::oneshot;
 
-use crate::domain::{HashedRecipeDocument, RecipeDocument, RecipeRevision, RegisteringUser, User};
+use crate::domain::{RecipeRevision, RegisteringUser, User};
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RecipeDocument {
+    pub title: String,
+    pub ingredients: String,
+    pub instructions: String,
+    pub notes: Option<String>,
+}
+
+#[derive(Debug, Clone)]
+pub struct HashedRecipeDocument {
+    pub document: RecipeDocument,
+    pub hash: String,
+}
 
 // Error
 
