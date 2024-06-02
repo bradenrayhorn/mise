@@ -1,28 +1,24 @@
 use rusqlite::{params, Connection};
 
 use crate::{
-    datastore::Error,
-    domain::{self},
+    datastore::{Error, HashedRecipeDocument, RecipeDocument},
+    domain,
 };
 
-pub fn get(conn: &Connection, id: &str) -> Result<domain::HashedRecipeDocument, Error> {
+pub fn get(conn: &Connection, id: &str) -> Result<HashedRecipeDocument, Error> {
     let q = "SELECT document FROM recipes WHERE id = ?1";
 
     let mut stmt = conn.prepare_cached(q)?;
-    let serialized_document: Vec<u8> = stmt.query_row([id], |row| Ok(row.get(0)?))?;
+    let serialized_document: Vec<u8> = stmt.query_row([id], |row| row.get(0))?;
 
-    Ok(domain::HashedRecipeDocument {
+    Ok(HashedRecipeDocument {
         document: postcard::from_bytes(&serialized_document)
             .map_err(|err| Error::Unknown(err.into()))?,
         hash: sha256::digest(&serialized_document),
     })
 }
 
-pub fn insert(
-    conn: &mut Connection,
-    id: &str,
-    recipe: &domain::RecipeDocument,
-) -> Result<(), Error> {
+pub fn insert(conn: &mut Connection, id: &str, recipe: &RecipeDocument) -> Result<(), Error> {
     let serialized_document =
         postcard::to_allocvec(recipe).map_err(|err| Error::Unknown(err.into()))?;
 
@@ -48,7 +44,7 @@ pub fn insert(
 pub fn update(
     conn: &mut Connection,
     id: &str,
-    recipe: &domain::RecipeDocument,
+    recipe: &RecipeDocument,
     current_hash: &str,
 ) -> Result<(), Error> {
     let tx = conn.transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)?;
@@ -69,7 +65,7 @@ pub fn update(
         // get current patch revision
         let mut stmt =
             tx.prepare_cached("SELECT COUNT(*) FROM recipe_revisions WHERE recipe_id = ?1")?;
-        let patch_count: u64 = stmt.query_row(params![id], |row| Ok(row.get(0)?))?;
+        let patch_count: u64 = stmt.query_row(params![id], |row| row.get(0))?;
 
         // create patch to convert from new -> old
         let patch = diff(&new_serialized_document, &current_serialized_document)?;
@@ -109,7 +105,7 @@ pub fn get_revision(
     conn: &Connection,
     recipe_id: &str,
     revision: usize,
-) -> Result<domain::HashedRecipeDocument, Error> {
+) -> Result<HashedRecipeDocument, Error> {
     // get current recipe
     let q = "SELECT document FROM recipes WHERE id = ?1";
 
@@ -122,7 +118,7 @@ pub fn get_revision(
     let q = "SELECT patch FROM recipe_revisions WHERE recipe_id = ?1 AND patch IS NOT NULL ORDER BY revision DESC";
 
     let mut stmt = conn.prepare_cached(q)?;
-    let rows = stmt.query_map([recipe_id], |row| Ok(row.get(0)?))?;
+    let rows = stmt.query_map([recipe_id], |row| row.get(0))?;
     let patches: Vec<Vec<u8>> = rows
         .map(|row| row.map_err(|err| Error::Unknown(err.into())))
         .collect::<Result<Vec<Vec<u8>>, Error>>()?;
@@ -139,7 +135,7 @@ pub fn get_revision(
         document = apply_patch(&document, patch)?;
     }
 
-    Ok(domain::HashedRecipeDocument {
+    Ok(HashedRecipeDocument {
         document: postcard::from_bytes(&document).map_err(|err| Error::Unknown(err.into()))?,
         hash: sha256::digest(&document),
     })

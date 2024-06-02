@@ -19,7 +19,7 @@ serde_json = "1.0.117"
 cookie = "0.18.1"
 sha256 = "1.5.0"
 toml = "0.8.13"
-uuid = { version = "1.8.0", features = ["v4", "fast-rng"] }
+uuid = { version = "1.8.0", features = ["v4", "fast-rng", "serde"] }
 chrono = { version = "0.4.38", default-features = false, features = [
 	"now",
 	"serde",
@@ -31,3 +31,4 @@ bidiff = "1.0.0"
 bipatch = "1.0.0"
 postcard = { version = "1.0.8", features = ["alloc"] }
 zstd = "0.13.1"
+comrak = "0.24.1"
