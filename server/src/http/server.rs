@@ -15,7 +15,7 @@ use crate::{
     config::Config,
     core::{self, Error},
     datastore::Pool,
-    domain::SessionKey,
+    domain::{self, SessionKey},
     http, oidc,
     session_store::SessionStore,
 };
@@ -102,6 +102,12 @@ async fn get_me(Extension(user): Extension<AuthenticatedUser>) -> Result<String,
 #[derive(Clone)]
 pub struct AuthenticatedUser {
     id: String,
+}
+
+impl From<AuthenticatedUser> for domain::user::Authenticated {
+    fn from(val: AuthenticatedUser) -> Self {
+        Self { id: val.id }
+    }
 }
 
 async fn auth(

@@ -1,6 +1,6 @@
 use axum::{
     extract::{Path, State},
-    Json,
+    Extension, Json,
 };
 use serde::{Deserialize, Serialize};
 
@@ -9,7 +9,10 @@ use crate::{
     domain::{CreatingRecipe, UpdatingRecipe},
 };
 
-use super::{responses, server::AppState};
+use super::{
+    responses,
+    server::{AppState, AuthenticatedUser},
+};
 
 #[derive(Deserialize)]
 pub struct CreateParams {
@@ -43,6 +46,7 @@ pub struct Ingredients {
 
 pub async fn create(
     State(state): State<AppState>,
+    Extension(user): Extension<AuthenticatedUser>,
     Json(request): Json<CreateParams>,
 ) -> Result<axum::response::Json<responses::Data<uuid::Uuid>>, Error> {
     let creating_recipe = CreatingRecipe {
@@ -55,7 +59,7 @@ pub async fn create(
         },
     };
 
-    let id = core::recipe::create(&state.datasource, creating_recipe).await?;
+    let id = core::recipe::create(&state.datasource, user.into(), creating_recipe).await?;
 
     Ok(axum::response::Json(responses::Data { data: id }))
 }
@@ -115,6 +119,7 @@ pub struct UpdateParams {
 
 pub async fn update(
     State(state): State<AppState>,
+    Extension(user): Extension<AuthenticatedUser>,
     Path(id): Path<uuid::Uuid>,
     Json(request): Json<UpdateParams>,
 ) -> Result<(), Error> {
@@ -129,7 +134,7 @@ pub async fn update(
             Some(n) => Some(n.try_into()?),
         },
     };
-    core::recipe::update(&state.datasource, updating_recipe).await?;
+    core::recipe::update(&state.datasource, user.into(), updating_recipe).await?;
 
     Ok(())
 }

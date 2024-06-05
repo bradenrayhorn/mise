@@ -8,7 +8,11 @@ fn validation_to_other(err: domain::ValidationError) -> Error {
     Error::Other(err.into())
 }
 
-pub async fn create(datastore: &Pool, recipe: CreatingRecipe) -> Result<uuid::Uuid, Error> {
+pub async fn create(
+    datastore: &Pool,
+    user: domain::user::Authenticated,
+    recipe: CreatingRecipe,
+) -> Result<uuid::Uuid, Error> {
     let document = RecipeDocument {
         title: recipe.title.into(),
         instructions: recipe.instructions.into(),
@@ -19,14 +23,18 @@ pub async fn create(datastore: &Pool, recipe: CreatingRecipe) -> Result<uuid::Uu
     let id = uuid::Uuid::new_v4();
 
     datastore
-        .create_recipe(id.to_string(), document)
+        .create_recipe(id.to_string(), user.id, document)
         .await
         .map_err(|err| Error::Other(err.into()))?;
 
     Ok(id)
 }
 
-pub async fn update(datastore: &Pool, recipe: UpdatingRecipe) -> Result<(), Error> {
+pub async fn update(
+    datastore: &Pool,
+    user: domain::user::Authenticated,
+    recipe: UpdatingRecipe,
+) -> Result<(), Error> {
     let document = RecipeDocument {
         title: recipe.title.into(),
         instructions: recipe.instructions.into(),
@@ -36,7 +44,7 @@ pub async fn update(datastore: &Pool, recipe: UpdatingRecipe) -> Result<(), Erro
     let id = recipe.id.to_string();
 
     datastore
-        .update_recipe(id, document, recipe.previous_hash)
+        .update_recipe(id, user.id, document, recipe.previous_hash)
         .await
         .map_err(|err| match err {
             datastore::Error::NotFound => {

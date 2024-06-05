@@ -18,7 +18,12 @@ pub fn get(conn: &Connection, id: &str) -> Result<HashedRecipeDocument, Error> {
     })
 }
 
-pub fn insert(conn: &mut Connection, id: &str, recipe: &RecipeDocument) -> Result<(), Error> {
+pub fn insert(
+    conn: &mut Connection,
+    id: &str,
+    user_id: &str,
+    recipe: &RecipeDocument,
+) -> Result<(), Error> {
     let serialized_document =
         postcard::to_allocvec(recipe).map_err(|err| Error::Unknown(err.into()))?;
 
@@ -32,8 +37,8 @@ pub fn insert(conn: &mut Connection, id: &str, recipe: &RecipeDocument) -> Resul
 
         // create revision
         let mut stmt =
-            tx.prepare_cached("INSERT INTO recipe_revisions (recipe_id, revision) VALUES (?1,?2)")?;
-        stmt.execute(params![id, 0])?;
+            tx.prepare_cached("INSERT INTO recipe_revisions (recipe_id, revision, created_by_user_id) VALUES (?1,?2,?3)")?;
+        stmt.execute(params![id, 0, user_id])?;
     }
 
     tx.commit()?;
@@ -44,6 +49,7 @@ pub fn insert(conn: &mut Connection, id: &str, recipe: &RecipeDocument) -> Resul
 pub fn update(
     conn: &mut Connection,
     id: &str,
+    user_id: &str,
     recipe: &RecipeDocument,
     current_hash: &str,
 ) -> Result<(), Error> {
@@ -76,9 +82,9 @@ pub fn update(
 
         // save patch
         let mut stmt = tx.prepare_cached(
-            "INSERT INTO recipe_revisions (recipe_id, revision, patch) VALUES (?1,?2,?3)",
+            "INSERT INTO recipe_revisions (recipe_id, revision, patch, created_by_user_id) VALUES (?1,?2,?3,?4)",
         )?;
-        stmt.execute(params![id, patch_count, patch])?;
+        stmt.execute(params![id, patch_count, patch, user_id])?;
     }
 
     tx.commit()?;

@@ -40,8 +40,10 @@ CREATE TABLE recipe_revisions (
     recipe_id TEXT NOT NULL,
     revision INTEGER NOT NULL,
     patch BLOB,
+    created_by_user_id TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE (recipe_id, revision),
+    FOREIGN KEY (created_by_user_id) REFERENCES users (id) ON DELETE RESTRICT,
     FOREIGN KEY (recipe_id) REFERENCES recipes (id) ON DELETE CASCADE
 );",
 ];
@@ -119,19 +121,26 @@ impl ThreadWorker {
                     }
                     Message::CreateRecipe {
                         id,
+                        user_id,
                         recipe,
                         respond_to,
                     } => {
-                        let _ = respond_to.send(recipe::insert(&mut conn, &id, &recipe));
+                        let _ = respond_to.send(recipe::insert(&mut conn, &id, &user_id, &recipe));
                     }
                     Message::UpdateRecipe {
                         id,
+                        user_id,
                         recipe,
                         current_hash,
                         respond_to,
                     } => {
-                        let _ =
-                            respond_to.send(recipe::update(&mut conn, &id, &recipe, &current_hash));
+                        let _ = respond_to.send(recipe::update(
+                            &mut conn,
+                            &id,
+                            &user_id,
+                            &recipe,
+                            &current_hash,
+                        ));
                     }
                     Message::GetRevisions {
                         recipe_id,
