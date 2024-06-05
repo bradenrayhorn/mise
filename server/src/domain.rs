@@ -322,7 +322,7 @@ pub mod recipe {
     impl InstructionBlock {
         #[must_use]
         pub fn title(&self) -> Option<&str> {
-            self.title.as_ref().map(|x| &**x)
+            self.title.as_deref()
         }
 
         #[must_use]
@@ -366,7 +366,9 @@ pub mod recipe {
             gather_text(node, &mut heading);
             Ok(heading)
         } else {
-            Err(ValidationError::Format("Expected heading, found ?.".into()))
+            Err(ValidationError::Format(
+                "Expected heading, found not a heading.".into(),
+            ))
         }
     }
 
@@ -376,7 +378,9 @@ pub mod recipe {
         if let comrak::nodes::NodeValue::List(_) = node.data.borrow().value {
             Ok(gather_list(node))
         } else {
-            Err(ValidationError::Format(format!("Expected list, found ?.")))
+            Err(ValidationError::Format(
+                "Expected list, found not a list.".into(),
+            ))
         }
     }
 

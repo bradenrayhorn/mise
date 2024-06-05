@@ -24,6 +24,7 @@ pub struct Server {
     config: Config,
     datasource: Pool,
     session_store: SessionStore,
+    oidc_provider: Arc<oidc::Provider>,
 }
 
 #[derive(Clone)]
@@ -42,24 +43,28 @@ impl FromRef<AppState> for Key {
 
 impl Server {
     #[must_use]
-    pub fn new(config: Config, datasource: Pool, session_store: SessionStore) -> Self {
+    pub fn new(
+        config: Config,
+        datasource: Pool,
+        session_store: SessionStore,
+        oidc_provider: oidc::Provider,
+    ) -> Self {
         Server {
             config,
             datasource,
             session_store,
+            oidc_provider: Arc::new(oidc_provider),
         }
     }
 
     pub async fn start(&self) -> anyhow::Result<()> {
         println!("Starting http server on port {:?}", self.config.http_port);
 
-        let oidc_provider = oidc::Provider::new((&self.config).try_into()?).await?;
-
         let state = AppState {
             key: Key::generate(),
             session_store: self.session_store.clone(),
             datasource: self.datasource.clone(),
-            oidc_provider: Arc::new(oidc_provider),
+            oidc_provider: self.oidc_provider.clone(),
         };
 
         let router: Router = Router::new()

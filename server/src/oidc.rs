@@ -77,6 +77,7 @@ impl TryFrom<&config::Config> for Config {
     }
 }
 
+#[derive(Clone)]
 pub struct Provider {
     http_client: reqwest::Client,
     openid_client: CoreClient<
