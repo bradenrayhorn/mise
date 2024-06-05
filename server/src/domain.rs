@@ -78,6 +78,17 @@ pub struct CreatingRecipe {
 }
 
 #[derive(Debug, Clone)]
+pub struct UpdatingRecipe {
+    pub id: Uuid,
+    pub previous_hash: String,
+
+    pub title: recipe::Title,
+    pub ingredients: recipe::Ingredients,
+    pub instructions: recipe::Instructions,
+    pub notes: Option<recipe::Notes>,
+}
+
+#[derive(Debug, Clone)]
 pub struct Recipe {
     pub id: Uuid,
     pub hash: String,

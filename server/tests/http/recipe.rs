@@ -18,26 +18,30 @@ async fn cannot_get_unknown_recipe() -> Result<()> {
     Ok(())
 }
 
+fn basic_create_recipe_request() -> requests::CreateRecipe {
+    requests::CreateRecipe {
+        title: "Chicken Parm".into(),
+        ingredients: "\
+                - One chicken\n\
+                - Parmesan cheese\
+                "
+        .into(),
+        instructions: "\
+                - Broil the chicken\n\
+                - Add the parmesan\
+                "
+        .into(),
+        notes: Some("Best served hot!".into()),
+    }
+}
+
 #[tokio::test]
 async fn can_create_and_get_recipe() -> Result<()> {
     let harness = setup::with_auth().await?;
 
     let response = harness
         .post("/api/v1/recipes")
-        .json(&requests::CreateRecipe {
-            title: "Chicken Parm".into(),
-            ingredients: "\
-                - One chicken\n\
-                - Parmesan cheese\
-                "
-            .into(),
-            instructions: "\
-                - Broil the chicken\n\
-                - Add the parmesan\
-                "
-            .into(),
-            notes: Some("Best served hot!".into()),
-        })
+        .json(&basic_create_recipe_request())
         .send()
         .await?;
 
@@ -66,6 +70,71 @@ async fn can_create_and_get_recipe() -> Result<()> {
         result.instruction_blocks
     );
     assert_eq!(Some("Best served hot!".into()), result.notes);
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn can_create_and_update_recipe() -> Result<()> {
+    let harness = setup::with_auth().await?;
+
+    // create the recipe
+    let response = harness
+        .post("/api/v1/recipes")
+        .json(&basic_create_recipe_request())
+        .send()
+        .await?;
+
+    assert_eq!(StatusCode::OK, response.status());
+    let id = response.json::<responses::Id>().await?.data;
+
+    // get the recipe to find the hash
+    let response = harness.get(&format!("/api/v1/recipes/{id}")).send().await?;
+    assert_eq!(StatusCode::OK, response.status());
+    let hash = response.json::<responses::GetRecipe>().await?.data.hash;
+
+    // send an update
+    let response = harness
+        .put(&format!("/api/v1/recipes/{id}"))
+        .json(&requests::UpdateRecipe {
+            previous_hash: hash,
+            title: "One-Step Salad".into(),
+            ingredients: "\
+                - salad\
+                "
+            .into(),
+            instructions: "\
+                - Serve\
+                "
+            .into(),
+            notes: None,
+        })
+        .send()
+        .await?;
+    assert_eq!(StatusCode::OK, response.status());
+
+    // try to get recipe
+    let response = harness.get(&format!("/api/v1/recipes/{id}")).send().await?;
+    assert_eq!(StatusCode::OK, response.status());
+
+    let result = response.json::<responses::GetRecipe>().await?.data;
+
+    assert_eq!("One-Step Salad", result.title);
+    assert_eq!(
+        vec![responses::Ingredients {
+            title: None,
+            ingredients: vec!["salad".into()]
+        }],
+        result.ingredient_blocks
+    );
+    assert_eq!(
+        vec![responses::Instructions {
+            title: None,
+            instructions: vec!["Serve".into()]
+        }],
+        result.instruction_blocks
+    );
+    assert_eq!(None, result.notes);
 
     Ok(())
 }
