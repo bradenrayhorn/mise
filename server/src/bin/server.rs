@@ -1,4 +1,4 @@
-use mise::{config, datastore, http::Server, session_store::SessionStore, sqlite};
+use mise::{config, datastore, http::Server, oidc, session_store::SessionStore, sqlite};
 
 #[tokio::main]
 async fn main() {
@@ -29,7 +29,11 @@ async fn main() {
     let pool = datastore::Pool::new(senders);
     let cache = SessionStore::new(session_store_sender);
 
-    let s = Server::new(config, pool, cache);
+    let oidc_provider = oidc::Provider::new((&config).try_into().unwrap())
+        .await
+        .unwrap();
+
+    let s = Server::new(config, pool, cache, oidc_provider);
 
     if let Err(err) = s.start().await {
         println!("Failed to start http server: {:?}", err)
