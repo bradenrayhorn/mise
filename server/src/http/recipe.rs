@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     core::{self, Error},
-    domain::CreatingRecipe,
+    domain::{CreatingRecipe, UpdatingRecipe},
 };
 
 use super::{responses, server::AppState};
@@ -102,4 +102,34 @@ pub async fn get(
             notes: recipe.notes.map(Into::into),
         },
     }))
+}
+
+#[derive(Deserialize)]
+pub struct UpdateParams {
+    previous_hash: String,
+    title: String,
+    ingredients: String,
+    instructions: String,
+    notes: Option<String>,
+}
+
+pub async fn update(
+    State(state): State<AppState>,
+    Path(id): Path<uuid::Uuid>,
+    Json(request): Json<UpdateParams>,
+) -> Result<(), Error> {
+    let updating_recipe = UpdatingRecipe {
+        id,
+        previous_hash: request.previous_hash,
+        title: request.title.try_into()?,
+        ingredients: request.ingredients.try_into()?,
+        instructions: request.instructions.try_into()?,
+        notes: match request.notes {
+            None => None,
+            Some(n) => Some(n.try_into()?),
+        },
+    };
+    core::recipe::update(&state.datasource, updating_recipe).await?;
+
+    Ok(())
 }

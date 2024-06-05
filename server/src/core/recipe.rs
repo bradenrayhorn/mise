@@ -1,7 +1,7 @@
 use crate::{
     core::Error,
     datastore::{self, Pool, RecipeDocument},
-    domain::{self, CreatingRecipe, Recipe},
+    domain::{self, CreatingRecipe, Recipe, UpdatingRecipe},
 };
 
 fn validation_to_other(err: domain::ValidationError) -> Error {
@@ -24,6 +24,28 @@ pub async fn create(datastore: &Pool, recipe: CreatingRecipe) -> Result<uuid::Uu
         .map_err(|err| Error::Other(err.into()))?;
 
     Ok(id)
+}
+
+pub async fn update(datastore: &Pool, recipe: UpdatingRecipe) -> Result<(), Error> {
+    let document = RecipeDocument {
+        title: recipe.title.into(),
+        instructions: recipe.instructions.into(),
+        ingredients: recipe.ingredients.into(),
+        notes: recipe.notes.map(std::convert::Into::into),
+    };
+    let id = recipe.id.to_string();
+
+    datastore
+        .update_recipe(id, document, recipe.previous_hash)
+        .await
+        .map_err(|err| match err {
+            datastore::Error::NotFound => {
+                Error::NotFound(format!("recipe {} does not exist", recipe.id))
+            }
+            _ => Error::Other(err.into()),
+        })?;
+
+    Ok(())
 }
 
 pub async fn get(datastore: &Pool, id: uuid::Uuid) -> Result<Recipe, Error> {

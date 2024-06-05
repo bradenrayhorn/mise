@@ -12,7 +12,6 @@ pub struct OidcServer {
 
 impl Drop for OidcServer {
     fn drop(&mut self) {
-        println!("DOPR DROP DORP");
         let _ = self.process.kill();
     }
 }
@@ -177,6 +176,12 @@ impl Harness {
 
     pub fn post(&self, path: &str) -> reqwest::RequestBuilder {
         let builder = self.client.post(format!("{}{path}", self.base_url));
+
+        self.add_auth(builder)
+    }
+
+    pub fn put(&self, path: &str) -> reqwest::RequestBuilder {
+        let builder = self.client.put(format!("{}{path}", self.base_url));
 
         self.add_auth(builder)
     }
