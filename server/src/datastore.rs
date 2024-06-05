@@ -119,11 +119,17 @@ impl Pool {
         rx.await?
     }
 
-    pub async fn create_recipe(&self, id: String, recipe: RecipeDocument) -> Result<(), Error> {
+    pub async fn create_recipe(
+        &self,
+        id: String,
+        user_id: String,
+        recipe: RecipeDocument,
+    ) -> Result<(), Error> {
         let conn = self.conn()?;
         let (tx, rx) = oneshot::channel();
         let msg = Message::CreateRecipe {
             id,
+            user_id,
             recipe,
             respond_to: tx,
         };
@@ -135,6 +141,7 @@ impl Pool {
     pub async fn update_recipe(
         &self,
         id: String,
+        user_id: String,
         recipe: RecipeDocument,
         current_hash: String,
     ) -> Result<(), Error> {
@@ -142,6 +149,7 @@ impl Pool {
         let (tx, rx) = oneshot::channel();
         let msg = Message::UpdateRecipe {
             id,
+            user_id,
             recipe,
             current_hash,
             respond_to: tx,
@@ -206,11 +214,13 @@ pub enum Message {
     },
     CreateRecipe {
         id: String,
+        user_id: String,
         recipe: RecipeDocument,
         respond_to: oneshot::Sender<Result<(), Error>>,
     },
     UpdateRecipe {
         id: String,
+        user_id: String,
         recipe: RecipeDocument,
         current_hash: String,
         respond_to: oneshot::Sender<Result<(), Error>>,

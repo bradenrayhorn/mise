@@ -1,5 +1,8 @@
 use anyhow::Result;
-use mise::datastore::{self, RecipeDocument};
+use mise::{
+    datastore::{self, RecipeDocument},
+    domain::{RegisteringUser, User},
+};
 
 #[macro_export]
 macro_rules! recipes_tests {
@@ -29,9 +32,20 @@ macro_rules! recipes_tests {
     };
 }
 
+async fn user(store: &datastore::Pool) -> Result<User> {
+    Ok(store
+        .upsert_user_by_oauth_id(RegisteringUser {
+            potential_id: "user-id".into(),
+            oauth_id: "custom|user-1".into(),
+            name: "user".into(),
+        })
+        .await?)
+}
+
 // create_recipe
 
 pub async fn can_create_and_get(store: datastore::Pool) -> Result<()> {
+    let user = user(&store).await?;
     let recipe = RecipeDocument {
         title: "Chicken Casserole".into(),
         ingredients: "- chicken".into(),
@@ -39,7 +53,7 @@ pub async fn can_create_and_get(store: datastore::Pool) -> Result<()> {
         notes: Some("Don't burn it!".into()),
     };
 
-    store.create_recipe("1234".into(), recipe).await?;
+    store.create_recipe("1234".into(), user.id, recipe).await?;
 
     let result = store.get_recipe("1234".into()).await?.document;
 
@@ -52,6 +66,7 @@ pub async fn can_create_and_get(store: datastore::Pool) -> Result<()> {
 }
 
 pub async fn create_creates_initial_revision(store: datastore::Pool) -> Result<()> {
+    let user = user(&store).await?;
     let recipe = RecipeDocument {
         title: "Chicken Casserole".into(),
         ingredients: "- chicken".into(),
@@ -59,7 +74,7 @@ pub async fn create_creates_initial_revision(store: datastore::Pool) -> Result<(
         notes: None,
     };
 
-    store.create_recipe("1234".into(), recipe).await?;
+    store.create_recipe("1234".into(), user.id, recipe).await?;
 
     // get revisions - there should be one revision: revision 0
     let revisions = store.get_recipe_revisions("1234".into()).await?;
@@ -78,6 +93,7 @@ pub async fn create_creates_initial_revision(store: datastore::Pool) -> Result<(
 }
 
 pub async fn cannot_create_duplicate(store: datastore::Pool) -> Result<()> {
+    let user = user(&store).await?;
     let recipe = RecipeDocument {
         title: "Chicken Casserole".into(),
         ingredients: "- chicken".into(),
@@ -85,9 +101,11 @@ pub async fn cannot_create_duplicate(store: datastore::Pool) -> Result<()> {
         notes: None,
     };
 
-    store.create_recipe("1234".into(), recipe.clone()).await?;
+    store
+        .create_recipe("1234".into(), user.id.clone(), recipe.clone())
+        .await?;
 
-    let result = store.create_recipe("1234".into(), recipe).await;
+    let result = store.create_recipe("1234".into(), user.id, recipe).await;
 
     assert_eq!(true, result.is_err());
 
@@ -110,6 +128,7 @@ pub async fn cannot_get_non_existent_recipe(store: datastore::Pool) -> Result<()
 // update_recipe
 
 pub async fn can_update_recipe(store: datastore::Pool) -> Result<()> {
+    let user = user(&store).await?;
     let recipe = RecipeDocument {
         title: "Chicken Casserole".into(),
         ingredients: "- chicken".into(),
@@ -117,7 +136,9 @@ pub async fn can_update_recipe(store: datastore::Pool) -> Result<()> {
         notes: Some("Don't burn it!".into()),
     };
 
-    store.create_recipe("1234".into(), recipe).await?;
+    store
+        .create_recipe("1234".into(), user.id.clone(), recipe)
+        .await?;
 
     // get current hash
     let current_hash = store.get_recipe("1234".into()).await?.hash;
@@ -126,6 +147,7 @@ pub async fn can_update_recipe(store: datastore::Pool) -> Result<()> {
     store
         .update_recipe(
             "1234".into(),
+            user.id,
             RecipeDocument {
                 title: "Bean Soup".into(),
                 ingredients: "- beans".into(),
@@ -147,6 +169,7 @@ pub async fn can_update_recipe(store: datastore::Pool) -> Result<()> {
 }
 
 pub async fn cannot_update_with_bad_hash(store: datastore::Pool) -> Result<()> {
+    let user = user(&store).await?;
     let recipe = RecipeDocument {
         title: "Chicken Casserole".into(),
         ingredients: "- chicken".into(),
@@ -154,12 +177,15 @@ pub async fn cannot_update_with_bad_hash(store: datastore::Pool) -> Result<()> {
         notes: Some("Don't burn it!".into()),
     };
 
-    store.create_recipe("1234".into(), recipe).await?;
+    store
+        .create_recipe("1234".into(), user.id.clone(), recipe)
+        .await?;
 
     // update document
     let result = store
         .update_recipe(
             "1234".into(),
+            user.id.clone(),
             RecipeDocument {
                 title: "Bean Soup".into(),
                 ingredients: "- beans".into(),
@@ -179,6 +205,7 @@ pub async fn cannot_update_with_bad_hash(store: datastore::Pool) -> Result<()> {
 }
 
 pub async fn update_creates_new_revision(store: datastore::Pool) -> Result<()> {
+    let user = user(&store).await?;
     let recipe = RecipeDocument {
         title: "Chicken Casserole".into(),
         ingredients: "- chicken".into(),
@@ -186,7 +213,9 @@ pub async fn update_creates_new_revision(store: datastore::Pool) -> Result<()> {
         notes: Some("Don't burn it!".into()),
     };
 
-    store.create_recipe("1234".into(), recipe).await?;
+    store
+        .create_recipe("1234".into(), user.id.clone(), recipe)
+        .await?;
 
     // get current hash
     let current_hash = store.get_recipe("1234".into()).await?.hash;
@@ -195,6 +224,7 @@ pub async fn update_creates_new_revision(store: datastore::Pool) -> Result<()> {
     store
         .update_recipe(
             "1234".into(),
+            user.id.clone(),
             RecipeDocument {
                 title: "Bean Soup".into(),
                 ingredients: "- beans".into(),
@@ -223,9 +253,11 @@ pub async fn update_creates_new_revision(store: datastore::Pool) -> Result<()> {
 }
 
 pub async fn handles_updating_unknown_recipe(store: datastore::Pool) -> Result<()> {
+    let user = user(&store).await?;
     let result = store
         .update_recipe(
             "a-random-id".into(),
+            user.id,
             RecipeDocument {
                 title: "Bean Soup".into(),
                 ingredients: "- chicken".into(),
@@ -247,6 +279,7 @@ pub async fn handles_updating_unknown_recipe(store: datastore::Pool) -> Result<(
 // get_revision
 
 pub async fn cannot_get_non_existent_revision(store: datastore::Pool) -> Result<()> {
+    let user = user(&store).await?;
     // save recipe
     let recipe = RecipeDocument {
         title: "Chicken Casserole".into(),
@@ -255,7 +288,7 @@ pub async fn cannot_get_non_existent_revision(store: datastore::Pool) -> Result<
         notes: Some("Don't burn it!".into()),
     };
 
-    store.create_recipe("1234".into(), recipe).await?;
+    store.create_recipe("1234".into(), user.id, recipe).await?;
 
     // try to get a non existent revision
     let result = store.get_recipe_revision("bad-id".into(), 99).await;
@@ -286,6 +319,7 @@ pub async fn cannot_get_revision_for_non_existent_recipe(store: datastore::Pool)
 }
 
 pub async fn stores_revision_history(store: datastore::Pool) -> Result<()> {
+    let user = user(&store).await?;
     // create recipe
     let recipe = RecipeDocument {
         title: "one".into(),
@@ -293,7 +327,9 @@ pub async fn stores_revision_history(store: datastore::Pool) -> Result<()> {
         instructions: "three".into(),
         notes: Some("four".into()),
     };
-    store.create_recipe("1234".into(), recipe).await?;
+    store
+        .create_recipe("1234".into(), user.id.clone(), recipe)
+        .await?;
 
     // update recipe
     let recipe = RecipeDocument {
@@ -303,7 +339,9 @@ pub async fn stores_revision_history(store: datastore::Pool) -> Result<()> {
         notes: Some("eight".into()),
     };
     let hash = store.get_recipe("1234".into()).await?.hash;
-    store.update_recipe("1234".into(), recipe, hash).await?;
+    store
+        .update_recipe("1234".into(), user.id.clone(), recipe, hash)
+        .await?;
 
     // update recipe again
     let recipe = RecipeDocument {
@@ -313,7 +351,9 @@ pub async fn stores_revision_history(store: datastore::Pool) -> Result<()> {
         notes: Some("twelve".into()),
     };
     let hash = store.get_recipe("1234".into()).await?.hash;
-    store.update_recipe("1234".into(), recipe, hash).await?;
+    store
+        .update_recipe("1234".into(), user.id.clone(), recipe, hash)
+        .await?;
 
     // now validate revision history - there should be three revisions
     let revisions = store.get_recipe_revisions("1234".into()).await?;

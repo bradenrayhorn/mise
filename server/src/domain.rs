@@ -106,6 +106,13 @@ pub enum ValidationError {
     Format(String),
 }
 
+pub mod user {
+    #[derive(Debug, Clone)]
+    pub struct Authenticated {
+        pub id: String,
+    }
+}
+
 pub mod recipe {
 
     use super::ValidationError;
