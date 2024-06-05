@@ -16,3 +16,8 @@ pub struct UpdateRecipe {
     pub instructions: String,
     pub notes: Option<String>,
 }
+
+#[derive(Serialize)]
+pub struct CreateTag {
+    pub name: String,
+}

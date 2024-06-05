@@ -1,6 +1,7 @@
 use mise::datastore;
 
 pub mod recipes;
+pub mod tags;
 pub mod users;
 
 pub trait CreatesDatastore {
