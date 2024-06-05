@@ -21,6 +21,12 @@ pub struct HashedRecipeDocument {
     pub hash: String,
 }
 
+#[derive(Debug, Clone)]
+pub struct Tag {
+    pub id: i64,
+    pub name: String,
+}
+
 // Error
 
 #[derive(Error, Debug)]
@@ -190,6 +196,35 @@ impl Pool {
         let _ = conn.sender.send(msg);
         rx.await?
     }
+
+    // tags
+    pub async fn create_tag(&self, user_id: String, name: String) -> Result<i64, Error> {
+        let (tx, rx) = oneshot::channel();
+        let msg = Message::CreateTag {
+            user_id,
+            name,
+            respond_to: tx,
+        };
+
+        self.send_message(rx, msg).await
+    }
+
+    pub async fn get_tags(&self) -> Result<Vec<Tag>, Error> {
+        let (tx, rx) = oneshot::channel();
+        let msg = Message::GetTags { respond_to: tx };
+
+        self.send_message(rx, msg).await
+    }
+
+    async fn send_message<T>(
+        &self,
+        rx: oneshot::Receiver<Result<T, Error>>,
+        msg: Message,
+    ) -> Result<T, Error> {
+        let conn = self.conn()?;
+        let _ = conn.sender.send(msg);
+        rx.await?
+    }
 }
 
 pub enum Message {
@@ -233,5 +268,15 @@ pub enum Message {
         recipe_id: String,
         revision: usize,
         respond_to: oneshot::Sender<Result<HashedRecipeDocument, Error>>,
+    },
+
+    // tags
+    GetTags {
+        respond_to: oneshot::Sender<Result<Vec<Tag>, Error>>,
+    },
+    CreateTag {
+        user_id: String,
+        name: String,
+        respond_to: oneshot::Sender<Result<i64, Error>>,
     },
 }

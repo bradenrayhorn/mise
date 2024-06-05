@@ -2,6 +2,7 @@ use crate::{domain, session_store};
 
 pub mod recipe;
 pub mod session;
+pub mod tag;
 pub mod user;
 
 #[derive(thiserror::Error, Debug)]

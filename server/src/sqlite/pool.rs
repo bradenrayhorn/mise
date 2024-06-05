@@ -8,7 +8,7 @@ use crate::{
     domain::{RegisteringUser, User},
 };
 
-use super::recipe;
+use super::{recipe, tag};
 
 impl From<rusqlite::Error> for Error {
     fn from(value: rusqlite::Error) -> Self {
@@ -19,7 +19,7 @@ impl From<rusqlite::Error> for Error {
     }
 }
 
-const MIGRATION: [&str; 3] = [
+const MIGRATION: [&str; 4] = [
     "
 CREATE TABLE users (
     id TEXT PRIMARY KEY,
@@ -45,6 +45,14 @@ CREATE TABLE recipe_revisions (
     UNIQUE (recipe_id, revision),
     FOREIGN KEY (created_by_user_id) REFERENCES users (id) ON DELETE RESTRICT,
     FOREIGN KEY (recipe_id) REFERENCES recipes (id) ON DELETE CASCADE
+);",
+    "
+CREATE TABLE tags (
+    id INTEGER PRIMARY KEY,
+    name TEXT NOT NULL,
+    created_by_user_id TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (name)
 );",
 ];
 
@@ -154,6 +162,16 @@ impl ThreadWorker {
                         respond_to,
                     } => {
                         let _ = respond_to.send(recipe::get_revision(&conn, &recipe_id, revision));
+                    }
+                    Message::GetTags { respond_to } => {
+                        let _ = respond_to.send(tag::get_all(&conn));
+                    }
+                    Message::CreateTag {
+                        user_id,
+                        name,
+                        respond_to,
+                    } => {
+                        let _ = respond_to.send(tag::insert(&conn, &user_id, &name));
                     }
                 }
             }

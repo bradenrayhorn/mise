@@ -9,4 +9,5 @@ mod http {
     mod requests;
     mod responses;
     mod setup;
+    mod tag;
 }

@@ -419,6 +419,45 @@ pub mod recipe {
     }
 }
 
+pub mod tag {
+    use super::ValidationError;
+
+    #[derive(Debug, Clone)]
+    pub struct Tag {
+        pub id: i64,
+        pub name: Name,
+    }
+
+    #[derive(Debug, Clone)]
+    pub struct Creating {
+        pub name: Name,
+    }
+
+    #[derive(Debug, Clone)]
+    pub struct Name(String);
+
+    impl TryFrom<String> for Name {
+        type Error = ValidationError;
+        fn try_from(value: String) -> Result<Self, Self::Error> {
+            let trimmed = value.trim();
+            let char_count = trimmed.chars().count();
+            if char_count < 1 {
+                Err(ValidationError::Constraint(format!(
+                    r#"Tag "{value}" must contain at least one character."#
+                )))
+            } else {
+                Ok(Name(trimmed.to_string()))
+            }
+        }
+    }
+
+    impl From<Name> for String {
+        fn from(value: Name) -> Self {
+            value.0
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use anyhow::Result;

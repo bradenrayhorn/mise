@@ -1,6 +1,6 @@
 use serde::Deserialize;
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize, PartialEq, Eq)]
 pub struct Data<T> {
     pub data: T,
 }
@@ -8,6 +8,8 @@ pub struct Data<T> {
 pub type Id = Data<uuid::Uuid>;
 
 pub type GetRecipe = Data<Recipe>;
+pub type CreateTag = Data<i64>;
+pub type GetTags = Data<Vec<Tag>>;
 
 #[derive(Debug, Deserialize, PartialEq, Eq)]
 pub struct Recipe {
@@ -29,4 +31,10 @@ pub struct Instructions {
 pub struct Ingredients {
     pub title: Option<String>,
     pub ingredients: Vec<String>,
+}
+
+#[derive(Debug, Deserialize, PartialEq, Eq)]
+pub struct Tag {
+    pub id: i64,
+    pub name: String,
 }
