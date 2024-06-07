@@ -19,6 +19,7 @@ pub struct Recipe {
     pub ingredient_blocks: Vec<Ingredients>,
     pub instruction_blocks: Vec<Instructions>,
     pub notes: Option<String>,
+    pub tags: Vec<String>,
 }
 
 #[derive(Debug, Deserialize, PartialEq, Eq)]

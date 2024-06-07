@@ -18,30 +18,27 @@ async fn cannot_get_unknown_recipe() -> Result<()> {
     Ok(())
 }
 
-fn basic_create_recipe_request() -> requests::CreateRecipe {
-    requests::CreateRecipe {
-        title: "Chicken Parm".into(),
-        ingredients: "\
-                - One chicken\n\
-                - Parmesan cheese\
-                "
-        .into(),
-        instructions: "\
-                - Broil the chicken\n\
-                - Add the parmesan\
-                "
-        .into(),
-        notes: Some("Best served hot!".into()),
-    }
-}
-
 #[tokio::test]
 async fn can_create_and_get_recipe() -> Result<()> {
     let harness = setup::with_auth().await?;
 
     let response = harness
         .post("/api/v1/recipes")
-        .json(&basic_create_recipe_request())
+        .json(&requests::CreateRecipe {
+            title: "Chicken Parm".into(),
+            ingredients: "\
+                - One chicken\n\
+                - Parmesan cheese\
+                "
+            .into(),
+            instructions: "\
+                - Broil the chicken\n\
+                - Add the parmesan\
+                "
+            .into(),
+            notes: Some("Best served hot!".into()),
+            tag_ids: vec![harness.create_tag("Main Dish").await?],
+        })
         .send()
         .await?;
 
@@ -70,6 +67,7 @@ async fn can_create_and_get_recipe() -> Result<()> {
         result.instruction_blocks
     );
     assert_eq!(Some("Best served hot!".into()), result.notes);
+    assert_eq!(vec!["Main Dish"], result.tags);
 
     Ok(())
 }
@@ -81,7 +79,21 @@ async fn can_create_and_update_recipe() -> Result<()> {
     // create the recipe
     let response = harness
         .post("/api/v1/recipes")
-        .json(&basic_create_recipe_request())
+        .json(&requests::CreateRecipe {
+            title: "Chicken Parm".into(),
+            ingredients: "\
+                - One chicken\n\
+                - Parmesan cheese\
+                "
+            .into(),
+            instructions: "\
+                - Broil the chicken\n\
+                - Add the parmesan\
+                "
+            .into(),
+            notes: Some("Best served hot!".into()),
+            tag_ids: vec![harness.create_tag("Main Dish").await?],
+        })
         .send()
         .await?;
 
@@ -108,6 +120,7 @@ async fn can_create_and_update_recipe() -> Result<()> {
                 "
             .into(),
             notes: None,
+            tag_ids: vec![harness.create_tag("Salads").await?],
         })
         .send()
         .await?;
@@ -135,6 +148,7 @@ async fn can_create_and_update_recipe() -> Result<()> {
         result.instruction_blocks
     );
     assert_eq!(None, result.notes);
+    assert_eq!(vec!["Salads"], result.tags);
 
     Ok(())
 }

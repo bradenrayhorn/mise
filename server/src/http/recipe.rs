@@ -20,6 +20,7 @@ pub struct CreateParams {
     ingredients: String,
     instructions: String,
     notes: Option<String>,
+    tag_ids: Vec<i64>,
 }
 
 #[derive(Serialize)]
@@ -30,6 +31,7 @@ pub struct Recipe {
     ingredient_blocks: Vec<Ingredients>,
     instruction_blocks: Vec<Instructions>,
     notes: Option<String>,
+    tags: Vec<String>,
 }
 
 #[derive(Serialize)]
@@ -57,6 +59,7 @@ pub async fn create(
             None => None,
             Some(n) => Some(n.try_into()?),
         },
+        tag_ids: request.tag_ids,
     };
 
     let id = core::recipe::create(&state.datasource, user.into(), creating_recipe).await?;
@@ -104,6 +107,7 @@ pub async fn get(
                 })
                 .collect(),
             notes: recipe.notes.map(Into::into),
+            tags: recipe.tags.into_iter().map(|tag| tag.name.into()).collect(),
         },
     }))
 }
@@ -115,6 +119,7 @@ pub struct UpdateParams {
     ingredients: String,
     instructions: String,
     notes: Option<String>,
+    tag_ids: Vec<i64>,
 }
 
 pub async fn update(
@@ -133,6 +138,7 @@ pub async fn update(
             None => None,
             Some(n) => Some(n.try_into()?),
         },
+        tag_ids: request.tag_ids,
     };
     core::recipe::update(&state.datasource, user.into(), updating_recipe).await?;
 

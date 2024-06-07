@@ -19,7 +19,7 @@ impl From<rusqlite::Error> for Error {
     }
 }
 
-const MIGRATION: [&str; 4] = [
+const MIGRATION: [&str; 5] = [
     "
 CREATE TABLE users (
     id TEXT PRIMARY KEY,
@@ -53,6 +53,15 @@ CREATE TABLE tags (
     created_by_user_id TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE (name)
+);",
+    "
+CREATE TABLE recipe_tags (
+    id INTEGER PRIMARY KEY,
+    recipe_id TEXT NOT NULL,
+    tag_id INTEGER NOT NULL,
+    UNIQUE (recipe_id, tag_id),
+    FOREIGN KEY (tag_id) REFERENCES tags (id) ON DELETE CASCADE,
+    FOREIGN KEY (recipe_id) REFERENCES recipes (id) ON DELETE CASCADE
 );",
 ];
 

@@ -5,6 +5,8 @@ use std::{net::TcpListener, sync::Arc, time::Duration};
 use anyhow::{anyhow, Result};
 use reqwest::StatusCode;
 
+use crate::http::{requests, responses};
+
 pub struct OidcServer {
     process: std::process::Child,
     pub port: u16,
@@ -192,6 +194,19 @@ impl Harness {
         } else {
             builder
         }
+    }
+}
+
+impl Harness {
+    pub async fn create_tag(&self, name: &str) -> Result<i64> {
+        let response = self
+            .post(&format!("/api/v1/tags"))
+            .json(&requests::CreateTag { name: name.into() })
+            .send()
+            .await?;
+
+        assert_eq!(StatusCode::OK, response.status());
+        Ok(response.json::<responses::CreateTag>().await?.data)
     }
 }
 

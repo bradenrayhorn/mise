@@ -6,6 +6,7 @@ pub struct CreateRecipe {
     pub ingredients: String,
     pub instructions: String,
     pub notes: Option<String>,
+    pub tag_ids: Vec<i64>,
 }
 
 #[derive(Serialize)]
@@ -15,6 +16,7 @@ pub struct UpdateRecipe {
     pub ingredients: String,
     pub instructions: String,
     pub notes: Option<String>,
+    pub tag_ids: Vec<i64>,
 }
 
 #[derive(Serialize)]
