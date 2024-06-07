@@ -75,6 +75,7 @@ pub struct CreatingRecipe {
     pub ingredients: recipe::Ingredients,
     pub instructions: recipe::Instructions,
     pub notes: Option<recipe::Notes>,
+    pub tag_ids: Vec<i64>,
 }
 
 #[derive(Debug, Clone)]
@@ -86,6 +87,7 @@ pub struct UpdatingRecipe {
     pub ingredients: recipe::Ingredients,
     pub instructions: recipe::Instructions,
     pub notes: Option<recipe::Notes>,
+    pub tag_ids: Vec<i64>,
 }
 
 #[derive(Debug, Clone)]
@@ -96,6 +98,7 @@ pub struct Recipe {
     pub ingredients: recipe::Ingredients,
     pub instructions: recipe::Instructions,
     pub notes: Option<recipe::Notes>,
+    pub tags: Vec<tag::OnRecipe>,
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -424,6 +427,12 @@ pub mod tag {
 
     #[derive(Debug, Clone)]
     pub struct Tag {
+        pub id: i64,
+        pub name: Name,
+    }
+
+    #[derive(Debug, Clone)]
+    pub struct OnRecipe {
         pub id: i64,
         pub name: Name,
     }

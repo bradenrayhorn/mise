@@ -1,3 +1,6 @@
+use std::str::FromStr;
+
+use askama::Template;
 use rusqlite::{params, Connection};
 
 use crate::{
@@ -5,16 +8,21 @@ use crate::{
     domain,
 };
 
-pub fn get(conn: &Connection, id: &str) -> Result<HashedRecipeDocument, Error> {
-    let q = "SELECT document FROM recipes WHERE id = ?1";
+pub fn get(conn: &Connection, id: &str) -> Result<domain::Recipe, Error> {
+    let hashed_document = get_document(conn, id)?;
+    let document = hashed_document.document;
 
-    let mut stmt = conn.prepare_cached(q)?;
-    let serialized_document: Vec<u8> = stmt.query_row([id], |row| row.get(0))?;
-
-    Ok(HashedRecipeDocument {
-        document: postcard::from_bytes(&serialized_document)
-            .map_err(|err| Error::Unknown(err.into()))?,
-        hash: sha256::digest(&serialized_document),
+    Ok(domain::Recipe {
+        id: uuid::Uuid::from_str(id)?,
+        hash: hashed_document.hash,
+        title: document.title.try_into()?,
+        ingredients: document.ingredients.try_into()?,
+        instructions: document.instructions.try_into()?,
+        notes: match document.notes {
+            None => None,
+            Some(s) => Some(s.try_into()?),
+        },
+        tags: get_tags_for_recipe(conn, document.tag_ids)?,
     })
 }
 
@@ -39,6 +47,9 @@ pub fn insert(
         let mut stmt =
             tx.prepare_cached("INSERT INTO recipe_revisions (recipe_id, revision, created_by_user_id) VALUES (?1,?2,?3)")?;
         stmt.execute(params![id, 0, user_id])?;
+
+        // create tags
+        update_tags_for_recipe(&tx, id, &recipe.tag_ids)?;
     }
 
     tx.commit()?;
@@ -56,7 +67,7 @@ pub fn update(
     let tx = conn.transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)?;
 
     {
-        let current_document = get(&tx, id)?;
+        let current_document = get_document(&tx, id)?;
         let current_serialized_document = postcard::to_allocvec(&current_document.document)
             .map_err(|err| Error::Unknown(err.into()))?;
 
@@ -85,6 +96,9 @@ pub fn update(
             "INSERT INTO recipe_revisions (recipe_id, revision, patch, created_by_user_id) VALUES (?1,?2,?3,?4)",
         )?;
         stmt.execute(params![id, patch_count, patch, user_id])?;
+
+        // update tags
+        update_tags_for_recipe(&tx, id, &recipe.tag_ids)?;
     }
 
     tx.commit()?;
@@ -111,7 +125,7 @@ pub fn get_revision(
     conn: &Connection,
     recipe_id: &str,
     revision: usize,
-) -> Result<HashedRecipeDocument, Error> {
+) -> Result<domain::Recipe, Error> {
     // get current recipe
     let q = "SELECT document FROM recipes WHERE id = ?1";
 
@@ -136,15 +150,75 @@ pub fn get_revision(
     }
 
     // apply patches from newest to oldest until requested revision is found
-    let mut document: Vec<u8> = current_document;
+    let mut serialized_document: Vec<u8> = current_document;
     for patch in patches.iter().take(patch_count - revision) {
-        document = apply_patch(&document, patch)?;
+        serialized_document = apply_patch(&serialized_document, patch)?;
     }
 
-    Ok(HashedRecipeDocument {
-        document: postcard::from_bytes(&document).map_err(|err| Error::Unknown(err.into()))?,
-        hash: sha256::digest(&document),
+    // turn into a domain recipe
+    let document: RecipeDocument =
+        postcard::from_bytes(&serialized_document).map_err(|err| Error::Unknown(err.into()))?;
+    let hash = sha256::digest(&serialized_document);
+
+    Ok(domain::Recipe {
+        id: uuid::Uuid::from_str(recipe_id)?,
+        hash,
+        title: document.title.try_into()?,
+        ingredients: document.ingredients.try_into()?,
+        instructions: document.instructions.try_into()?,
+        notes: match document.notes {
+            None => None,
+            Some(s) => Some(s.try_into()?),
+        },
+        tags: get_tags_for_recipe(conn, document.tag_ids)?,
     })
+}
+
+fn get_document(conn: &Connection, id: &str) -> Result<HashedRecipeDocument, Error> {
+    let q = "SELECT document FROM recipes WHERE id = ?1";
+
+    let mut stmt = conn.prepare_cached(q)?;
+    let serialized_document: Vec<u8> = stmt.query_row([id], |row| row.get(0))?;
+
+    let document: RecipeDocument =
+        postcard::from_bytes(&serialized_document).map_err(|err| Error::Unknown(err.into()))?;
+    let hash = sha256::digest(&serialized_document);
+
+    Ok(HashedRecipeDocument { document, hash })
+}
+
+fn get_tags_for_recipe(
+    conn: &Connection,
+    tag_ids: Vec<i64>,
+) -> Result<Vec<domain::tag::OnRecipe>, Error> {
+    let query = query::GetTagsForRecipe { ids: &tag_ids }.render()?;
+    let mut stmt = conn.prepare_cached(&query)?;
+
+    let result = stmt.query_and_then(rusqlite::params_from_iter(tag_ids), |row| {
+        Ok(domain::tag::OnRecipe {
+            id: row.get("id")?,
+            name: (row.get::<_, String>("name")?).try_into()?,
+        })
+    })?;
+
+    result.collect()
+}
+
+fn update_tags_for_recipe(
+    conn: &Connection,
+    recipe_id: &str,
+    tag_ids: &[i64],
+) -> Result<(), Error> {
+    let mut stmt = conn.prepare_cached("DELETE FROM recipe_tags WHERE recipe_id = ?1")?;
+    stmt.execute(params![recipe_id])?;
+
+    for tag_id in tag_ids {
+        let mut stmt =
+            conn.prepare_cached("INSERT INTO recipe_tags (recipe_id, tag_id) VALUES (?1,?2)")?;
+        stmt.execute(params![recipe_id, tag_id])?;
+    }
+
+    Ok(())
 }
 
 fn diff(old: &[u8], new: &[u8]) -> Result<Vec<u8>, Error> {
@@ -167,4 +241,19 @@ fn apply_patch(current: &[u8], compressed_patch: &[u8]) -> Result<Vec<u8>, Error
     std::io::copy(&mut reader, &mut patched_text).map_err(|err| Error::Unknown(err.into()))?;
 
     Ok(patched_text)
+}
+
+mod query {
+    use askama::Template;
+
+    #[derive(Template)]
+    #[template(
+        ext = "txt",
+        source = "SELECT id,name FROM tags WHERE id IN (
+            {% for id in ids %}?{% if !loop.last %},{% endif %}{% endfor %}
+            ) ORDER BY name ASC"
+    )]
+    pub struct GetTagsForRecipe<'a> {
+        pub ids: &'a [i64],
+    }
 }

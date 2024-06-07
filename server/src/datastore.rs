@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use tokio::sync::oneshot;
 
-use crate::domain::{RecipeRevision, RegisteringUser, User};
+use crate::domain::{self, Recipe, RecipeRevision, RegisteringUser, User};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RecipeDocument {
@@ -13,6 +13,7 @@ pub struct RecipeDocument {
     pub ingredients: String,
     pub instructions: String,
     pub notes: Option<String>,
+    pub tag_ids: Vec<i64>,
 }
 
 #[derive(Debug, Clone)]
@@ -42,6 +43,24 @@ pub enum Error {
 
     #[error(transparent)]
     Unknown(#[from] anyhow::Error),
+}
+
+impl From<domain::ValidationError> for Error {
+    fn from(value: domain::ValidationError) -> Self {
+        Error::Unknown(value.into())
+    }
+}
+
+impl From<uuid::Error> for Error {
+    fn from(value: uuid::Error) -> Self {
+        Error::Unknown(value.into())
+    }
+}
+
+impl From<askama::Error> for Error {
+    fn from(value: askama::Error) -> Self {
+        Error::Unknown(value.into())
+    }
 }
 
 impl From<tokio::sync::oneshot::error::RecvError> for Error {
@@ -116,7 +135,7 @@ impl Pool {
 
     // recipe
 
-    pub async fn get_recipe(&self, id: String) -> Result<HashedRecipeDocument, Error> {
+    pub async fn get_recipe(&self, id: String) -> Result<domain::Recipe, Error> {
         let conn = self.conn()?;
         let (tx, rx) = oneshot::channel();
         let msg = Message::GetRecipe { id, respond_to: tx };
@@ -184,7 +203,7 @@ impl Pool {
         &self,
         recipe_id: String,
         revision: usize,
-    ) -> Result<HashedRecipeDocument, Error> {
+    ) -> Result<domain::Recipe, Error> {
         let conn = self.conn()?;
         let (tx, rx) = oneshot::channel();
         let msg = Message::GetRevision {
@@ -245,7 +264,7 @@ pub enum Message {
     // recipe
     GetRecipe {
         id: String,
-        respond_to: oneshot::Sender<Result<HashedRecipeDocument, Error>>,
+        respond_to: oneshot::Sender<Result<Recipe, Error>>,
     },
     CreateRecipe {
         id: String,
@@ -267,7 +286,7 @@ pub enum Message {
     GetRevision {
         recipe_id: String,
         revision: usize,
-        respond_to: oneshot::Sender<Result<HashedRecipeDocument, Error>>,
+        respond_to: oneshot::Sender<Result<Recipe, Error>>,
     },
 
     // tags
