@@ -48,7 +48,7 @@ CREATE TABLE recipe_revisions (
 );",
     "
 CREATE TABLE tags (
-    id INTEGER PRIMARY KEY,
+    id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
     created_by_user_id TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -58,7 +58,7 @@ CREATE TABLE tags (
 CREATE TABLE recipe_tags (
     id INTEGER PRIMARY KEY,
     recipe_id TEXT NOT NULL,
-    tag_id INTEGER NOT NULL,
+    tag_id TEXT NOT NULL,
     UNIQUE (recipe_id, tag_id),
     FOREIGN KEY (tag_id) REFERENCES tags (id) ON DELETE CASCADE,
     FOREIGN KEY (recipe_id) REFERENCES recipes (id) ON DELETE CASCADE

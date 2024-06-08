@@ -1,5 +1,3 @@
-use std::str::FromStr;
-
 use rusqlite::{params, Connection};
 use sea_query::{Cond, Expr, Query, SqliteQueryBuilder};
 
@@ -13,7 +11,7 @@ pub fn get(conn: &Connection, id: &str) -> Result<domain::Recipe, Error> {
     let document = hashed_document.document;
 
     Ok(domain::Recipe {
-        id: uuid::Uuid::from_str(id)?,
+        id: id.try_into()?,
         hash: hashed_document.hash,
         title: document.title.try_into()?,
         ingredients: document.ingredients.try_into()?,
@@ -49,7 +47,7 @@ pub fn insert(
         stmt.execute(params![id, 0, user_id])?;
 
         // create tags
-        update_tags_for_recipe(&tx, id, &recipe.tag_ids)?;
+        update_tags_for_recipe(&tx, id, recipe.tag_ids.clone())?;
     }
 
     tx.commit()?;
@@ -98,7 +96,7 @@ pub fn update(
         stmt.execute(params![id, patch_count, patch, user_id])?;
 
         // update tags
-        update_tags_for_recipe(&tx, id, &recipe.tag_ids)?;
+        update_tags_for_recipe(&tx, id, recipe.tag_ids.clone())?;
     }
 
     tx.commit()?;
@@ -143,7 +141,12 @@ pub fn list_recipes(
                 .add_option(if filter.tag_ids.is_empty() {
                     None
                 } else {
-                    Some(Expr::col(sea::RecipeTags::TagId).is_in(filter.tag_ids))
+                    let tag_ids: Vec<String> = filter
+                        .tag_ids
+                        .into_iter()
+                        .map(Into::<String>::into)
+                        .collect();
+                    Some(Expr::col(sea::RecipeTags::TagId).is_in(tag_ids))
                 }),
         )
         .group_by_columns([
@@ -165,7 +168,7 @@ pub fn list_recipes(
     let mut stmt = conn.prepare_cached(&query)?;
     let result = stmt.query_and_then(&*params.to_params(), |row| {
         Ok(domain::ListedRecipe {
-            id: uuid::Uuid::from_str(&row.get::<_, String>("id")?)?,
+            id: (row.get::<_, String>("id")?.as_str()).try_into()?,
             title: (row.get::<_, String>("title")?).try_into()?,
         })
     })?;
@@ -243,7 +246,7 @@ pub fn get_revision(
     let hash = sha256::digest(&serialized_document);
 
     Ok(domain::Recipe {
-        id: uuid::Uuid::from_str(recipe_id)?,
+        id: recipe_id.try_into()?,
         hash,
         title: document.title.try_into()?,
         ingredients: document.ingredients.try_into()?,
@@ -271,8 +274,10 @@ fn get_document(conn: &Connection, id: &str) -> Result<HashedRecipeDocument, Err
 
 fn get_tags_for_recipe(
     conn: &Connection,
-    tag_ids: Vec<i64>,
+    tag_ids: Vec<domain::tag::Id>,
 ) -> Result<Vec<domain::tag::OnRecipe>, Error> {
+    let tag_ids: Vec<String> = tag_ids.into_iter().map(Into::<String>::into).collect();
+
     let (query, values) = Query::select()
         .column(sea::Tags::Id)
         .column(sea::Tags::Name)
@@ -284,9 +289,11 @@ fn get_tags_for_recipe(
     let mut stmt = conn.prepare_cached(&query)?;
 
     let result = stmt.query_and_then(&*params.to_params(), |row| {
+        let id: String = row.get("id")?;
+        let name: String = row.get("name")?;
         Ok(domain::tag::OnRecipe {
-            id: row.get("id")?,
-            name: (row.get::<_, String>("name")?).try_into()?,
+            id: id.as_str().try_into()?,
+            name: name.try_into()?,
         })
     })?;
 
@@ -296,11 +303,12 @@ fn get_tags_for_recipe(
 fn update_tags_for_recipe(
     conn: &Connection,
     recipe_id: &str,
-    tag_ids: &[i64],
+    tag_ids: Vec<domain::tag::Id>,
 ) -> Result<(), Error> {
     let mut stmt = conn.prepare_cached("DELETE FROM recipe_tags WHERE recipe_id = ?1")?;
     stmt.execute(params![recipe_id])?;
 
+    let tag_ids: Vec<String> = tag_ids.into_iter().map(Into::<String>::into).collect();
     for tag_id in tag_ids {
         let mut stmt =
             conn.prepare_cached("INSERT INTO recipe_tags (recipe_id, tag_id) VALUES (?1,?2)")?;

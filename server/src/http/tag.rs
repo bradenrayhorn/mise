@@ -13,7 +13,7 @@ use super::{
 
 #[derive(Serialize)]
 pub struct Tag {
-    id: i64,
+    id: domain::tag::Id,
     name: String,
 }
 
@@ -26,7 +26,7 @@ pub async fn create(
     State(state): State<AppState>,
     Extension(user): Extension<AuthenticatedUser>,
     Json(request): Json<CreateParams>,
-) -> Result<axum::response::Json<responses::Data<i64>>, Error> {
+) -> Result<axum::response::Json<responses::Data<domain::tag::Id>>, Error> {
     let creating = domain::tag::Creating {
         name: request.name.try_into()?,
     };

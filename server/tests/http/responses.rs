@@ -5,10 +5,9 @@ pub struct Data<T> {
     pub data: T,
 }
 
-pub type Id = Data<uuid::Uuid>;
-
+pub type CreateRecipe = Data<String>;
 pub type GetRecipe = Data<Recipe>;
-pub type CreateTag = Data<i64>;
+pub type CreateTag = Data<String>;
 pub type GetTags = Data<Vec<Tag>>;
 
 #[derive(Debug, Deserialize, PartialEq, Eq)]
@@ -50,6 +49,6 @@ pub struct Ingredients {
 
 #[derive(Debug, Deserialize, PartialEq, Eq)]
 pub struct Tag {
-    pub id: i64,
+    pub id: String,
     pub name: String,
 }

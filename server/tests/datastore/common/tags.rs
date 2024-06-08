@@ -66,10 +66,10 @@ pub async fn can_get_all_tags(store: datastore::Pool) -> Result<()> {
     assert_eq!(2, result.len());
 
     assert_eq!(main_id, result[0].id);
-    assert_eq!("Main Dish", result[0].name);
+    assert_eq!("Main Dish", Into::<String>::into(result[0].name.clone()));
 
     assert_eq!(side_id, result[1].id);
-    assert_eq!("Side Dish", result[1].name);
+    assert_eq!("Side Dish", Into::<String>::into(result[1].name.clone()));
 
     Ok(())
 }

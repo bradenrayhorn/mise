@@ -204,7 +204,7 @@ impl Harness {
 }
 
 impl Harness {
-    pub async fn create_tag(&self, name: &str) -> Result<i64> {
+    pub async fn create_tag(&self, name: &str) -> Result<String> {
         let response = self
             .post(&format!("/api/v1/tags"))
             .json(&requests::CreateTag { name: name.into() })

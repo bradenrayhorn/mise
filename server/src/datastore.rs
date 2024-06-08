@@ -13,19 +13,13 @@ pub struct RecipeDocument {
     pub ingredients: String,
     pub instructions: String,
     pub notes: Option<String>,
-    pub tag_ids: Vec<i64>,
+    pub tag_ids: Vec<domain::tag::Id>,
 }
 
 #[derive(Debug, Clone)]
 pub struct HashedRecipeDocument {
     pub document: RecipeDocument,
     pub hash: String,
-}
-
-#[derive(Debug, Clone)]
-pub struct Tag {
-    pub id: i64,
-    pub name: String,
 }
 
 // Error
@@ -47,12 +41,6 @@ pub enum Error {
 
 impl From<domain::ValidationError> for Error {
     fn from(value: domain::ValidationError) -> Self {
-        Error::Unknown(value.into())
-    }
-}
-
-impl From<uuid::Error> for Error {
-    fn from(value: uuid::Error) -> Self {
         Error::Unknown(value.into())
     }
 }
@@ -226,7 +214,11 @@ impl Pool {
     }
 
     // tags
-    pub async fn create_tag(&self, user_id: String, name: String) -> Result<i64, Error> {
+    pub async fn create_tag(
+        &self,
+        user_id: String,
+        name: String,
+    ) -> Result<domain::tag::Id, Error> {
         let (tx, rx) = oneshot::channel();
         let msg = Message::CreateTag {
             user_id,
@@ -237,7 +229,7 @@ impl Pool {
         self.send_message(rx, msg).await
     }
 
-    pub async fn get_tags(&self) -> Result<Vec<Tag>, Error> {
+    pub async fn get_tags(&self) -> Result<Vec<domain::tag::Tag>, Error> {
         let (tx, rx) = oneshot::channel();
         let msg = Message::GetTags { respond_to: tx };
 
@@ -305,11 +297,11 @@ pub enum Message {
 
     // tags
     GetTags {
-        respond_to: oneshot::Sender<Result<Vec<Tag>, Error>>,
+        respond_to: oneshot::Sender<Result<Vec<domain::tag::Tag>, Error>>,
     },
     CreateTag {
         user_id: String,
         name: String,
-        respond_to: oneshot::Sender<Result<i64, Error>>,
+        respond_to: oneshot::Sender<Result<domain::tag::Id, Error>>,
     },
 }
