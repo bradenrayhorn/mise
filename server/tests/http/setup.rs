@@ -117,7 +117,13 @@ impl Harness {
         let sv_db_path = db_path.clone();
         let sv_cache_path = cache_path.clone();
         tokio::task::spawn(async move {
-            let (_, connections) = mise::sqlite::datastore_handler(&sv_db_path).unwrap();
+            let (_, connections) = mise::sqlite::datastore_handler(
+                &sv_db_path,
+                &mise::sqlite::DatastoreConfig {
+                    recipe_page_size: 2,
+                },
+            )
+            .unwrap();
             let session_store = mise::sqlite::session_store(&sv_cache_path).unwrap();
 
             let server = mise::http::Server::new(

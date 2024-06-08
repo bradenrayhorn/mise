@@ -10,7 +10,12 @@ async fn main() {
         }
     };
 
-    let (_worker_pool, senders) = match sqlite::datastore_handler("mise.db") {
+    let (_worker_pool, senders) = match sqlite::datastore_handler(
+        "mise.db",
+        &sqlite::DatastoreConfig {
+            recipe_page_size: 50,
+        },
+    ) {
         Ok(pool) => pool,
         Err(err) => {
             println!("error with pool: {:?}", err);

@@ -13,6 +13,7 @@ macro_rules! tags_tests {
             use anyhow::Result;
 
             a_test!($cd, tags, can_create);
+            a_test!($cd, tags, cannot_create_duplicate_name);
             a_test!($cd, tags, can_get_all_tags);
         }
     };
@@ -32,6 +33,20 @@ pub async fn can_create(store: datastore::Pool) -> Result<()> {
     let user = user(&store).await?;
 
     store.create_tag(user.id, "Main Dish".into()).await?;
+
+    Ok(())
+}
+
+pub async fn cannot_create_duplicate_name(store: datastore::Pool) -> Result<()> {
+    let user = user(&store).await?;
+
+    store
+        .create_tag(user.id.clone(), "Main Dish".into())
+        .await?;
+    let result = store.create_tag(user.id.clone(), "Main Dish".into()).await;
+    if let Ok(_) = result {
+        panic!("result is Ok, expected error.");
+    }
 
     Ok(())
 }

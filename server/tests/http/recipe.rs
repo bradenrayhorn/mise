@@ -152,3 +152,180 @@ async fn can_create_and_update_recipe() -> Result<()> {
 
     Ok(())
 }
+
+#[tokio::test]
+async fn can_list_recipes() -> Result<()> {
+    let harness = setup::with_auth().await?;
+
+    let response = harness
+        .post("/api/v1/recipes")
+        .json(&requests::CreateRecipe {
+            title: "Chicken Alpha".into(),
+            ingredients: "- word".into(),
+            instructions: "- word".into(),
+            notes: None,
+            tag_ids: vec![],
+        })
+        .send()
+        .await?;
+    assert_eq!(StatusCode::OK, response.status());
+    let recipe_id_1 = response.json::<responses::Id>().await?.data;
+
+    let response = harness
+        .post("/api/v1/recipes")
+        .json(&requests::CreateRecipe {
+            title: "Chicken Gamma".into(),
+            ingredients: "- word".into(),
+            instructions: "- word".into(),
+            notes: None,
+            tag_ids: vec![],
+        })
+        .send()
+        .await?;
+    assert_eq!(StatusCode::OK, response.status());
+    let recipe_id_2 = response.json::<responses::Id>().await?.data;
+
+    let response = harness
+        .post("/api/v1/recipes")
+        .json(&requests::CreateRecipe {
+            title: "Chicken Beta".into(),
+            ingredients: "- word".into(),
+            instructions: "- word".into(),
+            notes: None,
+            tag_ids: vec![],
+        })
+        .send()
+        .await?;
+    assert_eq!(StatusCode::OK, response.status());
+    let recipe_id_3 = response.json::<responses::Id>().await?.data;
+
+    // get page one
+    let response = harness.get("/api/v1/recipes").send().await?;
+    assert_eq!(StatusCode::OK, response.status());
+
+    let page_1_result = response.json::<responses::ListRecipes>().await?;
+    assert_eq!(
+        vec![
+            responses::ListedRecipe {
+                id: recipe_id_1.into(),
+                title: "Chicken Alpha".into(),
+            },
+            responses::ListedRecipe {
+                id: recipe_id_3.into(),
+                title: "Chicken Beta".into(),
+            }
+        ],
+        page_1_result.data
+    );
+
+    // get page two
+    let response = harness
+        .get(&format!(
+            "/api/v1/recipes?next={}",
+            page_1_result.next.unwrap()
+        ))
+        .send()
+        .await?;
+    assert_eq!(StatusCode::OK, response.status());
+
+    let page_2_result = response.json::<responses::ListRecipes>().await?;
+    assert!(page_2_result.next.is_none());
+    assert_eq!(
+        vec![responses::ListedRecipe {
+            id: recipe_id_2.into(),
+            title: "Chicken Gamma".into(),
+        },],
+        page_2_result.data
+    );
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn can_list_recipes_with_filters() -> Result<()> {
+    let harness = setup::with_auth().await?;
+
+    let tag_1 = harness.create_tag("Tag1").await?;
+    let tag_2 = harness.create_tag("Tag2").await?;
+
+    let response = harness
+        .post("/api/v1/recipes")
+        .json(&requests::CreateRecipe {
+            title: "Chicken Alpha".into(),
+            ingredients: "- word".into(),
+            instructions: "- word".into(),
+            notes: None,
+            tag_ids: vec![tag_1],
+        })
+        .send()
+        .await?;
+    assert_eq!(StatusCode::OK, response.status());
+    let recipe_id_1 = response.json::<responses::Id>().await?.data;
+
+    let response = harness
+        .post("/api/v1/recipes")
+        .json(&requests::CreateRecipe {
+            title: "Chicken Gamma Alpha".into(),
+            ingredients: "- word".into(),
+            instructions: "- word".into(),
+            notes: None,
+            tag_ids: vec![tag_2],
+        })
+        .send()
+        .await?;
+    assert_eq!(StatusCode::OK, response.status());
+    let recipe_id_2 = response.json::<responses::Id>().await?.data;
+
+    let response = harness
+        .post("/api/v1/recipes")
+        .json(&requests::CreateRecipe {
+            title: "Chicken Beta".into(),
+            ingredients: "- word".into(),
+            instructions: "- word".into(),
+            notes: None,
+            tag_ids: vec![],
+        })
+        .send()
+        .await?;
+    assert_eq!(StatusCode::OK, response.status());
+
+    // get page one
+    let response = harness
+        .get(&format!(
+            "/api/v1/recipes?name=Alpha&tag_ids={tag_1},{tag_2}"
+        ))
+        .send()
+        .await?;
+    assert_eq!(StatusCode::OK, response.status());
+
+    let page_1_result = response.json::<responses::ListRecipes>().await?;
+    assert_eq!(
+        vec![
+            responses::ListedRecipe {
+                id: recipe_id_1.into(),
+                title: "Chicken Alpha".into(),
+            },
+            responses::ListedRecipe {
+                id: recipe_id_2.into(),
+                title: "Chicken Gamma Alpha".into(),
+            }
+        ],
+        page_1_result.data
+    );
+
+    // get page two
+    let response = harness
+        .get(&format!(
+            "/api/v1/recipes?name=Alpha&tag_ids={tag_1},{tag_2}&next={}",
+            page_1_result.next.unwrap(),
+        ))
+        .send()
+        .await?;
+    assert_eq!(StatusCode::OK, response.status());
+
+    let page_2_result = response.json::<responses::ListRecipes>().await?;
+    assert!(page_2_result.next.is_none());
+    assert!(page_2_result.data.is_empty());
+
+    Ok(())
+}

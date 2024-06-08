@@ -12,6 +12,14 @@ pub type CreateTag = Data<i64>;
 pub type GetTags = Data<Vec<Tag>>;
 
 #[derive(Debug, Deserialize, PartialEq, Eq)]
+pub struct ListRecipes {
+    pub next: Option<String>,
+    pub data: Vec<ListedRecipe>,
+}
+
+// models
+
+#[derive(Debug, Deserialize, PartialEq, Eq)]
 pub struct Recipe {
     pub id: String,
     pub hash: String,
@@ -20,6 +28,12 @@ pub struct Recipe {
     pub instruction_blocks: Vec<Instructions>,
     pub notes: Option<String>,
     pub tags: Vec<String>,
+}
+
+#[derive(Debug, Deserialize, PartialEq, Eq)]
+pub struct ListedRecipe {
+    pub id: String,
+    pub title: String,
 }
 
 #[derive(Debug, Deserialize, PartialEq, Eq)]

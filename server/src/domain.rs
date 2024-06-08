@@ -101,12 +101,47 @@ pub struct Recipe {
     pub tags: Vec<tag::OnRecipe>,
 }
 
+#[derive(Debug, Clone)]
+pub struct ListedRecipe {
+    pub id: Uuid,
+    pub title: recipe::Title,
+}
+
 #[derive(thiserror::Error, Debug)]
 pub enum ValidationError {
     #[error("{self}")]
     Constraint(String),
     #[error("{self}")]
     Format(String),
+}
+
+pub mod filter {
+
+    #[derive(Debug, Clone)]
+    pub struct Recipe {
+        pub name: Option<String>,
+        pub tag_ids: Vec<i64>,
+    }
+}
+
+pub mod page {
+    use super::ListedRecipe;
+
+    #[derive(Debug, Clone)]
+    pub struct Recipe {
+        pub items: Vec<ListedRecipe>,
+        pub next: Option<cursor::Recipe>,
+    }
+
+    pub mod cursor {
+        use serde::{Deserialize, Serialize};
+
+        #[derive(Debug, Clone, Serialize, Deserialize)]
+        pub struct Recipe {
+            pub id: String,
+            pub name: String,
+        }
+    }
 }
 
 pub mod user {

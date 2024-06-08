@@ -1,12 +1,13 @@
 use axum::{
-    extract::{Path, State},
+    extract::{Path, Query, State},
     Extension, Json,
 };
+use base64::Engine;
 use serde::{Deserialize, Serialize};
 
 use crate::{
     core::{self, Error},
-    domain::{CreatingRecipe, UpdatingRecipe},
+    domain::{self, CreatingRecipe, UpdatingRecipe},
 };
 
 use super::{
@@ -32,6 +33,18 @@ pub struct Recipe {
     instruction_blocks: Vec<Instructions>,
     notes: Option<String>,
     tags: Vec<String>,
+}
+
+#[derive(Serialize)]
+pub struct Listed {
+    id: String,
+    title: String,
+}
+
+#[derive(Serialize)]
+pub struct Page {
+    data: Vec<Listed>,
+    next: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -108,6 +121,56 @@ pub async fn get(
                 .collect(),
             notes: recipe.notes.map(Into::into),
             tags: recipe.tags.into_iter().map(|tag| tag.name.into()).collect(),
+        },
+    }))
+}
+
+#[derive(Deserialize)]
+pub struct ListParams {
+    next: Option<String>,
+    title: Option<String>,
+    tag_ids: Option<String>,
+}
+
+pub async fn list(
+    State(state): State<AppState>,
+    Query(params): Query<ListParams>,
+) -> Result<axum::response::Json<Page>, Error> {
+    let base64_engine = base64::engine::general_purpose::URL_SAFE;
+
+    let filter = domain::filter::Recipe {
+        name: params.title,
+        tag_ids: match params.tag_ids {
+            None => vec![],
+            Some(tag_ids) => tag_ids
+                .split(',')
+                .filter_map(|tag_id| tag_id.parse::<i64>().ok())
+                .collect(),
+        },
+    };
+    let cursor = match params.next {
+        None => None,
+        Some(encoded) => {
+            let decoded = base64_engine.decode(encoded)?;
+            let deserialized: domain::page::cursor::Recipe = postcard::from_bytes(&decoded)?;
+            Some(deserialized)
+        }
+    };
+
+    let page = core::recipe::list(&state.datasource, filter, cursor).await?;
+
+    Ok(axum::response::Json(Page {
+        data: page
+            .items
+            .into_iter()
+            .map(|item| Listed {
+                id: item.id.to_string(),
+                title: item.title.into(),
+            })
+            .collect(),
+        next: match page.next {
+            None => None,
+            Some(next) => Some(base64_engine.encode(postcard::to_allocvec(&next)?)),
         },
     }))
 }
