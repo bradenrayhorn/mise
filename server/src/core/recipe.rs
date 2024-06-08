@@ -63,3 +63,14 @@ pub async fn get(datastore: &Pool, id: uuid::Uuid) -> Result<Recipe, Error> {
             _ => Error::Other(err.into()),
         })
 }
+
+pub async fn list(
+    datastore: &Pool,
+    filter: domain::filter::Recipe,
+    cursor: Option<domain::page::cursor::Recipe>,
+) -> Result<domain::page::Recipe, Error> {
+    datastore
+        .list_recipes(filter, cursor)
+        .await
+        .map_err(|err| Error::Other(err.into()))
+}

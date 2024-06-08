@@ -57,12 +57,6 @@ impl From<uuid::Error> for Error {
     }
 }
 
-impl From<askama::Error> for Error {
-    fn from(value: askama::Error) -> Self {
-        Error::Unknown(value.into())
-    }
-}
-
 impl From<tokio::sync::oneshot::error::RecvError> for Error {
     fn from(value: tokio::sync::oneshot::error::RecvError) -> Self {
         Error::Unknown(anyhow!(value))
@@ -184,6 +178,21 @@ impl Pool {
         rx.await?
     }
 
+    pub async fn list_recipes(
+        &self,
+        filter: domain::filter::Recipe,
+        cursor: Option<domain::page::cursor::Recipe>,
+    ) -> Result<domain::page::Recipe, Error> {
+        let (tx, rx) = oneshot::channel();
+        let msg = Message::ListRecipes {
+            filter,
+            cursor,
+            respond_to: tx,
+        };
+
+        self.send_message(rx, msg).await
+    }
+
     pub async fn get_recipe_revisions(
         &self,
         recipe_id: String,
@@ -265,6 +274,11 @@ pub enum Message {
     GetRecipe {
         id: String,
         respond_to: oneshot::Sender<Result<Recipe, Error>>,
+    },
+    ListRecipes {
+        filter: domain::filter::Recipe,
+        cursor: Option<domain::page::cursor::Recipe>,
+        respond_to: oneshot::Sender<Result<domain::page::Recipe, Error>>,
     },
     CreateRecipe {
         id: String,

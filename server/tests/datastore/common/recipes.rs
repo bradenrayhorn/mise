@@ -18,6 +18,10 @@ macro_rules! recipes_tests {
 
             a_test!($cd, recipes, cannot_get_non_existent_recipe);
 
+            a_test!($cd, recipes, can_list_recipes_over_multiple_pages);
+            a_test!($cd, recipes, can_list_with_title_filter);
+            a_test!($cd, recipes, can_list_with_tag_filter);
+
             a_test!($cd, recipes, can_update_recipe);
             a_test!($cd, recipes, cannot_update_with_bad_hash);
             a_test!($cd, recipes, update_creates_new_revision);
@@ -67,6 +71,21 @@ impl From<domain::Recipe> for ComparableRecipe {
             instructions: value.instructions.into(),
             notes: value.notes.map(|n| n.into()),
             tags: value.tags.into_iter().map(|t| t.name.into()).collect(),
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+struct ComparableListedRecipe {
+    id: uuid::Uuid,
+    title: String,
+}
+
+impl From<domain::ListedRecipe> for ComparableListedRecipe {
+    fn from(value: domain::ListedRecipe) -> Self {
+        ComparableListedRecipe {
+            id: value.id,
+            title: value.title.into(),
         }
     }
 }
@@ -333,6 +352,240 @@ pub async fn handles_updating_unknown_recipe(store: datastore::Pool) -> Result<(
     } else {
         panic!("update_recipe returned {:?}, expected NotFound", result);
     }
+
+    Ok(())
+}
+
+// list_recipes
+
+pub async fn can_list_recipes_over_multiple_pages(store: datastore::Pool) -> Result<()> {
+    let user = user(&store).await?;
+
+    let recipe_id_1 = uuid::Uuid::new_v4();
+    store
+        .create_recipe(
+            recipe_id_1.into(),
+            user.id.clone(),
+            RecipeDocument {
+                title: "Recipe 1".into(),
+                ingredients: "- word".into(),
+                instructions: "- word".into(),
+                notes: None,
+                tag_ids: vec![],
+            },
+        )
+        .await?;
+
+    let recipe_id_2 = uuid::Uuid::new_v4();
+    store
+        .create_recipe(
+            recipe_id_2.into(),
+            user.id.clone(),
+            RecipeDocument {
+                title: "Recipe 2".into(),
+                ingredients: "- word".into(),
+                instructions: "- word".into(),
+                notes: None,
+                tag_ids: vec![],
+            },
+        )
+        .await?;
+
+    let recipe_id_3 = uuid::Uuid::new_v4();
+    store
+        .create_recipe(
+            recipe_id_3.into(),
+            user.id.clone(),
+            RecipeDocument {
+                title: "Recipe 3".into(),
+                ingredients: "- word".into(),
+                instructions: "- word".into(),
+                notes: None,
+                tag_ids: vec![],
+            },
+        )
+        .await?;
+
+    // fetch recipes
+
+    let first_page = store
+        .list_recipes(
+            domain::filter::Recipe {
+                name: None,
+                tag_ids: vec![],
+            },
+            None,
+        )
+        .await?;
+
+    assert_eq!(2, first_page.items.len());
+    let recipe: ComparableListedRecipe = first_page.items[0].clone().into();
+    assert_eq!(recipe_id_1, recipe.id);
+    assert_eq!("Recipe 1", recipe.title);
+
+    let recipe: ComparableListedRecipe = first_page.items[1].clone().into();
+    assert_eq!(recipe_id_2, recipe.id);
+    assert_eq!("Recipe 2", recipe.title);
+
+    let second_page = store
+        .list_recipes(
+            domain::filter::Recipe {
+                name: None,
+                tag_ids: vec![],
+            },
+            first_page.next,
+        )
+        .await?;
+
+    assert!(second_page.next.is_none());
+    assert_eq!(1, second_page.items.len());
+    let recipe: ComparableListedRecipe = second_page.items[0].clone().into();
+    assert_eq!(recipe_id_3, recipe.id);
+    assert_eq!("Recipe 3", recipe.title);
+
+    Ok(())
+}
+
+pub async fn can_list_with_title_filter(store: datastore::Pool) -> Result<()> {
+    let user = user(&store).await?;
+
+    let recipe_id_1 = uuid::Uuid::new_v4();
+    store
+        .create_recipe(
+            recipe_id_1.into(),
+            user.id.clone(),
+            RecipeDocument {
+                title: "Good Chicken".into(),
+                ingredients: "- word".into(),
+                instructions: "- word".into(),
+                notes: None,
+                tag_ids: vec![],
+            },
+        )
+        .await?;
+
+    let recipe_id_2 = uuid::Uuid::new_v4();
+    store
+        .create_recipe(
+            recipe_id_2.into(),
+            user.id.clone(),
+            RecipeDocument {
+                title: "Rabbit?".into(),
+                ingredients: "- word".into(),
+                instructions: "- word".into(),
+                notes: None,
+                tag_ids: vec![],
+            },
+        )
+        .await?;
+
+    // fetch recipes
+
+    let result = store
+        .list_recipes(
+            domain::filter::Recipe {
+                name: Some("Chick".into()),
+                tag_ids: vec![],
+            },
+            None,
+        )
+        .await?;
+
+    assert!(result.next.is_none());
+    assert_eq!(1, result.items.len());
+    let recipe: ComparableListedRecipe = result.items[0].clone().into();
+    assert_eq!(recipe_id_1, recipe.id);
+    assert_eq!("Good Chicken", recipe.title);
+
+    Ok(())
+}
+
+pub async fn can_list_with_tag_filter(store: datastore::Pool) -> Result<()> {
+    let user = user(&store).await?;
+
+    let tag1 = tag(&store, &user.id, "Tag1").await?;
+    let tag2 = tag(&store, &user.id, "Tag2").await?;
+    let tag3 = tag(&store, &user.id, "Tag3").await?;
+    let tag4 = tag(&store, &user.id, "Tag4").await?;
+
+    let recipe_id_1 = uuid::Uuid::new_v4();
+    store
+        .create_recipe(
+            recipe_id_1.into(),
+            user.id.clone(),
+            RecipeDocument {
+                title: "Good Chicken".into(),
+                ingredients: "- word".into(),
+                instructions: "- word".into(),
+                notes: None,
+                tag_ids: vec![tag1, tag2],
+            },
+        )
+        .await?;
+
+    let recipe_id_2 = uuid::Uuid::new_v4();
+    store
+        .create_recipe(
+            recipe_id_2.into(),
+            user.id.clone(),
+            RecipeDocument {
+                title: "Rabbit?".into(),
+                ingredients: "- word".into(),
+                instructions: "- word".into(),
+                notes: None,
+                tag_ids: vec![tag3],
+            },
+        )
+        .await?;
+
+    let recipe_id_3 = uuid::Uuid::new_v4();
+    store
+        .create_recipe(
+            recipe_id_3.into(),
+            user.id.clone(),
+            RecipeDocument {
+                title: "Baked beans".into(),
+                ingredients: "- word".into(),
+                instructions: "- word".into(),
+                notes: None,
+                tag_ids: vec![tag2, tag4],
+            },
+        )
+        .await?;
+
+    // fetch recipes
+
+    let result = store
+        .list_recipes(
+            domain::filter::Recipe {
+                name: None,
+                tag_ids: vec![tag1, tag2],
+            },
+            None,
+        )
+        .await?;
+
+    assert_eq!(2, result.items.len());
+    let recipe: ComparableListedRecipe = result.items[0].clone().into();
+    assert_eq!(recipe_id_3, recipe.id);
+    assert_eq!("Baked beans", recipe.title);
+
+    let recipe: ComparableListedRecipe = result.items[1].clone().into();
+    assert_eq!(recipe_id_1, recipe.id);
+    assert_eq!("Good Chicken", recipe.title);
+
+    let result = store
+        .list_recipes(
+            domain::filter::Recipe {
+                name: None,
+                tag_ids: vec![tag1, tag2],
+            },
+            result.next,
+        )
+        .await?;
+
+    assert!(result.next.is_none());
+    assert_eq!(0, result.items.len());
 
     Ok(())
 }

@@ -73,8 +73,14 @@ fn prepare_connection(conn: &Connection) -> Result<(), Error> {
 
 pub struct DatastoreHandler {}
 
+#[derive(Debug, Clone)]
+pub struct DatastoreConfig {
+    pub recipe_page_size: u64,
+}
+
 pub fn datastore_handler(
     path: &str,
+    config: &DatastoreConfig,
 ) -> Result<(DatastoreHandler, Vec<mpsc::Sender<Message>>), Error> {
     let mut conn = Connection::open(path)?;
     prepare_connection(&conn)?;
@@ -104,7 +110,7 @@ pub fn datastore_handler(
     let mut senders: Vec<mpsc::Sender<Message>> = Vec::new();
 
     for _ in 0..5 {
-        let (_, sender) = ThreadWorker::new(path)?;
+        let (_, sender) = ThreadWorker::new(path, config)?;
         senders.push(sender);
     }
 
@@ -114,8 +120,10 @@ pub fn datastore_handler(
 struct ThreadWorker {}
 
 impl ThreadWorker {
-    fn new(path: &str) -> Result<(Self, mpsc::Sender<Message>), Error> {
+    fn new(path: &str, config: &DatastoreConfig) -> Result<(Self, mpsc::Sender<Message>), Error> {
         let (sender, receiver) = mpsc::channel();
+
+        let recipe_page_size = config.recipe_page_size;
 
         let mut conn = Connection::open(path)?;
         prepare_connection(&conn)?;
@@ -135,6 +143,18 @@ impl ThreadWorker {
                     }
                     Message::GetRecipe { id, respond_to } => {
                         let _ = respond_to.send(recipe::get(&conn, &id));
+                    }
+                    Message::ListRecipes {
+                        filter,
+                        cursor,
+                        respond_to,
+                    } => {
+                        let _ = respond_to.send(recipe::list_recipes(
+                            &conn,
+                            recipe_page_size,
+                            filter,
+                            cursor,
+                        ));
                     }
                     Message::CreateRecipe {
                         id,

@@ -79,6 +79,7 @@ impl Server {
                 "/api/v1",
                 Router::new()
                     .route("/auth/me", axum::routing::get(get_me))
+                    .route("/recipes", axum::routing::get(http::recipe::list))
                     .route("/recipes", axum::routing::post(http::recipe::create))
                     .route("/recipes/:id", axum::routing::get(http::recipe::get))
                     .route("/recipes/:id", axum::routing::put(http::recipe::update))

@@ -25,3 +25,15 @@ impl From<session_store::Error> for Error {
         Error::Other(value.into())
     }
 }
+
+impl From<postcard::Error> for Error {
+    fn from(value: postcard::Error) -> Self {
+        Error::Other(value.into())
+    }
+}
+
+impl From<base64::DecodeError> for Error {
+    fn from(value: base64::DecodeError) -> Self {
+        Error::Other(value.into())
+    }
+}

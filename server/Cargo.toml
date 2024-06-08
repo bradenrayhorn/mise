@@ -32,4 +32,7 @@ bipatch = "1.0.0"
 postcard = { version = "1.0.8", features = ["alloc"] }
 zstd = "0.13.1"
 comrak = "0.24.1"
-askama = "0.12.1"
+sea-query = { version = "0.30.7", default-features = false, features = [
+	"backend-sqlite",
+	"derive",
+] }
