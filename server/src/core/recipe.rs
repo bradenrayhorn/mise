@@ -8,7 +8,7 @@ pub async fn create(
     datastore: &Pool,
     user: domain::user::Authenticated,
     recipe: CreatingRecipe,
-) -> Result<uuid::Uuid, Error> {
+) -> Result<domain::recipe::Id, Error> {
     let document = RecipeDocument {
         title: recipe.title.into(),
         instructions: recipe.instructions.into(),
@@ -17,10 +17,10 @@ pub async fn create(
         tag_ids: recipe.tag_ids,
     };
 
-    let id = uuid::Uuid::new_v4();
+    let id = domain::recipe::Id::new();
 
     datastore
-        .create_recipe(id.to_string(), user.id, document)
+        .create_recipe(id.clone().into(), user.id, document)
         .await
         .map_err(|err| Error::Other(err.into()))?;
 
@@ -39,10 +39,14 @@ pub async fn update(
         notes: recipe.notes.map(std::convert::Into::into),
         tag_ids: recipe.tag_ids,
     };
-    let id = recipe.id.to_string();
 
     datastore
-        .update_recipe(id, user.id, document, recipe.previous_hash)
+        .update_recipe(
+            recipe.id.clone().into(),
+            user.id,
+            document,
+            recipe.previous_hash,
+        )
         .await
         .map_err(|err| match err {
             datastore::Error::NotFound => {
@@ -54,9 +58,9 @@ pub async fn update(
     Ok(())
 }
 
-pub async fn get(datastore: &Pool, id: uuid::Uuid) -> Result<Recipe, Error> {
+pub async fn get(datastore: &Pool, id: domain::recipe::Id) -> Result<Recipe, Error> {
     datastore
-        .get_recipe(id.to_string())
+        .get_recipe(id.clone().into())
         .await
         .map_err(|err| match err {
             datastore::Error::NotFound => Error::NotFound(format!("recipe {id} does not exist")),

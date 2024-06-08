@@ -1,7 +1,6 @@
 use std::ops::Deref;
 
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 
 #[derive(Debug, Clone)]
 pub struct User {
@@ -75,24 +74,24 @@ pub struct CreatingRecipe {
     pub ingredients: recipe::Ingredients,
     pub instructions: recipe::Instructions,
     pub notes: Option<recipe::Notes>,
-    pub tag_ids: Vec<i64>,
+    pub tag_ids: Vec<tag::Id>,
 }
 
 #[derive(Debug, Clone)]
 pub struct UpdatingRecipe {
-    pub id: Uuid,
+    pub id: recipe::Id,
     pub previous_hash: String,
 
     pub title: recipe::Title,
     pub ingredients: recipe::Ingredients,
     pub instructions: recipe::Instructions,
     pub notes: Option<recipe::Notes>,
-    pub tag_ids: Vec<i64>,
+    pub tag_ids: Vec<tag::Id>,
 }
 
 #[derive(Debug, Clone)]
 pub struct Recipe {
-    pub id: Uuid,
+    pub id: recipe::Id,
     pub hash: String,
     pub title: recipe::Title,
     pub ingredients: recipe::Ingredients,
@@ -103,7 +102,7 @@ pub struct Recipe {
 
 #[derive(Debug, Clone)]
 pub struct ListedRecipe {
-    pub id: Uuid,
+    pub id: recipe::Id,
     pub title: recipe::Title,
 }
 
@@ -120,7 +119,7 @@ pub mod filter {
     #[derive(Debug, Clone)]
     pub struct Recipe {
         pub name: Option<String>,
-        pub tag_ids: Vec<i64>,
+        pub tag_ids: Vec<super::tag::Id>,
     }
 }
 
@@ -144,16 +143,93 @@ pub mod page {
     }
 }
 
+mod id {
+    use std::fmt::Display;
+
+    use serde::{Deserialize, Serialize};
+
+    use super::ValidationError;
+
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub struct Id {
+        ulid: ulid::Ulid,
+    }
+
+    impl Id {
+        #[must_use]
+        pub fn new() -> Self {
+            Id {
+                ulid: ulid::Ulid::new(),
+            }
+        }
+    }
+
+    impl Serialize for Id {
+        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: serde::Serializer,
+        {
+            ulid::Ulid::serialize(&self.ulid, serializer)
+        }
+    }
+
+    impl<'de> Deserialize<'de> for Id {
+        fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+        where
+            D: serde::Deserializer<'de>,
+        {
+            Ok(Id {
+                ulid: ulid::Ulid::deserialize(deserializer)?,
+            })
+        }
+    }
+
+    impl Default for Id {
+        fn default() -> Self {
+            Self::new()
+        }
+    }
+
+    impl Display for Id {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            std::fmt::Display::fmt(&self.ulid, f)
+        }
+    }
+
+    impl TryFrom<&str> for Id {
+        type Error = ValidationError;
+        fn try_from(value: &str) -> Result<Self, Self::Error> {
+            Ok(Id {
+                ulid: ulid::Ulid::from_string(value).map_err(|err| {
+                    ValidationError::Format(format!("Could not parse ulid: {value}. {err}"))
+                })?,
+            })
+        }
+    }
+
+    impl From<Id> for String {
+        fn from(value: Id) -> Self {
+            value.ulid.to_string()
+        }
+    }
+}
+
 pub mod user {
     #[derive(Debug, Clone)]
     pub struct Authenticated {
         pub id: String,
     }
+
+    pub use super::id::Id;
 }
 
 pub mod recipe {
 
+    use std::fmt::Debug;
+
     use super::ValidationError;
+
+    pub use super::id::Id;
 
     #[derive(Debug, Clone)]
     pub struct Title(String);
@@ -460,15 +536,17 @@ pub mod recipe {
 pub mod tag {
     use super::ValidationError;
 
+    pub use super::id::Id;
+
     #[derive(Debug, Clone)]
     pub struct Tag {
-        pub id: i64,
+        pub id: Id,
         pub name: Name,
     }
 
     #[derive(Debug, Clone)]
     pub struct OnRecipe {
-        pub id: i64,
+        pub id: Id,
         pub name: Name,
     }
 

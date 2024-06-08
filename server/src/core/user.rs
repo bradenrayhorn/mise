@@ -1,9 +1,7 @@
-use uuid::Uuid;
-
 use crate::{
     core::Error,
     datastore::{self, Pool},
-    domain::{RegisteringUser, SessionKey},
+    domain::{self, RegisteringUser, SessionKey},
     oidc,
     session_store::SessionStore,
 };
@@ -28,7 +26,7 @@ pub async fn on_authenticated(
     authenticated: &oidc::Authenticated,
 ) -> Result<SessionKey, Error> {
     let registering = RegisteringUser {
-        potential_id: Uuid::new_v4().to_string(),
+        potential_id: domain::user::Id::new().into(),
         oauth_id: format!("custom|{}", authenticated.subject),
         name: authenticated.name.to_string(),
     };

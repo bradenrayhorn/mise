@@ -1,12 +1,13 @@
 use super::{requests, responses, setup};
 use anyhow::Result;
+use mise::domain;
 use reqwest::StatusCode;
 
 #[tokio::test]
 async fn cannot_get_unknown_recipe() -> Result<()> {
     let harness = setup::with_auth().await?;
 
-    let random_id = uuid::Uuid::new_v4();
+    let random_id = domain::recipe::Id::new();
 
     let response = harness
         .get(&format!("/api/v1/recipes/{random_id}"))
@@ -43,7 +44,7 @@ async fn can_create_and_get_recipe() -> Result<()> {
         .await?;
 
     assert_eq!(StatusCode::OK, response.status());
-    let id = response.json::<responses::Id>().await?.data;
+    let id = response.json::<responses::CreateRecipe>().await?.data;
 
     // try to get recipe
     let response = harness.get(&format!("/api/v1/recipes/{id}")).send().await?;
@@ -98,7 +99,7 @@ async fn can_create_and_update_recipe() -> Result<()> {
         .await?;
 
     assert_eq!(StatusCode::OK, response.status());
-    let id = response.json::<responses::Id>().await?.data;
+    let id = response.json::<responses::CreateRecipe>().await?.data;
 
     // get the recipe to find the hash
     let response = harness.get(&format!("/api/v1/recipes/{id}")).send().await?;
@@ -169,7 +170,7 @@ async fn can_list_recipes() -> Result<()> {
         .send()
         .await?;
     assert_eq!(StatusCode::OK, response.status());
-    let recipe_id_1 = response.json::<responses::Id>().await?.data;
+    let recipe_id_1 = response.json::<responses::CreateRecipe>().await?.data;
 
     let response = harness
         .post("/api/v1/recipes")
@@ -183,7 +184,7 @@ async fn can_list_recipes() -> Result<()> {
         .send()
         .await?;
     assert_eq!(StatusCode::OK, response.status());
-    let recipe_id_2 = response.json::<responses::Id>().await?.data;
+    let recipe_id_2 = response.json::<responses::CreateRecipe>().await?.data;
 
     let response = harness
         .post("/api/v1/recipes")
@@ -197,7 +198,7 @@ async fn can_list_recipes() -> Result<()> {
         .send()
         .await?;
     assert_eq!(StatusCode::OK, response.status());
-    let recipe_id_3 = response.json::<responses::Id>().await?.data;
+    let recipe_id_3 = response.json::<responses::CreateRecipe>().await?.data;
 
     // get page one
     let response = harness.get("/api/v1/recipes").send().await?;
@@ -255,12 +256,12 @@ async fn can_list_recipes_with_filters() -> Result<()> {
             ingredients: "- word".into(),
             instructions: "- word".into(),
             notes: None,
-            tag_ids: vec![tag_1],
+            tag_ids: vec![tag_1.clone()],
         })
         .send()
         .await?;
     assert_eq!(StatusCode::OK, response.status());
-    let recipe_id_1 = response.json::<responses::Id>().await?.data;
+    let recipe_id_1 = response.json::<responses::CreateRecipe>().await?.data;
 
     let response = harness
         .post("/api/v1/recipes")
@@ -269,12 +270,12 @@ async fn can_list_recipes_with_filters() -> Result<()> {
             ingredients: "- word".into(),
             instructions: "- word".into(),
             notes: None,
-            tag_ids: vec![tag_2],
+            tag_ids: vec![tag_2.clone()],
         })
         .send()
         .await?;
     assert_eq!(StatusCode::OK, response.status());
-    let recipe_id_2 = response.json::<responses::Id>().await?.data;
+    let recipe_id_2 = response.json::<responses::CreateRecipe>().await?.data;
 
     let response = harness
         .post("/api/v1/recipes")

@@ -46,7 +46,7 @@ async fn user(store: &datastore::Pool) -> Result<User> {
         .await?)
 }
 
-async fn tag(store: &datastore::Pool, user_id: &str, name: &str) -> Result<i64> {
+async fn tag(store: &datastore::Pool, user_id: &str, name: &str) -> Result<domain::tag::Id> {
     Ok(store
         .create_tag(user_id.to_owned(), name.to_owned())
         .await?)
@@ -54,7 +54,7 @@ async fn tag(store: &datastore::Pool, user_id: &str, name: &str) -> Result<i64> 
 
 #[derive(Debug, PartialEq, Eq)]
 struct ComparableRecipe {
-    id: uuid::Uuid,
+    id: domain::recipe::Id,
     title: String,
     ingredients: String,
     instructions: String,
@@ -77,7 +77,7 @@ impl From<domain::Recipe> for ComparableRecipe {
 
 #[derive(Debug, PartialEq, Eq)]
 struct ComparableListedRecipe {
-    id: uuid::Uuid,
+    id: domain::recipe::Id,
     title: String,
 }
 
@@ -105,10 +105,12 @@ pub async fn can_create_and_get(store: datastore::Pool) -> Result<()> {
         tag_ids: vec![tag_main_id, tag_yummy_id],
     };
 
-    let id = uuid::Uuid::new_v4();
-    store.create_recipe(id.into(), user.id, recipe).await?;
+    let id = domain::recipe::Id::new();
+    store
+        .create_recipe(id.clone().into(), user.id, recipe)
+        .await?;
 
-    let result: ComparableRecipe = store.get_recipe(id.into()).await?.into();
+    let result: ComparableRecipe = store.get_recipe(id.clone().into()).await?.into();
 
     assert_eq!(id, result.id);
     assert_eq!("Chicken Casserole", result.title);
@@ -132,16 +134,21 @@ pub async fn create_creates_initial_revision(store: datastore::Pool) -> Result<(
         tag_ids: vec![tag_id],
     };
 
-    let id = uuid::Uuid::new_v4();
-    store.create_recipe(id.into(), user.id, recipe).await?;
+    let id = domain::recipe::Id::new();
+    store
+        .create_recipe(id.clone().into(), user.id, recipe)
+        .await?;
 
     // get revisions - there should be one revision: revision 0
-    let revisions = store.get_recipe_revisions(id.into()).await?;
+    let revisions = store.get_recipe_revisions(id.clone().into()).await?;
     assert_eq!(1, revisions.len());
     assert_eq!(0, revisions[0].revision);
 
     // try to get revision 0
-    let result: ComparableRecipe = store.get_recipe_revision(id.into(), 0).await?.into();
+    let result: ComparableRecipe = store
+        .get_recipe_revision(id.clone().into(), 0)
+        .await?
+        .into();
 
     assert_eq!(id, result.id);
     assert_eq!("Chicken Casserole", result.title);
@@ -163,12 +170,14 @@ pub async fn cannot_create_duplicate(store: datastore::Pool) -> Result<()> {
         tag_ids: vec![],
     };
 
-    let id = uuid::Uuid::new_v4();
+    let id = domain::recipe::Id::new();
     store
-        .create_recipe(id.into(), user.id.clone(), recipe.clone())
+        .create_recipe(id.clone().into(), user.id.clone(), recipe.clone())
         .await?;
 
-    let result = store.create_recipe(id.into(), user.id, recipe).await;
+    let result = store
+        .create_recipe(id.clone().into(), user.id, recipe)
+        .await;
 
     assert_eq!(true, result.is_err());
 
@@ -203,18 +212,18 @@ pub async fn can_update_recipe(store: datastore::Pool) -> Result<()> {
         tag_ids: vec![tag_main_id],
     };
 
-    let id = uuid::Uuid::new_v4();
+    let id = domain::recipe::Id::new();
     store
-        .create_recipe(id.into(), user.id.clone(), recipe)
+        .create_recipe(id.clone().into(), user.id.clone(), recipe)
         .await?;
 
     // get current hash
-    let current_hash = store.get_recipe(id.into()).await?.hash;
+    let current_hash = store.get_recipe(id.clone().into()).await?.hash;
 
     // update document
     store
         .update_recipe(
-            id.into(),
+            id.clone().into(),
             user.id,
             RecipeDocument {
                 title: "Bean Soup".into(),
@@ -227,7 +236,7 @@ pub async fn can_update_recipe(store: datastore::Pool) -> Result<()> {
         )
         .await?;
 
-    let result: ComparableRecipe = store.get_recipe(id.into()).await?.into();
+    let result: ComparableRecipe = store.get_recipe(id.clone().into()).await?.into();
 
     assert_eq!(id, result.id);
     assert_eq!("Bean Soup", result.title);
@@ -287,18 +296,18 @@ pub async fn update_creates_new_revision(store: datastore::Pool) -> Result<()> {
         tag_ids: vec![],
     };
 
-    let id = uuid::Uuid::new_v4();
+    let id = domain::recipe::Id::new();
     store
-        .create_recipe(id.into(), user.id.clone(), recipe)
+        .create_recipe(id.clone().into(), user.id.clone(), recipe)
         .await?;
 
     // get current hash
-    let current_hash = store.get_recipe(id.into()).await?.hash;
+    let current_hash = store.get_recipe(id.clone().into()).await?.hash;
 
     // update document
     store
         .update_recipe(
-            id.into(),
+            id.clone().into(),
             user.id.clone(),
             RecipeDocument {
                 title: "Bean Soup".into(),
@@ -312,13 +321,16 @@ pub async fn update_creates_new_revision(store: datastore::Pool) -> Result<()> {
         .await?;
 
     // get revisions - there should be two revision
-    let revisions = store.get_recipe_revisions(id.into()).await?;
+    let revisions = store.get_recipe_revisions(id.clone().into()).await?;
     assert_eq!(2, revisions.len());
     assert_eq!(1, revisions[0].revision);
     assert_eq!(0, revisions[1].revision);
 
     // try to get revision 1
-    let result: ComparableRecipe = store.get_recipe_revision(id.into(), 1).await?.into();
+    let result: ComparableRecipe = store
+        .get_recipe_revision(id.clone().into(), 1)
+        .await?
+        .into();
 
     assert_eq!(id, result.id);
     assert_eq!("Bean Soup", result.title);
@@ -332,7 +344,7 @@ pub async fn update_creates_new_revision(store: datastore::Pool) -> Result<()> {
 
 pub async fn handles_updating_unknown_recipe(store: datastore::Pool) -> Result<()> {
     let user = user(&store).await?;
-    let id = uuid::Uuid::new_v4();
+    let id = domain::recipe::Id::new();
     let result = store
         .update_recipe(
             id.into(),
@@ -361,10 +373,10 @@ pub async fn handles_updating_unknown_recipe(store: datastore::Pool) -> Result<(
 pub async fn can_list_recipes_over_multiple_pages(store: datastore::Pool) -> Result<()> {
     let user = user(&store).await?;
 
-    let recipe_id_1 = uuid::Uuid::new_v4();
+    let recipe_id_1 = domain::recipe::Id::new();
     store
         .create_recipe(
-            recipe_id_1.into(),
+            recipe_id_1.clone().into(),
             user.id.clone(),
             RecipeDocument {
                 title: "Recipe 1".into(),
@@ -376,10 +388,10 @@ pub async fn can_list_recipes_over_multiple_pages(store: datastore::Pool) -> Res
         )
         .await?;
 
-    let recipe_id_2 = uuid::Uuid::new_v4();
+    let recipe_id_2 = domain::recipe::Id::new();
     store
         .create_recipe(
-            recipe_id_2.into(),
+            recipe_id_2.clone().into(),
             user.id.clone(),
             RecipeDocument {
                 title: "Recipe 2".into(),
@@ -391,10 +403,10 @@ pub async fn can_list_recipes_over_multiple_pages(store: datastore::Pool) -> Res
         )
         .await?;
 
-    let recipe_id_3 = uuid::Uuid::new_v4();
+    let recipe_id_3 = domain::recipe::Id::new();
     store
         .create_recipe(
-            recipe_id_3.into(),
+            recipe_id_3.clone().into(),
             user.id.clone(),
             RecipeDocument {
                 title: "Recipe 3".into(),
@@ -449,10 +461,10 @@ pub async fn can_list_recipes_over_multiple_pages(store: datastore::Pool) -> Res
 pub async fn can_list_with_title_filter(store: datastore::Pool) -> Result<()> {
     let user = user(&store).await?;
 
-    let recipe_id_1 = uuid::Uuid::new_v4();
+    let recipe_id_1 = domain::recipe::Id::new();
     store
         .create_recipe(
-            recipe_id_1.into(),
+            recipe_id_1.clone().into(),
             user.id.clone(),
             RecipeDocument {
                 title: "Good Chicken".into(),
@@ -464,7 +476,7 @@ pub async fn can_list_with_title_filter(store: datastore::Pool) -> Result<()> {
         )
         .await?;
 
-    let recipe_id_2 = uuid::Uuid::new_v4();
+    let recipe_id_2 = domain::recipe::Id::new();
     store
         .create_recipe(
             recipe_id_2.into(),
@@ -508,25 +520,25 @@ pub async fn can_list_with_tag_filter(store: datastore::Pool) -> Result<()> {
     let tag3 = tag(&store, &user.id, "Tag3").await?;
     let tag4 = tag(&store, &user.id, "Tag4").await?;
 
-    let recipe_id_1 = uuid::Uuid::new_v4();
+    let recipe_id_1 = domain::recipe::Id::new();
     store
         .create_recipe(
-            recipe_id_1.into(),
+            recipe_id_1.clone().into(),
             user.id.clone(),
             RecipeDocument {
                 title: "Good Chicken".into(),
                 ingredients: "- word".into(),
                 instructions: "- word".into(),
                 notes: None,
-                tag_ids: vec![tag1, tag2],
+                tag_ids: vec![tag1.clone(), tag2.clone()],
             },
         )
         .await?;
 
-    let recipe_id_2 = uuid::Uuid::new_v4();
+    let recipe_id_2 = domain::recipe::Id::new();
     store
         .create_recipe(
-            recipe_id_2.into(),
+            recipe_id_2.clone().into(),
             user.id.clone(),
             RecipeDocument {
                 title: "Rabbit?".into(),
@@ -538,32 +550,30 @@ pub async fn can_list_with_tag_filter(store: datastore::Pool) -> Result<()> {
         )
         .await?;
 
-    let recipe_id_3 = uuid::Uuid::new_v4();
+    let recipe_id_3 = domain::recipe::Id::new();
     store
         .create_recipe(
-            recipe_id_3.into(),
+            recipe_id_3.clone().into(),
             user.id.clone(),
             RecipeDocument {
                 title: "Baked beans".into(),
                 ingredients: "- word".into(),
                 instructions: "- word".into(),
                 notes: None,
-                tag_ids: vec![tag2, tag4],
+                tag_ids: vec![tag2.clone(), tag4.clone()],
             },
         )
         .await?;
 
     // fetch recipes
+    //
 
-    let result = store
-        .list_recipes(
-            domain::filter::Recipe {
-                name: None,
-                tag_ids: vec![tag1, tag2],
-            },
-            None,
-        )
-        .await?;
+    let filter = domain::filter::Recipe {
+        name: None,
+        tag_ids: vec![tag1, tag2],
+    };
+
+    let result = store.list_recipes(filter.clone(), None).await?;
 
     assert_eq!(2, result.items.len());
     let recipe: ComparableListedRecipe = result.items[0].clone().into();
@@ -574,15 +584,7 @@ pub async fn can_list_with_tag_filter(store: datastore::Pool) -> Result<()> {
     assert_eq!(recipe_id_1, recipe.id);
     assert_eq!("Good Chicken", recipe.title);
 
-    let result = store
-        .list_recipes(
-            domain::filter::Recipe {
-                name: None,
-                tag_ids: vec![tag1, tag2],
-            },
-            result.next,
-        )
-        .await?;
+    let result = store.list_recipes(filter, result.next).await?;
 
     assert!(result.next.is_none());
     assert_eq!(0, result.items.len());
@@ -603,8 +605,10 @@ pub async fn cannot_get_non_existent_revision(store: datastore::Pool) -> Result<
         tag_ids: vec![],
     };
 
-    let id = uuid::Uuid::new_v4();
-    store.create_recipe(id.into(), user.id, recipe).await?;
+    let id = domain::recipe::Id::new();
+    store
+        .create_recipe(id.clone().into(), user.id, recipe)
+        .await?;
 
     // try to get a non existent revision
     let result = store.get_recipe_revision(id.into(), 99).await;
@@ -636,7 +640,7 @@ pub async fn cannot_get_revision_for_non_existent_recipe(store: datastore::Pool)
 
 pub async fn stores_revision_history(store: datastore::Pool) -> Result<()> {
     let user = user(&store).await?;
-    let id = uuid::Uuid::new_v4();
+    let id = domain::recipe::Id::new();
     // create recipe
     let recipe = RecipeDocument {
         title: "one".into(),
@@ -646,7 +650,7 @@ pub async fn stores_revision_history(store: datastore::Pool) -> Result<()> {
         tag_ids: vec![tag(&store, &user.id, "Tag1").await?],
     };
     store
-        .create_recipe(id.into(), user.id.clone(), recipe)
+        .create_recipe(id.clone().into(), user.id.clone(), recipe)
         .await?;
 
     // update recipe
@@ -657,9 +661,9 @@ pub async fn stores_revision_history(store: datastore::Pool) -> Result<()> {
         notes: Some("eight".into()),
         tag_ids: vec![tag(&store, &user.id, "Tag2").await?],
     };
-    let hash = store.get_recipe(id.into()).await?.hash;
+    let hash = store.get_recipe(id.clone().into()).await?.hash;
     store
-        .update_recipe(id.into(), user.id.clone(), recipe, hash)
+        .update_recipe(id.clone().into(), user.id.clone(), recipe, hash)
         .await?;
 
     // update recipe again
@@ -670,20 +674,23 @@ pub async fn stores_revision_history(store: datastore::Pool) -> Result<()> {
         notes: Some("twelve".into()),
         tag_ids: vec![tag(&store, &user.id, "Tag3").await?],
     };
-    let hash = store.get_recipe(id.into()).await?.hash;
+    let hash = store.get_recipe(id.clone().into()).await?.hash;
     store
-        .update_recipe(id.into(), user.id.clone(), recipe, hash)
+        .update_recipe(id.clone().into(), user.id.clone(), recipe, hash)
         .await?;
 
     // now validate revision history - there should be three revisions
-    let revisions = store.get_recipe_revisions(id.into()).await?;
+    let revisions = store.get_recipe_revisions(id.clone().into()).await?;
     assert_eq!(3, revisions.len());
     assert_eq!(2, revisions[0].revision);
     assert_eq!(1, revisions[1].revision);
     assert_eq!(0, revisions[2].revision);
 
     // check revision 0
-    let result: ComparableRecipe = store.get_recipe_revision(id.into(), 0).await?.into();
+    let result: ComparableRecipe = store
+        .get_recipe_revision(id.clone().into(), 0)
+        .await?
+        .into();
     assert_eq!("one", result.title);
     assert_eq!("- two", result.ingredients);
     assert_eq!("- three", result.instructions);
@@ -691,7 +698,10 @@ pub async fn stores_revision_history(store: datastore::Pool) -> Result<()> {
     assert_eq!(vec!["Tag1"], result.tags);
 
     // check revision 1
-    let result: ComparableRecipe = store.get_recipe_revision(id.into(), 1).await?.into();
+    let result: ComparableRecipe = store
+        .get_recipe_revision(id.clone().into(), 1)
+        .await?
+        .into();
     assert_eq!("five", result.title);
     assert_eq!("- six", result.ingredients);
     assert_eq!("- seven", result.instructions);
@@ -699,7 +709,10 @@ pub async fn stores_revision_history(store: datastore::Pool) -> Result<()> {
     assert_eq!(vec!["Tag2"], result.tags);
 
     // check revision 2
-    let result: ComparableRecipe = store.get_recipe_revision(id.into(), 2).await?.into();
+    let result: ComparableRecipe = store
+        .get_recipe_revision(id.clone().into(), 2)
+        .await?
+        .into();
     assert_eq!("nine", result.title);
     assert_eq!("- ten", result.ingredients);
     assert_eq!("- eleven", result.instructions);

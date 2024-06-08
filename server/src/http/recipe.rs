@@ -21,7 +21,7 @@ pub struct CreateParams {
     ingredients: String,
     instructions: String,
     notes: Option<String>,
-    tag_ids: Vec<i64>,
+    tag_ids: Vec<domain::tag::Id>,
 }
 
 #[derive(Serialize)]
@@ -63,7 +63,7 @@ pub async fn create(
     State(state): State<AppState>,
     Extension(user): Extension<AuthenticatedUser>,
     Json(request): Json<CreateParams>,
-) -> Result<axum::response::Json<responses::Data<uuid::Uuid>>, Error> {
+) -> Result<axum::response::Json<responses::Data<String>>, Error> {
     let creating_recipe = CreatingRecipe {
         title: request.title.try_into()?,
         ingredients: request.ingredients.try_into()?,
@@ -77,12 +77,12 @@ pub async fn create(
 
     let id = core::recipe::create(&state.datasource, user.into(), creating_recipe).await?;
 
-    Ok(axum::response::Json(responses::Data { data: id }))
+    Ok(axum::response::Json(responses::Data { data: id.into() }))
 }
 
 pub async fn get(
     State(state): State<AppState>,
-    Path(id): Path<uuid::Uuid>,
+    Path(id): Path<domain::recipe::Id>,
 ) -> Result<axum::response::Json<responses::Data<Recipe>>, Error> {
     let recipe = core::recipe::get(&state.datasource, id).await?;
 
@@ -144,7 +144,7 @@ pub async fn list(
             None => vec![],
             Some(tag_ids) => tag_ids
                 .split(',')
-                .filter_map(|tag_id| tag_id.parse::<i64>().ok())
+                .filter_map(|tag_id| domain::tag::Id::try_from(tag_id).ok())
                 .collect(),
         },
     };
@@ -182,13 +182,13 @@ pub struct UpdateParams {
     ingredients: String,
     instructions: String,
     notes: Option<String>,
-    tag_ids: Vec<i64>,
+    tag_ids: Vec<domain::tag::Id>,
 }
 
 pub async fn update(
     State(state): State<AppState>,
     Extension(user): Extension<AuthenticatedUser>,
-    Path(id): Path<uuid::Uuid>,
+    Path(id): Path<domain::recipe::Id>,
     Json(request): Json<UpdateParams>,
 ) -> Result<(), Error> {
     let updating_recipe = UpdatingRecipe {
