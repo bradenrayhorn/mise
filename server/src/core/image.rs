@@ -78,7 +78,7 @@ async fn prepare_image(image_bytes: Vec<u8>) -> Result<Vec<u8>, Error> {
             .stdout,
     )
     .context("vips version to utf8")?;
-    let raw_split: Vec<&str> = vips_version_out.trim().split("-").collect();
+    let raw_split: Vec<&str> = vips_version_out.trim().split('-').collect();
 
     let vips_version = semver::Version::parse(raw_split[1]).context("parse vips version")?;
 

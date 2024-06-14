@@ -24,6 +24,7 @@ pub struct Recipe {
     pub id: String,
     pub hash: String,
     pub title: String,
+    pub image_id: Option<String>,
     pub ingredient_blocks: Vec<Ingredients>,
     pub instruction_blocks: Vec<Instructions>,
     pub notes: Option<String>,
@@ -34,6 +35,7 @@ pub struct Recipe {
 pub struct ListedRecipe {
     pub id: String,
     pub title: String,
+    pub image_id: Option<String>,
 }
 
 #[derive(Debug, Deserialize, PartialEq, Eq)]

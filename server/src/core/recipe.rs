@@ -11,6 +11,7 @@ pub async fn create(
 ) -> Result<domain::recipe::Id, Error> {
     let document = RecipeDocument {
         title: recipe.title.into(),
+        image_id: recipe.image_id,
         instructions: recipe.instructions.into(),
         ingredients: recipe.ingredients.into(),
         notes: recipe.notes.map(std::convert::Into::into),
@@ -34,6 +35,7 @@ pub async fn update(
 ) -> Result<(), Error> {
     let document = RecipeDocument {
         title: recipe.title.into(),
+        image_id: recipe.image_id,
         instructions: recipe.instructions.into(),
         ingredients: recipe.ingredients.into(),
         notes: recipe.notes.map(std::convert::Into::into),

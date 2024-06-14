@@ -52,10 +52,17 @@ async fn tag(store: &datastore::Pool, user_id: &str, name: &str) -> Result<domai
         .await?)
 }
 
+async fn image(store: &datastore::Pool) -> Result<domain::image::Id> {
+    let id = domain::image::Id::new();
+    store.create_image(&id).await?;
+    Ok(id)
+}
+
 #[derive(Debug, PartialEq, Eq)]
 struct ComparableRecipe {
     id: domain::recipe::Id,
     title: String,
+    image_id: Option<domain::image::Id>,
     ingredients: String,
     instructions: String,
     notes: Option<String>,
@@ -67,9 +74,10 @@ impl From<domain::Recipe> for ComparableRecipe {
         ComparableRecipe {
             id: value.id,
             title: value.title.into(),
+            image_id: value.image_id,
             ingredients: value.ingredients.into(),
             instructions: value.instructions.into(),
-            notes: value.notes.map(|n| n.into()),
+            notes: value.notes.map(Into::into),
             tags: value.tags.into_iter().map(|t| t.name.into()).collect(),
         }
     }
@@ -79,6 +87,7 @@ impl From<domain::Recipe> for ComparableRecipe {
 struct ComparableListedRecipe {
     id: domain::recipe::Id,
     title: String,
+    image_id: Option<domain::image::Id>,
 }
 
 impl From<domain::ListedRecipe> for ComparableListedRecipe {
@@ -86,6 +95,7 @@ impl From<domain::ListedRecipe> for ComparableListedRecipe {
         ComparableListedRecipe {
             id: value.id,
             title: value.title.into(),
+            image_id: value.image_id,
         }
     }
 }
@@ -97,8 +107,11 @@ pub async fn can_create_and_get(store: datastore::Pool) -> Result<()> {
     let tag_main_id = tag(&store, &user.id, "Main Dish").await?;
     let tag_yummy_id = tag(&store, &user.id, "Yummy").await?;
 
+    let image_id = image(&store).await?;
+
     let recipe = RecipeDocument {
         title: "Chicken Casserole".into(),
+        image_id: Some(image_id.clone()),
         ingredients: "- chicken".into(),
         instructions: "- Cook chicken".into(),
         notes: Some("Don't burn it!".into()),
@@ -114,6 +127,7 @@ pub async fn can_create_and_get(store: datastore::Pool) -> Result<()> {
 
     assert_eq!(id, result.id);
     assert_eq!("Chicken Casserole", result.title);
+    assert_eq!(Some(image_id), result.image_id);
     assert_eq!("- chicken", result.ingredients);
     assert_eq!("- Cook chicken", result.instructions);
     assert_eq!(Some("Don't burn it!".to_owned()), result.notes);
@@ -128,6 +142,7 @@ pub async fn create_creates_initial_revision(store: datastore::Pool) -> Result<(
 
     let recipe = RecipeDocument {
         title: "Chicken Casserole".into(),
+        image_id: None,
         ingredients: "- chicken".into(),
         instructions: "- Cook chicken".into(),
         notes: None,
@@ -152,6 +167,7 @@ pub async fn create_creates_initial_revision(store: datastore::Pool) -> Result<(
 
     assert_eq!(id, result.id);
     assert_eq!("Chicken Casserole", result.title);
+    assert_eq!(None, result.image_id);
     assert_eq!("- chicken", result.ingredients);
     assert_eq!("- Cook chicken", result.instructions);
     assert_eq!(None, result.notes);
@@ -164,6 +180,7 @@ pub async fn cannot_create_duplicate(store: datastore::Pool) -> Result<()> {
     let user = user(&store).await?;
     let recipe = RecipeDocument {
         title: "Chicken Casserole".into(),
+        image_id: None,
         ingredients: "- chicken".into(),
         instructions: "- Cook chicken".into(),
         notes: None,
@@ -206,6 +223,7 @@ pub async fn can_update_recipe(store: datastore::Pool) -> Result<()> {
 
     let recipe = RecipeDocument {
         title: "Chicken Casserole".into(),
+        image_id: Some(image(&store).await?),
         ingredients: "- chicken".into(),
         instructions: "- Cook chicken".into(),
         notes: Some("Don't burn it!".into()),
@@ -221,12 +239,14 @@ pub async fn can_update_recipe(store: datastore::Pool) -> Result<()> {
     let current_hash = store.get_recipe(id.clone().into()).await?.hash;
 
     // update document
+    let new_image_id = image(&store).await?;
     store
         .update_recipe(
             id.clone().into(),
             user.id,
             RecipeDocument {
                 title: "Bean Soup".into(),
+                image_id: Some(new_image_id.clone()),
                 ingredients: "- beans".into(),
                 instructions: "- Cook beans".into(),
                 notes: None,
@@ -240,6 +260,7 @@ pub async fn can_update_recipe(store: datastore::Pool) -> Result<()> {
 
     assert_eq!(id, result.id);
     assert_eq!("Bean Soup", result.title);
+    assert_eq!(Some(new_image_id), result.image_id);
     assert_eq!("- beans", result.ingredients);
     assert_eq!("- Cook beans", result.instructions);
     assert_eq!(None, result.notes);
@@ -252,6 +273,7 @@ pub async fn cannot_update_with_bad_hash(store: datastore::Pool) -> Result<()> {
     let user = user(&store).await?;
     let recipe = RecipeDocument {
         title: "Chicken Casserole".into(),
+        image_id: None,
         ingredients: "- chicken".into(),
         instructions: "- Cook chicken".into(),
         notes: Some("Don't burn it!".into()),
@@ -269,6 +291,7 @@ pub async fn cannot_update_with_bad_hash(store: datastore::Pool) -> Result<()> {
             user.id.clone(),
             RecipeDocument {
                 title: "Bean Soup".into(),
+                image_id: None,
                 ingredients: "- beans".into(),
                 instructions: "- Cook beans".into(),
                 notes: None,
@@ -290,6 +313,7 @@ pub async fn update_creates_new_revision(store: datastore::Pool) -> Result<()> {
     let user = user(&store).await?;
     let recipe = RecipeDocument {
         title: "Chicken Casserole".into(),
+        image_id: None,
         ingredients: "- chicken".into(),
         instructions: "- Cook chicken".into(),
         notes: Some("Don't burn it!".into()),
@@ -311,6 +335,7 @@ pub async fn update_creates_new_revision(store: datastore::Pool) -> Result<()> {
             user.id.clone(),
             RecipeDocument {
                 title: "Bean Soup".into(),
+                image_id: None,
                 ingredients: "- beans".into(),
                 instructions: "- Cook beans".into(),
                 notes: None,
@@ -334,6 +359,7 @@ pub async fn update_creates_new_revision(store: datastore::Pool) -> Result<()> {
 
     assert_eq!(id, result.id);
     assert_eq!("Bean Soup", result.title);
+    assert_eq!(None, result.image_id);
     assert_eq!("- beans", result.ingredients);
     assert_eq!("- Cook beans", result.instructions);
     assert_eq!(None, result.notes);
@@ -351,6 +377,7 @@ pub async fn handles_updating_unknown_recipe(store: datastore::Pool) -> Result<(
             user.id,
             RecipeDocument {
                 title: "Bean Soup".into(),
+                image_id: None,
                 ingredients: "- chicken".into(),
                 instructions: "- Cook chicken".into(),
                 notes: None,
@@ -374,12 +401,14 @@ pub async fn can_list_recipes_over_multiple_pages(store: datastore::Pool) -> Res
     let user = user(&store).await?;
 
     let recipe_id_1 = domain::recipe::Id::new();
+    let image_id_1 = image(&store).await?;
     store
         .create_recipe(
             recipe_id_1.clone().into(),
             user.id.clone(),
             RecipeDocument {
                 title: "Recipe 1".into(),
+                image_id: Some(image_id_1.clone()),
                 ingredients: "- word".into(),
                 instructions: "- word".into(),
                 notes: None,
@@ -389,12 +418,14 @@ pub async fn can_list_recipes_over_multiple_pages(store: datastore::Pool) -> Res
         .await?;
 
     let recipe_id_2 = domain::recipe::Id::new();
+    let image_id_2 = image(&store).await?;
     store
         .create_recipe(
             recipe_id_2.clone().into(),
             user.id.clone(),
             RecipeDocument {
                 title: "Recipe 2".into(),
+                image_id: Some(image_id_2.clone()),
                 ingredients: "- word".into(),
                 instructions: "- word".into(),
                 notes: None,
@@ -404,12 +435,14 @@ pub async fn can_list_recipes_over_multiple_pages(store: datastore::Pool) -> Res
         .await?;
 
     let recipe_id_3 = domain::recipe::Id::new();
+    let image_id_3 = image(&store).await?;
     store
         .create_recipe(
             recipe_id_3.clone().into(),
             user.id.clone(),
             RecipeDocument {
                 title: "Recipe 3".into(),
+                image_id: Some(image_id_3.clone()),
                 ingredients: "- word".into(),
                 instructions: "- word".into(),
                 notes: None,
@@ -434,10 +467,12 @@ pub async fn can_list_recipes_over_multiple_pages(store: datastore::Pool) -> Res
     let recipe: ComparableListedRecipe = first_page.items[0].clone().into();
     assert_eq!(recipe_id_1, recipe.id);
     assert_eq!("Recipe 1", recipe.title);
+    assert_eq!(Some(image_id_1), recipe.image_id);
 
     let recipe: ComparableListedRecipe = first_page.items[1].clone().into();
     assert_eq!(recipe_id_2, recipe.id);
     assert_eq!("Recipe 2", recipe.title);
+    assert_eq!(Some(image_id_2), recipe.image_id);
 
     let second_page = store
         .list_recipes(
@@ -454,6 +489,7 @@ pub async fn can_list_recipes_over_multiple_pages(store: datastore::Pool) -> Res
     let recipe: ComparableListedRecipe = second_page.items[0].clone().into();
     assert_eq!(recipe_id_3, recipe.id);
     assert_eq!("Recipe 3", recipe.title);
+    assert_eq!(Some(image_id_3), recipe.image_id);
 
     Ok(())
 }
@@ -468,6 +504,7 @@ pub async fn can_list_with_title_filter(store: datastore::Pool) -> Result<()> {
             user.id.clone(),
             RecipeDocument {
                 title: "Good Chicken".into(),
+                image_id: None,
                 ingredients: "- word".into(),
                 instructions: "- word".into(),
                 notes: None,
@@ -483,6 +520,7 @@ pub async fn can_list_with_title_filter(store: datastore::Pool) -> Result<()> {
             user.id.clone(),
             RecipeDocument {
                 title: "Rabbit?".into(),
+                image_id: None,
                 ingredients: "- word".into(),
                 instructions: "- word".into(),
                 notes: None,
@@ -508,6 +546,7 @@ pub async fn can_list_with_title_filter(store: datastore::Pool) -> Result<()> {
     let recipe: ComparableListedRecipe = result.items[0].clone().into();
     assert_eq!(recipe_id_1, recipe.id);
     assert_eq!("Good Chicken", recipe.title);
+    assert_eq!(None, recipe.image_id);
 
     Ok(())
 }
@@ -527,6 +566,7 @@ pub async fn can_list_with_tag_filter(store: datastore::Pool) -> Result<()> {
             user.id.clone(),
             RecipeDocument {
                 title: "Good Chicken".into(),
+                image_id: None,
                 ingredients: "- word".into(),
                 instructions: "- word".into(),
                 notes: None,
@@ -542,6 +582,7 @@ pub async fn can_list_with_tag_filter(store: datastore::Pool) -> Result<()> {
             user.id.clone(),
             RecipeDocument {
                 title: "Rabbit?".into(),
+                image_id: None,
                 ingredients: "- word".into(),
                 instructions: "- word".into(),
                 notes: None,
@@ -557,6 +598,7 @@ pub async fn can_list_with_tag_filter(store: datastore::Pool) -> Result<()> {
             user.id.clone(),
             RecipeDocument {
                 title: "Baked beans".into(),
+                image_id: None,
                 ingredients: "- word".into(),
                 instructions: "- word".into(),
                 notes: None,
@@ -566,7 +608,6 @@ pub async fn can_list_with_tag_filter(store: datastore::Pool) -> Result<()> {
         .await?;
 
     // fetch recipes
-    //
 
     let filter = domain::filter::Recipe {
         name: None,
@@ -579,10 +620,12 @@ pub async fn can_list_with_tag_filter(store: datastore::Pool) -> Result<()> {
     let recipe: ComparableListedRecipe = result.items[0].clone().into();
     assert_eq!(recipe_id_3, recipe.id);
     assert_eq!("Baked beans", recipe.title);
+    assert_eq!(None, recipe.image_id);
 
     let recipe: ComparableListedRecipe = result.items[1].clone().into();
     assert_eq!(recipe_id_1, recipe.id);
     assert_eq!("Good Chicken", recipe.title);
+    assert_eq!(None, recipe.image_id);
 
     let result = store.list_recipes(filter, result.next).await?;
 
@@ -599,6 +642,7 @@ pub async fn cannot_get_non_existent_revision(store: datastore::Pool) -> Result<
     // save recipe
     let recipe = RecipeDocument {
         title: "Chicken Casserole".into(),
+        image_id: None,
         ingredients: "- chicken".into(),
         instructions: "- Cook chicken".into(),
         notes: Some("Don't burn it!".into()),
@@ -641,9 +685,15 @@ pub async fn cannot_get_revision_for_non_existent_recipe(store: datastore::Pool)
 pub async fn stores_revision_history(store: datastore::Pool) -> Result<()> {
     let user = user(&store).await?;
     let id = domain::recipe::Id::new();
+
+    let image_id_1 = image(&store).await?;
+    let image_id_2 = image(&store).await?;
+    let image_id_3 = image(&store).await?;
+
     // create recipe
     let recipe = RecipeDocument {
         title: "one".into(),
+        image_id: Some(image_id_1.clone()),
         ingredients: "- two".into(),
         instructions: "- three".into(),
         notes: Some("four".into()),
@@ -656,6 +706,7 @@ pub async fn stores_revision_history(store: datastore::Pool) -> Result<()> {
     // update recipe
     let recipe = RecipeDocument {
         title: "five".into(),
+        image_id: Some(image_id_2.clone()),
         ingredients: "- six".into(),
         instructions: "- seven".into(),
         notes: Some("eight".into()),
@@ -669,6 +720,7 @@ pub async fn stores_revision_history(store: datastore::Pool) -> Result<()> {
     // update recipe again
     let recipe = RecipeDocument {
         title: "nine".into(),
+        image_id: Some(image_id_3.clone()),
         ingredients: "- ten".into(),
         instructions: "- eleven".into(),
         notes: Some("twelve".into()),
@@ -692,6 +744,7 @@ pub async fn stores_revision_history(store: datastore::Pool) -> Result<()> {
         .await?
         .into();
     assert_eq!("one", result.title);
+    assert_eq!(Some(image_id_1), result.image_id);
     assert_eq!("- two", result.ingredients);
     assert_eq!("- three", result.instructions);
     assert_eq!(Some("four".into()), result.notes);
@@ -703,6 +756,7 @@ pub async fn stores_revision_history(store: datastore::Pool) -> Result<()> {
         .await?
         .into();
     assert_eq!("five", result.title);
+    assert_eq!(Some(image_id_2), result.image_id);
     assert_eq!("- six", result.ingredients);
     assert_eq!("- seven", result.instructions);
     assert_eq!(Some("eight".into()), result.notes);
@@ -714,6 +768,7 @@ pub async fn stores_revision_history(store: datastore::Pool) -> Result<()> {
         .await?
         .into();
     assert_eq!("nine", result.title);
+    assert_eq!(Some(image_id_3), result.image_id);
     assert_eq!("- ten", result.ingredients);
     assert_eq!("- eleven", result.instructions);
     assert_eq!(Some("twelve".into()), result.notes);

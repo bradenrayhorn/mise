@@ -1,3 +1,4 @@
+use base64::Engine;
 use mise::{file, imagestore::ImageStore, oidc};
 use rand::{distributions::Alphanumeric, Rng};
 use std::{net::TcpListener, sync::Arc, time::Duration};
@@ -6,6 +7,8 @@ use anyhow::{anyhow, Result};
 use reqwest::StatusCode;
 
 use crate::http::{requests, responses};
+
+const JPEG: &str = "/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMDAsKCwsNDhIQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/wAALCAABAAEBAREA/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AKp//2Q==";
 
 pub struct OidcServer {
     process: std::process::Child,
@@ -231,6 +234,21 @@ impl Harness {
 
         assert_eq!(StatusCode::OK, response.status());
         Ok(response.json::<responses::CreateTag>().await?.data)
+    }
+
+    pub async fn create_image(&self) -> Result<String> {
+        let base64_engine = base64::engine::general_purpose::STANDARD;
+
+        let body = reqwest::multipart::Form::new().part(
+            "file",
+            reqwest::multipart::Part::bytes(base64_engine.decode(JPEG.as_bytes())?),
+        );
+
+        let response = self.post("/api/v1/images").multipart(body).send().await?;
+        assert_eq!(StatusCode::OK, response.status());
+
+        let id = response.json::<responses::CreateImage>().await?.data;
+        Ok(id)
     }
 }
 

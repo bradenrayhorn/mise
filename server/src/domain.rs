@@ -71,6 +71,7 @@ pub struct RecipeRevision {
 #[derive(Debug, Clone)]
 pub struct CreatingRecipe {
     pub title: recipe::Title,
+    pub image_id: Option<image::Id>,
     pub ingredients: recipe::Ingredients,
     pub instructions: recipe::Instructions,
     pub notes: Option<recipe::Notes>,
@@ -83,6 +84,7 @@ pub struct UpdatingRecipe {
     pub previous_hash: String,
 
     pub title: recipe::Title,
+    pub image_id: Option<image::Id>,
     pub ingredients: recipe::Ingredients,
     pub instructions: recipe::Instructions,
     pub notes: Option<recipe::Notes>,
@@ -94,6 +96,7 @@ pub struct Recipe {
     pub id: recipe::Id,
     pub hash: String,
     pub title: recipe::Title,
+    pub image_id: Option<image::Id>,
     pub ingredients: recipe::Ingredients,
     pub instructions: recipe::Instructions,
     pub notes: Option<recipe::Notes>,
@@ -104,6 +107,7 @@ pub struct Recipe {
 pub struct ListedRecipe {
     pub id: recipe::Id,
     pub title: recipe::Title,
+    pub image_id: Option<image::Id>,
 }
 
 #[derive(thiserror::Error, Debug)]

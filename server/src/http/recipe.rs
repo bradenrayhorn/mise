@@ -18,6 +18,7 @@ use super::{
 #[derive(Deserialize)]
 pub struct CreateParams {
     title: String,
+    image_id: Option<String>,
     ingredients: String,
     instructions: String,
     notes: Option<String>,
@@ -29,6 +30,7 @@ pub struct Recipe {
     id: String,
     hash: String,
     title: String,
+    image_id: Option<String>,
     ingredient_blocks: Vec<Ingredients>,
     instruction_blocks: Vec<Instructions>,
     notes: Option<String>,
@@ -39,6 +41,7 @@ pub struct Recipe {
 pub struct Listed {
     id: String,
     title: String,
+    image_id: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -66,6 +69,10 @@ pub async fn create(
 ) -> Result<axum::response::Json<responses::Data<String>>, Error> {
     let creating_recipe = CreatingRecipe {
         title: request.title.try_into()?,
+        image_id: match request.image_id {
+            None => None,
+            Some(n) => Some(n.as_str().try_into()?),
+        },
         ingredients: request.ingredients.try_into()?,
         instructions: request.instructions.try_into()?,
         notes: match request.notes {
@@ -91,6 +98,7 @@ pub async fn get(
             id: recipe.id.to_string(),
             hash: recipe.hash,
             title: recipe.title.into(),
+            image_id: recipe.image_id.map(Into::into),
             ingredient_blocks: recipe
                 .ingredients
                 .blocks()
@@ -166,6 +174,7 @@ pub async fn list(
             .map(|item| Listed {
                 id: item.id.to_string(),
                 title: item.title.into(),
+                image_id: item.image_id.map(Into::into),
             })
             .collect(),
         next: match page.next {
@@ -179,6 +188,7 @@ pub async fn list(
 pub struct UpdateParams {
     previous_hash: String,
     title: String,
+    image_id: Option<String>,
     ingredients: String,
     instructions: String,
     notes: Option<String>,
@@ -195,6 +205,10 @@ pub async fn update(
         id,
         previous_hash: request.previous_hash,
         title: request.title.try_into()?,
+        image_id: match request.image_id {
+            None => None,
+            Some(n) => Some(n.as_str().try_into()?),
+        },
         ingredients: request.ingredients.try_into()?,
         instructions: request.instructions.try_into()?,
         notes: match request.notes {

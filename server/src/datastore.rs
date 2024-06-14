@@ -14,6 +14,7 @@ pub struct RecipeDocument {
     pub instructions: String,
     pub notes: Option<String>,
     pub tag_ids: Vec<domain::tag::Id>,
+    pub image_id: Option<domain::image::Id>,
 }
 
 #[derive(Debug, Clone)]
