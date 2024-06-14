@@ -1,5 +1,6 @@
 use mise::datastore;
 
+pub mod images;
 pub mod recipes;
 pub mod tags;
 pub mod users;

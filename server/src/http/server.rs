@@ -2,7 +2,7 @@ use std::{net::SocketAddr, sync::Arc};
 
 use anyhow::anyhow;
 use axum::{
-    extract::{FromRef, Request, State},
+    extract::{DefaultBodyLimit, FromRef, Request, State},
     http::StatusCode,
     middleware::{self, Next},
     response::{IntoResponse, Response},
@@ -16,15 +16,20 @@ use crate::{
     core::{self, Error},
     datastore::Pool,
     domain::{self, SessionKey},
-    http, oidc,
+    http,
+    imagestore::ImageStore,
+    oidc,
     session_store::SessionStore,
 };
+
+const MAX_IMAGE_BODY_SIZE: usize = 1024 * 1024 * 10;
 
 pub struct Server {
     config: Config,
     datasource: Pool,
     session_store: SessionStore,
     oidc_provider: Arc<oidc::Provider>,
+    image_store: Arc<ImageStore>,
 }
 
 #[derive(Clone)]
@@ -33,6 +38,7 @@ pub struct AppState {
     pub session_store: SessionStore,
     pub key: Key,
     pub oidc_provider: Arc<oidc::Provider>,
+    pub image_store: Arc<ImageStore>,
 }
 
 impl FromRef<AppState> for Key {
@@ -48,12 +54,14 @@ impl Server {
         datasource: Pool,
         session_store: SessionStore,
         oidc_provider: oidc::Provider,
+        image_store: ImageStore,
     ) -> Self {
         Server {
             config,
             datasource,
             session_store,
             oidc_provider: Arc::new(oidc_provider),
+            image_store: Arc::new(image_store),
         }
     }
 
@@ -65,6 +73,7 @@ impl Server {
             session_store: self.session_store.clone(),
             datasource: self.datasource.clone(),
             oidc_provider: self.oidc_provider.clone(),
+            image_store: self.image_store.clone(),
         };
 
         let router: Router = Router::new()
@@ -85,6 +94,15 @@ impl Server {
                     .route("/recipes/:id", axum::routing::put(http::recipe::update))
                     .route("/tags", axum::routing::post(http::tag::create))
                     .route("/tags", axum::routing::get(http::tag::get_all))
+                    //
+                    // Nested /images router with large max body size
+                    .nest(
+                        "/images",
+                        Router::new()
+                            .route("/", axum::routing::post(http::image::upload))
+                            .route("/:id", axum::routing::get(http::image::get))
+                            .layer(DefaultBodyLimit::max(MAX_IMAGE_BODY_SIZE)),
+                    )
                     .layer(middleware::from_fn_with_state(state.clone(), auth)),
             )
             //
@@ -172,6 +190,10 @@ impl IntoResponse for Error {
                 (StatusCode::UNAUTHORIZED, "Unauthenticated.").into_response()
             }
             Error::DomainValidation(err) => {
+                println!("error: {err:?}");
+                (StatusCode::UNPROCESSABLE_ENTITY, err.to_string()).into_response()
+            }
+            Error::Invalid(err) => {
                 println!("error: {err:?}");
                 (StatusCode::UNPROCESSABLE_ENTITY, err.to_string()).into_response()
             }

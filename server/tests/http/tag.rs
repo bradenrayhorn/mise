@@ -6,7 +6,7 @@ use anyhow::Result;
 use reqwest::StatusCode;
 
 #[tokio::test]
-async fn can_createt_and_get_tags() -> Result<()> {
+async fn can_create_and_get_tags() -> Result<()> {
     let harness = setup::with_auth().await?;
 
     let main_id = harness.create_tag("Main Dish").await?;

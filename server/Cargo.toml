@@ -10,10 +10,10 @@ tokio = { version = "1", features = ["full"] }
 rusqlite = { version = "0.31.0", features = ["bundled", "chrono"] }
 thiserror = "1.0"
 anyhow = "1.0"
-axum = { version = "0.7.5" }
+axum = { version = "0.7.5", features = ["multipart"] }
 serde = { version = "1.0.199", features = ["derive"] }
 openidconnect = { version = "4.0.0-alpha.1" }
-reqwest = { version = "0.12.4", features = ["cookies", "json"] }
+reqwest = { version = "0.12.4", features = ["cookies", "json", "multipart"] }
 axum-extra = { version = "0.9.3", features = ["cookie-private"] }
 serde_json = "1.0.117"
 cookie = "0.18.1"
@@ -21,6 +21,7 @@ sha256 = "1.5.0"
 toml = "0.8.13"
 chrono = { version = "0.4.38", default-features = false, features = [
 	"now",
+	"alloc",
 	"serde",
 ] }
 ring = "0.17.8"
@@ -39,3 +40,6 @@ ulid = { version = "1.1.2", default-features = false, features = [
 	"std",
 	"serde",
 ] }
+async-trait = "0.1.80"
+hex = "0.4.3"
+semver = "1.0.23"

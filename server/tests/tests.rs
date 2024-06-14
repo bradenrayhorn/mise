@@ -5,6 +5,7 @@ mod datastore {
 
 mod http {
     mod auth;
+    mod image;
     mod recipe;
     mod requests;
     mod responses;

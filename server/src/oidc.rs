@@ -64,7 +64,7 @@ impl TryFrom<&config::Config> for Config {
     type Error = Error;
 
     fn try_from(value: &config::Config) -> Result<Self, Self::Error> {
-        if value.oidc.origin.ends_with('/') {
+        if value.origin.ends_with('/') {
             return Err(Error::OriginMustNotEndWithSlash);
         }
 
@@ -72,7 +72,7 @@ impl TryFrom<&config::Config> for Config {
             issuer_url: value.oidc.issuer_url.clone(),
             client_id: value.oidc.client_id.clone(),
             client_secret: value.oidc.client_secret.clone(),
-            origin: value.oidc.origin.clone(),
+            origin: value.origin.clone(),
         })
     }
 }

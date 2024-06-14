@@ -1,4 +1,4 @@
-use mise::oidc;
+use mise::{file, imagestore::ImageStore, oidc};
 use rand::{distributions::Alphanumeric, Rng};
 use std::{net::TcpListener, sync::Arc, time::Duration};
 
@@ -68,6 +68,7 @@ pub struct Harness {
     http_port: u16,
     db_path: String,
     cache_path: String,
+    images_path: String,
     client: reqwest::Client,
     base_url: String,
     session_id: Option<String>,
@@ -78,6 +79,7 @@ impl Drop for Harness {
         // TODO - shutdown db pools AND server
         let _ = std::fs::remove_file(&self.db_path);
         let _ = std::fs::remove_file(&self.cache_path);
+        let _ = std::fs::remove_dir_all(&self.images_path);
     }
 }
 
@@ -94,20 +96,26 @@ impl Harness {
             .take(8)
             .map(char::from)
             .collect();
+        let images_path = format!("/tmp/{}-mise-images", random_prefix);
         let db_path = format!("/tmp/{}-mise.db", random_prefix);
         let cache_path = format!("/tmp/{}-mise-cache.db", random_prefix);
 
+        std::fs::create_dir(&images_path)?;
+
         let config = mise::config::Config {
             http_port,
+            origin: format!("http://localhost:{http_port}"),
             oidc: mise::config::Oidc {
                 issuer_url: format!("http://localhost:{}", oidc_server.port),
                 client_id: "dev-client".to_string(),
                 client_secret: "secure-secret".to_string(),
-                origin: format!("http://localhost:{http_port}"),
             },
             sqlite: mise::config::Sqlite {
                 db_path: db_path.clone(),
             },
+            image_backend: mise::config::ImageBackend::File(mise::config::ImageBackendFile {
+                directory: images_path.clone(),
+            }),
         };
 
         let oidc = oidc::Provider::new((&config).try_into().unwrap())
@@ -116,6 +124,7 @@ impl Harness {
 
         let sv_db_path = db_path.clone();
         let sv_cache_path = cache_path.clone();
+        let sv_images_path = images_path.clone();
         tokio::task::spawn(async move {
             let (_, connections) = mise::sqlite::datastore_handler(
                 &sv_db_path,
@@ -123,19 +132,27 @@ impl Harness {
                     recipe_page_size: 2,
                 },
             )
-            .unwrap();
-            let session_store = mise::sqlite::session_store(&sv_cache_path).unwrap();
+            .expect("could not make datastore");
+            let session_store =
+                mise::sqlite::session_store(&sv_cache_path).expect("could not make session store");
 
             let server = mise::http::Server::new(
                 config,
                 mise::datastore::Pool::new(connections),
                 mise::session_store::SessionStore::new(session_store),
                 oidc,
+                ImageStore::new(Box::from(
+                    file::ImageBackend::new(&sv_images_path)
+                        .await
+                        .expect("could not make image backend"),
+                )),
             );
             if let Err(err) = server.start().await {
                 println!("Failed to start http server: {:?}", err);
             }
         });
+
+        wait_for(format!("http://localhost:{http_port}/health-check")).await?;
 
         let client = reqwest::ClientBuilder::new().cookie_store(false).build()?;
 
@@ -144,6 +161,7 @@ impl Harness {
             http_port,
             db_path,
             cache_path,
+            images_path,
             client,
             base_url: format!("http://localhost:{http_port}"),
             session_id: None,

@@ -236,6 +236,17 @@ impl Pool {
         self.send_message(rx, msg).await
     }
 
+    // images
+    pub async fn create_image(&self, id: &domain::image::Id) -> Result<(), Error> {
+        let (tx, rx) = oneshot::channel();
+        let msg = Message::CreateImage {
+            id: id.into(),
+            respond_to: tx,
+        };
+
+        self.send_message(rx, msg).await
+    }
+
     async fn send_message<T>(
         &self,
         rx: oneshot::Receiver<Result<T, Error>>,
@@ -303,5 +314,11 @@ pub enum Message {
         user_id: String,
         name: String,
         respond_to: oneshot::Sender<Result<domain::tag::Id, Error>>,
+    },
+
+    // images
+    CreateImage {
+        id: String,
+        respond_to: oneshot::Sender<Result<(), Error>>,
     },
 }

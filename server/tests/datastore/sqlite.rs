@@ -1,7 +1,7 @@
 use mise::{datastore, sqlite};
 use rand::{distributions::Alphanumeric, Rng};
 
-use crate::{recipes_tests, tags_tests, users_tests};
+use crate::{images_tests, recipes_tests, tags_tests, users_tests};
 
 use super::common::{CreatesDatastore, HoldsDatastore};
 
@@ -48,6 +48,7 @@ impl CreatesDatastore for SqliteCreator {
     }
 }
 
-users_tests!(crate::datastore::sqlite::SqliteCreator {});
+images_tests!(crate::datastore::sqlite::SqliteCreator {});
 recipes_tests!(crate::datastore::sqlite::SqliteCreator {});
 tags_tests!(crate::datastore::sqlite::SqliteCreator {});
+users_tests!(crate::datastore::sqlite::SqliteCreator {});

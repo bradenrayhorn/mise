@@ -1,5 +1,6 @@
 use crate::{domain, session_store};
 
+pub mod image;
 pub mod recipe;
 pub mod session;
 pub mod tag;
@@ -12,6 +13,9 @@ pub enum Error {
 
     #[error("Unauthenticated")]
     Unauthenticated(#[source] anyhow::Error),
+
+    #[error("Not a valid request.")]
+    Invalid(#[source] anyhow::Error),
 
     #[error(transparent)]
     DomainValidation(#[from] domain::ValidationError),

@@ -9,6 +9,7 @@ pub type CreateRecipe = Data<String>;
 pub type GetRecipe = Data<Recipe>;
 pub type CreateTag = Data<String>;
 pub type GetTags = Data<Vec<Tag>>;
+pub type CreateImage = Data<String>;
 
 #[derive(Debug, Deserialize, PartialEq, Eq)]
 pub struct ListRecipes {
