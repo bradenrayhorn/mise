@@ -23,10 +23,13 @@ async fn cannot_get_unknown_recipe() -> Result<()> {
 async fn can_create_and_get_recipe() -> Result<()> {
     let harness = setup::with_auth().await?;
 
+    let image_id = harness.create_image().await?;
+
     let response = harness
         .post("/api/v1/recipes")
         .json(&requests::CreateRecipe {
             title: "Chicken Parm".into(),
+            image_id: Some(image_id.clone()),
             ingredients: "\
                 - One chicken\n\
                 - Parmesan cheese\
@@ -53,6 +56,7 @@ async fn can_create_and_get_recipe() -> Result<()> {
     let result = response.json::<responses::GetRecipe>().await?.data;
 
     assert_eq!("Chicken Parm", result.title);
+    assert_eq!(Some(image_id), result.image_id);
     assert_eq!(
         vec![responses::Ingredients {
             title: None,
@@ -77,11 +81,15 @@ async fn can_create_and_get_recipe() -> Result<()> {
 async fn can_create_and_update_recipe() -> Result<()> {
     let harness = setup::with_auth().await?;
 
+    let image_id_1 = harness.create_image().await?;
+    let image_id_2 = harness.create_image().await?;
+
     // create the recipe
     let response = harness
         .post("/api/v1/recipes")
         .json(&requests::CreateRecipe {
             title: "Chicken Parm".into(),
+            image_id: Some(image_id_1.clone()),
             ingredients: "\
                 - One chicken\n\
                 - Parmesan cheese\
@@ -112,6 +120,7 @@ async fn can_create_and_update_recipe() -> Result<()> {
         .json(&requests::UpdateRecipe {
             previous_hash: hash,
             title: "One-Step Salad".into(),
+            image_id: Some(image_id_2.clone()),
             ingredients: "\
                 - salad\
                 "
@@ -134,6 +143,7 @@ async fn can_create_and_update_recipe() -> Result<()> {
     let result = response.json::<responses::GetRecipe>().await?.data;
 
     assert_eq!("One-Step Salad", result.title);
+    assert_eq!(Some(image_id_2), result.image_id);
     assert_eq!(
         vec![responses::Ingredients {
             title: None,
@@ -158,10 +168,14 @@ async fn can_create_and_update_recipe() -> Result<()> {
 async fn can_list_recipes() -> Result<()> {
     let harness = setup::with_auth().await?;
 
+    let image_id_1 = harness.create_image().await?;
+    let image_id_3 = harness.create_image().await?;
+
     let response = harness
         .post("/api/v1/recipes")
         .json(&requests::CreateRecipe {
             title: "Chicken Alpha".into(),
+            image_id: Some(image_id_1.clone()),
             ingredients: "- word".into(),
             instructions: "- word".into(),
             notes: None,
@@ -176,6 +190,7 @@ async fn can_list_recipes() -> Result<()> {
         .post("/api/v1/recipes")
         .json(&requests::CreateRecipe {
             title: "Chicken Gamma".into(),
+            image_id: None,
             ingredients: "- word".into(),
             instructions: "- word".into(),
             notes: None,
@@ -190,6 +205,7 @@ async fn can_list_recipes() -> Result<()> {
         .post("/api/v1/recipes")
         .json(&requests::CreateRecipe {
             title: "Chicken Beta".into(),
+            image_id: Some(image_id_3.clone()),
             ingredients: "- word".into(),
             instructions: "- word".into(),
             notes: None,
@@ -210,10 +226,12 @@ async fn can_list_recipes() -> Result<()> {
             responses::ListedRecipe {
                 id: recipe_id_1.into(),
                 title: "Chicken Alpha".into(),
+                image_id: Some(image_id_1),
             },
             responses::ListedRecipe {
                 id: recipe_id_3.into(),
                 title: "Chicken Beta".into(),
+                image_id: Some(image_id_3),
             }
         ],
         page_1_result.data
@@ -235,6 +253,7 @@ async fn can_list_recipes() -> Result<()> {
         vec![responses::ListedRecipe {
             id: recipe_id_2.into(),
             title: "Chicken Gamma".into(),
+            image_id: None,
         },],
         page_2_result.data
     );
@@ -253,6 +272,7 @@ async fn can_list_recipes_with_filters() -> Result<()> {
         .post("/api/v1/recipes")
         .json(&requests::CreateRecipe {
             title: "Chicken Alpha".into(),
+            image_id: None,
             ingredients: "- word".into(),
             instructions: "- word".into(),
             notes: None,
@@ -267,6 +287,7 @@ async fn can_list_recipes_with_filters() -> Result<()> {
         .post("/api/v1/recipes")
         .json(&requests::CreateRecipe {
             title: "Chicken Gamma Alpha".into(),
+            image_id: None,
             ingredients: "- word".into(),
             instructions: "- word".into(),
             notes: None,
@@ -281,6 +302,7 @@ async fn can_list_recipes_with_filters() -> Result<()> {
         .post("/api/v1/recipes")
         .json(&requests::CreateRecipe {
             title: "Chicken Beta".into(),
+            image_id: None,
             ingredients: "- word".into(),
             instructions: "- word".into(),
             notes: None,
@@ -305,10 +327,12 @@ async fn can_list_recipes_with_filters() -> Result<()> {
             responses::ListedRecipe {
                 id: recipe_id_1.into(),
                 title: "Chicken Alpha".into(),
+                image_id: None,
             },
             responses::ListedRecipe {
                 id: recipe_id_2.into(),
                 title: "Chicken Gamma Alpha".into(),
+                image_id: None,
             }
         ],
         page_1_result.data

@@ -28,11 +28,17 @@ CREATE TABLE users (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );",
     "
+CREATE TABLE images (
+    id TEXT PRIMARY KEY
+);",
+    "
 CREATE TABLE recipes (
     id TEXT PRIMARY KEY,
     title TEXT NOT NULL,
+    image_id INTEGER,
     document BLOB NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (image_id) REFERENCES images (id) ON DELETE RESTRICT
 );",
     "
 CREATE TABLE recipe_revisions (
@@ -62,10 +68,6 @@ CREATE TABLE recipe_tags (
     UNIQUE (recipe_id, tag_id),
     FOREIGN KEY (tag_id) REFERENCES tags (id) ON DELETE CASCADE,
     FOREIGN KEY (recipe_id) REFERENCES recipes (id) ON DELETE CASCADE
-);",
-    "
-CREATE TABLE images (
-    id TEXT PRIMARY KEY
 );",
 ];
 

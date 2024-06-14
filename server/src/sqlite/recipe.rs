@@ -14,6 +14,7 @@ pub fn get(conn: &Connection, id: &str) -> Result<domain::Recipe, Error> {
         id: id.try_into()?,
         hash: hashed_document.hash,
         title: document.title.try_into()?,
+        image_id: document.image_id,
         ingredients: document.ingredients.try_into()?,
         instructions: document.instructions.try_into()?,
         notes: match document.notes {
@@ -37,9 +38,15 @@ pub fn insert(
 
     {
         // create recipe
-        let mut stmt =
-            tx.prepare_cached("INSERT INTO recipes (id,title,document) VALUES (?1,?2,?3)")?;
-        stmt.insert(params![id, recipe.title, serialized_document])?;
+        let mut stmt = tx.prepare_cached(
+            "INSERT INTO recipes (id,title,image_id,document) VALUES (?1,?2,?3,?4)",
+        )?;
+        stmt.insert(params![
+            id,
+            recipe.title,
+            recipe.image_id.as_ref().map(String::from),
+            serialized_document
+        ])?;
 
         // create revision
         let mut stmt =
@@ -86,8 +93,14 @@ pub fn update(
         let patch = diff(&new_serialized_document, &current_serialized_document)?;
 
         // save recipe change
-        let mut stmt = tx.prepare_cached("UPDATE recipes SET title=?2, document=?3 WHERE id=?1")?;
-        stmt.execute(params![id, &recipe.title, new_serialized_document])?;
+        let mut stmt =
+            tx.prepare_cached("UPDATE recipes SET title=?2, document=?3, image_id=?4 WHERE id=?1")?;
+        stmt.execute(params![
+            id,
+            &recipe.title,
+            new_serialized_document,
+            recipe.image_id.as_ref().map(String::from),
+        ])?;
 
         // save patch
         let mut stmt = tx.prepare_cached(
@@ -113,6 +126,7 @@ pub fn list_recipes(
     let (query, values) = Query::select()
         .column((sea::Recipes::Table, sea::Recipes::Id))
         .column(sea::Recipes::Title)
+        .column(sea::Recipes::ImageId)
         .from(sea::Recipes::Table)
         .left_join(
             sea::RecipeTags::Table,
@@ -170,6 +184,10 @@ pub fn list_recipes(
         Ok(domain::ListedRecipe {
             id: (row.get::<_, String>("id")?.as_str()).try_into()?,
             title: (row.get::<_, String>("title")?).try_into()?,
+            image_id: match row.get::<_, Option<String>>("image_id")? {
+                None => None,
+                Some(id) => Some(id.as_str().try_into()?),
+            },
         })
     })?;
 
@@ -249,6 +267,7 @@ pub fn get_revision(
         id: recipe_id.try_into()?,
         hash,
         title: document.title.try_into()?,
+        image_id: document.image_id,
         ingredients: document.ingredients.try_into()?,
         instructions: document.instructions.try_into()?,
         notes: match document.notes {
@@ -349,6 +368,7 @@ mod sea {
         Table,
         Id,
         Title,
+        ImageId,
     }
 
     #[derive(Iden)]
