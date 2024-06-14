@@ -8,7 +8,7 @@ use crate::{
     domain::{RegisteringUser, User},
 };
 
-use super::{recipe, tag};
+use super::{image, recipe, tag};
 
 impl From<rusqlite::Error> for Error {
     fn from(value: rusqlite::Error) -> Self {
@@ -19,7 +19,7 @@ impl From<rusqlite::Error> for Error {
     }
 }
 
-const MIGRATION: [&str; 5] = [
+const MIGRATION: [&str; 6] = [
     "
 CREATE TABLE users (
     id TEXT PRIMARY KEY,
@@ -62,6 +62,10 @@ CREATE TABLE recipe_tags (
     UNIQUE (recipe_id, tag_id),
     FOREIGN KEY (tag_id) REFERENCES tags (id) ON DELETE CASCADE,
     FOREIGN KEY (recipe_id) REFERENCES recipes (id) ON DELETE CASCADE
+);",
+    "
+CREATE TABLE images (
+    id TEXT PRIMARY KEY
 );",
 ];
 
@@ -201,6 +205,9 @@ impl ThreadWorker {
                         respond_to,
                     } => {
                         let _ = respond_to.send(tag::insert(&conn, &user_id, &name));
+                    }
+                    Message::CreateImage { id, respond_to } => {
+                        let _ = respond_to.send(image::insert(&conn, &id));
                     }
                 }
             }

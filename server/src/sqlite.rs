@@ -1,3 +1,4 @@
+mod image;
 mod pool;
 mod recipe;
 mod session_store;

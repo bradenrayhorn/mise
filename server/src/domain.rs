@@ -212,6 +212,12 @@ mod id {
             value.ulid.to_string()
         }
     }
+
+    impl From<&Id> for String {
+        fn from(value: &Id) -> Self {
+            value.ulid.to_string()
+        }
+    }
 }
 
 pub mod user {
@@ -578,6 +584,10 @@ pub mod tag {
             value.0
         }
     }
+}
+
+pub mod image {
+    pub use super::id::Id;
 }
 
 #[cfg(test)]
