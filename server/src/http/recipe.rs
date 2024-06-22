@@ -19,8 +19,8 @@ use super::{
 pub struct CreateParams {
     title: String,
     image_id: Option<String>,
-    ingredients: String,
-    instructions: String,
+    ingredients: Vec<Ingredients>,
+    instructions: Vec<Instructions>,
     notes: Option<String>,
     tag_ids: Vec<domain::tag::Id>,
 }
@@ -50,16 +50,44 @@ pub struct Page {
     next: Option<String>,
 }
 
-#[derive(Serialize)]
+#[derive(Deserialize, Serialize)]
 pub struct Instructions {
     title: Option<String>,
     instructions: Vec<String>,
 }
 
-#[derive(Serialize)]
+#[derive(Deserialize, Serialize)]
 pub struct Ingredients {
     title: Option<String>,
     ingredients: Vec<String>,
+}
+
+fn parse_instructions(block: Instructions) -> Result<domain::recipe::InstructionBlock, Error> {
+    Ok(domain::recipe::InstructionBlock {
+        title: match block.title {
+            None => None,
+            Some(n) => Some(n.try_into()?),
+        },
+        instructions: block
+            .instructions
+            .into_iter()
+            .map(domain::recipe::Instruction::try_from)
+            .collect::<Result<Vec<domain::recipe::Instruction>, domain::ValidationError>>()?,
+    })
+}
+
+fn parse_ingredients(block: Ingredients) -> Result<domain::recipe::IngredientBlock, Error> {
+    Ok(domain::recipe::IngredientBlock {
+        title: match block.title {
+            None => None,
+            Some(n) => Some(n.try_into()?),
+        },
+        ingredients: block
+            .ingredients
+            .into_iter()
+            .map(domain::recipe::Ingredient::try_from)
+            .collect::<Result<Vec<domain::recipe::Ingredient>, domain::ValidationError>>()?,
+    })
 }
 
 pub async fn create(
@@ -73,8 +101,16 @@ pub async fn create(
             None => None,
             Some(n) => Some(n.as_str().try_into()?),
         },
-        ingredients: request.ingredients.try_into()?,
-        instructions: request.instructions.try_into()?,
+        ingredients: request
+            .ingredients
+            .into_iter()
+            .map(parse_ingredients)
+            .collect::<Result<Vec<domain::recipe::IngredientBlock>, Error>>()?,
+        instructions: request
+            .instructions
+            .into_iter()
+            .map(parse_instructions)
+            .collect::<Result<Vec<domain::recipe::InstructionBlock>, Error>>()?,
         notes: match request.notes {
             None => None,
             Some(n) => Some(n.try_into()?),
@@ -101,30 +137,18 @@ pub async fn get(
             image_id: recipe.image_id.map(Into::into),
             ingredient_blocks: recipe
                 .ingredients
-                .blocks()
-                .iter()
+                .into_iter()
                 .map(|block| Ingredients {
-                    title: block.title().map(ToOwned::to_owned),
-                    ingredients: block
-                        .ingredients()
-                        .to_vec()
-                        .iter()
-                        .map(ToOwned::to_owned)
-                        .collect(),
+                    title: block.title.map(String::from),
+                    ingredients: block.ingredients.into_iter().map(String::from).collect(),
                 })
                 .collect(),
             instruction_blocks: recipe
                 .instructions
-                .blocks()
-                .iter()
+                .into_iter()
                 .map(|block| Instructions {
-                    title: block.title().map(ToOwned::to_owned),
-                    instructions: block
-                        .instructions()
-                        .to_vec()
-                        .iter()
-                        .map(ToOwned::to_owned)
-                        .collect(),
+                    title: block.title.map(String::from),
+                    instructions: block.instructions.into_iter().map(String::from).collect(),
                 })
                 .collect(),
             notes: recipe.notes.map(Into::into),
@@ -189,8 +213,8 @@ pub struct UpdateParams {
     previous_hash: String,
     title: String,
     image_id: Option<String>,
-    ingredients: String,
-    instructions: String,
+    ingredients: Vec<Ingredients>,
+    instructions: Vec<Instructions>,
     notes: Option<String>,
     tag_ids: Vec<domain::tag::Id>,
 }
@@ -209,8 +233,16 @@ pub async fn update(
             None => None,
             Some(n) => Some(n.as_str().try_into()?),
         },
-        ingredients: request.ingredients.try_into()?,
-        instructions: request.instructions.try_into()?,
+        ingredients: request
+            .ingredients
+            .into_iter()
+            .map(parse_ingredients)
+            .collect::<Result<Vec<domain::recipe::IngredientBlock>, Error>>()?,
+        instructions: request
+            .instructions
+            .into_iter()
+            .map(parse_instructions)
+            .collect::<Result<Vec<domain::recipe::InstructionBlock>, Error>>()?,
         notes: match request.notes {
             None => None,
             Some(n) => Some(n.try_into()?),

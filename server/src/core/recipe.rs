@@ -1,7 +1,7 @@
 use crate::{
     core::Error,
     datastore::{self, Pool, RecipeDocument},
-    domain::{self, CreatingRecipe, Recipe, UpdatingRecipe},
+    domain::{self, recipe::StringifiedBlock, CreatingRecipe, Recipe, UpdatingRecipe},
 };
 
 pub async fn create(
@@ -12,8 +12,16 @@ pub async fn create(
     let document = RecipeDocument {
         title: recipe.title.into(),
         image_id: recipe.image_id,
-        instructions: recipe.instructions.into(),
-        ingredients: recipe.ingredients.into(),
+        instructions: recipe
+            .instructions
+            .into_iter()
+            .map(StringifiedBlock::from)
+            .collect(),
+        ingredients: recipe
+            .ingredients
+            .into_iter()
+            .map(StringifiedBlock::from)
+            .collect(),
         notes: recipe.notes.map(std::convert::Into::into),
         tag_ids: recipe.tag_ids,
     };
@@ -36,8 +44,16 @@ pub async fn update(
     let document = RecipeDocument {
         title: recipe.title.into(),
         image_id: recipe.image_id,
-        instructions: recipe.instructions.into(),
-        ingredients: recipe.ingredients.into(),
+        instructions: recipe
+            .instructions
+            .into_iter()
+            .map(StringifiedBlock::from)
+            .collect(),
+        ingredients: recipe
+            .ingredients
+            .into_iter()
+            .map(StringifiedBlock::from)
+            .collect(),
         notes: recipe.notes.map(std::convert::Into::into),
         tag_ids: recipe.tag_ids,
     };

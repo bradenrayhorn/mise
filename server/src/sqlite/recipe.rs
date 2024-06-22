@@ -15,8 +15,16 @@ pub fn get(conn: &Connection, id: &str) -> Result<domain::Recipe, Error> {
         hash: hashed_document.hash,
         title: document.title.try_into()?,
         image_id: document.image_id,
-        ingredients: document.ingredients.try_into()?,
-        instructions: document.instructions.try_into()?,
+        ingredients: document
+            .ingredients
+            .into_iter()
+            .map(domain::recipe::IngredientBlock::try_from)
+            .collect::<Result<Vec<domain::recipe::IngredientBlock>, domain::ValidationError>>()?,
+        instructions: document
+            .instructions
+            .into_iter()
+            .map(domain::recipe::InstructionBlock::try_from)
+            .collect::<Result<Vec<domain::recipe::InstructionBlock>, domain::ValidationError>>()?,
         notes: match document.notes {
             None => None,
             Some(s) => Some(s.try_into()?),
@@ -268,8 +276,16 @@ pub fn get_revision(
         hash,
         title: document.title.try_into()?,
         image_id: document.image_id,
-        ingredients: document.ingredients.try_into()?,
-        instructions: document.instructions.try_into()?,
+        ingredients: document
+            .ingredients
+            .into_iter()
+            .map(domain::recipe::IngredientBlock::try_from)
+            .collect::<Result<Vec<domain::recipe::IngredientBlock>, domain::ValidationError>>()?,
+        instructions: document
+            .instructions
+            .into_iter()
+            .map(domain::recipe::InstructionBlock::try_from)
+            .collect::<Result<Vec<domain::recipe::InstructionBlock>, domain::ValidationError>>()?,
         notes: match document.notes {
             None => None,
             Some(s) => Some(s.try_into()?),

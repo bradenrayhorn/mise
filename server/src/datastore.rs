@@ -5,13 +5,15 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use tokio::sync::oneshot;
 
-use crate::domain::{self, Recipe, RecipeRevision, RegisteringUser, User};
+use crate::domain::{
+    self, recipe::StringifiedBlock, Recipe, RecipeRevision, RegisteringUser, User,
+};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RecipeDocument {
     pub title: String,
-    pub ingredients: String,
-    pub instructions: String,
+    pub ingredients: Vec<StringifiedBlock>,
+    pub instructions: Vec<StringifiedBlock>,
     pub notes: Option<String>,
     pub tag_ids: Vec<domain::tag::Id>,
     pub image_id: Option<domain::image::Id>,
