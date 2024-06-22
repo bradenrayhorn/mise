@@ -25,10 +25,22 @@ pub struct Recipe {
     pub hash: String,
     pub title: String,
     pub image_id: Option<String>,
-    pub ingredient_blocks: Vec<Ingredients>,
-    pub instruction_blocks: Vec<Instructions>,
+    pub ingredient_blocks: Vec<IngredientBlock>,
+    pub instruction_blocks: Vec<InstructionBlock>,
     pub notes: Option<String>,
     pub tags: Vec<String>,
+}
+
+#[derive(Debug, Deserialize, PartialEq, Eq)]
+pub struct IngredientBlock {
+    pub title: Option<String>,
+    pub ingredients: Vec<String>,
+}
+
+#[derive(Debug, Deserialize, PartialEq, Eq)]
+pub struct InstructionBlock {
+    pub title: Option<String>,
+    pub instructions: Vec<String>,
 }
 
 #[derive(Debug, Deserialize, PartialEq, Eq)]
@@ -36,18 +48,6 @@ pub struct ListedRecipe {
     pub id: String,
     pub title: String,
     pub image_id: Option<String>,
-}
-
-#[derive(Debug, Deserialize, PartialEq, Eq)]
-pub struct Instructions {
-    pub title: Option<String>,
-    pub instructions: Vec<String>,
-}
-
-#[derive(Debug, Deserialize, PartialEq, Eq)]
-pub struct Ingredients {
-    pub title: Option<String>,
-    pub ingredients: Vec<String>,
 }
 
 #[derive(Debug, Deserialize, PartialEq, Eq)]

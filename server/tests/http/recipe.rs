@@ -30,16 +30,14 @@ async fn can_create_and_get_recipe() -> Result<()> {
         .json(&requests::CreateRecipe {
             title: "Chicken Parm".into(),
             image_id: Some(image_id.clone()),
-            ingredients: "\
-                - One chicken\n\
-                - Parmesan cheese\
-                "
-            .into(),
-            instructions: "\
-                - Broil the chicken\n\
-                - Add the parmesan\
-                "
-            .into(),
+            ingredients: requests::IngredientBlock::new(&[(
+                None,
+                &["One chicken", "Parmesan cheese"],
+            )]),
+            instructions: requests::InstructionBlock::new(&[(
+                None,
+                &["Broil the chicken", "Add the parmesan"],
+            )]),
             notes: Some("Best served hot!".into()),
             tag_ids: vec![harness.create_tag("Main Dish").await?],
         })
@@ -58,14 +56,14 @@ async fn can_create_and_get_recipe() -> Result<()> {
     assert_eq!("Chicken Parm", result.title);
     assert_eq!(Some(image_id), result.image_id);
     assert_eq!(
-        vec![responses::Ingredients {
+        vec![responses::IngredientBlock {
             title: None,
             ingredients: vec!["One chicken".into(), "Parmesan cheese".into()]
         }],
         result.ingredient_blocks
     );
     assert_eq!(
-        vec![responses::Instructions {
+        vec![responses::InstructionBlock {
             title: None,
             instructions: vec!["Broil the chicken".into(), "Add the parmesan".into()]
         }],
@@ -90,16 +88,14 @@ async fn can_create_and_update_recipe() -> Result<()> {
         .json(&requests::CreateRecipe {
             title: "Chicken Parm".into(),
             image_id: Some(image_id_1.clone()),
-            ingredients: "\
-                - One chicken\n\
-                - Parmesan cheese\
-                "
-            .into(),
-            instructions: "\
-                - Broil the chicken\n\
-                - Add the parmesan\
-                "
-            .into(),
+            ingredients: requests::IngredientBlock::new(&[(
+                None,
+                &["One chicken", "Parmesan cheese"],
+            )]),
+            instructions: requests::InstructionBlock::new(&[(
+                None,
+                &["Broil the chicken", "Add the parmesan"],
+            )]),
             notes: Some("Best served hot!".into()),
             tag_ids: vec![harness.create_tag("Main Dish").await?],
         })
@@ -121,14 +117,8 @@ async fn can_create_and_update_recipe() -> Result<()> {
             previous_hash: hash,
             title: "One-Step Salad".into(),
             image_id: Some(image_id_2.clone()),
-            ingredients: "\
-                - salad\
-                "
-            .into(),
-            instructions: "\
-                - Serve\
-                "
-            .into(),
+            ingredients: requests::IngredientBlock::new(&[(None, &["salad"])]),
+            instructions: requests::InstructionBlock::new(&[(None, &["serve"])]),
             notes: None,
             tag_ids: vec![harness.create_tag("Salads").await?],
         })
@@ -145,16 +135,16 @@ async fn can_create_and_update_recipe() -> Result<()> {
     assert_eq!("One-Step Salad", result.title);
     assert_eq!(Some(image_id_2), result.image_id);
     assert_eq!(
-        vec![responses::Ingredients {
+        vec![responses::IngredientBlock {
             title: None,
             ingredients: vec!["salad".into()]
         }],
         result.ingredient_blocks
     );
     assert_eq!(
-        vec![responses::Instructions {
+        vec![responses::InstructionBlock {
             title: None,
-            instructions: vec!["Serve".into()]
+            instructions: vec!["serve".into()]
         }],
         result.instruction_blocks
     );
@@ -176,8 +166,8 @@ async fn can_list_recipes() -> Result<()> {
         .json(&requests::CreateRecipe {
             title: "Chicken Alpha".into(),
             image_id: Some(image_id_1.clone()),
-            ingredients: "- word".into(),
-            instructions: "- word".into(),
+            ingredients: requests::IngredientBlock::new(&[]),
+            instructions: requests::InstructionBlock::new(&[]),
             notes: None,
             tag_ids: vec![],
         })
@@ -191,8 +181,8 @@ async fn can_list_recipes() -> Result<()> {
         .json(&requests::CreateRecipe {
             title: "Chicken Gamma".into(),
             image_id: None,
-            ingredients: "- word".into(),
-            instructions: "- word".into(),
+            ingredients: requests::IngredientBlock::new(&[]),
+            instructions: requests::InstructionBlock::new(&[]),
             notes: None,
             tag_ids: vec![],
         })
@@ -206,8 +196,8 @@ async fn can_list_recipes() -> Result<()> {
         .json(&requests::CreateRecipe {
             title: "Chicken Beta".into(),
             image_id: Some(image_id_3.clone()),
-            ingredients: "- word".into(),
-            instructions: "- word".into(),
+            ingredients: requests::IngredientBlock::new(&[]),
+            instructions: requests::InstructionBlock::new(&[]),
             notes: None,
             tag_ids: vec![],
         })
@@ -273,8 +263,8 @@ async fn can_list_recipes_with_filters() -> Result<()> {
         .json(&requests::CreateRecipe {
             title: "Chicken Alpha".into(),
             image_id: None,
-            ingredients: "- word".into(),
-            instructions: "- word".into(),
+            ingredients: requests::IngredientBlock::new(&[]),
+            instructions: requests::InstructionBlock::new(&[]),
             notes: None,
             tag_ids: vec![tag_1.clone()],
         })
@@ -288,8 +278,8 @@ async fn can_list_recipes_with_filters() -> Result<()> {
         .json(&requests::CreateRecipe {
             title: "Chicken Gamma Alpha".into(),
             image_id: None,
-            ingredients: "- word".into(),
-            instructions: "- word".into(),
+            ingredients: requests::IngredientBlock::new(&[]),
+            instructions: requests::InstructionBlock::new(&[]),
             notes: None,
             tag_ids: vec![tag_2.clone()],
         })
@@ -303,8 +293,8 @@ async fn can_list_recipes_with_filters() -> Result<()> {
         .json(&requests::CreateRecipe {
             title: "Chicken Beta".into(),
             image_id: None,
-            ingredients: "- word".into(),
-            instructions: "- word".into(),
+            ingredients: requests::IngredientBlock::new(&[]),
+            instructions: requests::InstructionBlock::new(&[]),
             notes: None,
             tag_ids: vec![],
         })
