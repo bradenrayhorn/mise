@@ -17,16 +17,18 @@ use crate::{
 use super::server::AppState;
 
 #[derive(Deserialize)]
-pub struct CallbackParams {
-    state: String,
-    code: String,
+pub struct InitParams {
+    redirect_target: Option<String>,
 }
 
 pub async fn init(
     State(state): State<AppState>,
     jar: CookieJar,
+    params: Query<InitParams>,
 ) -> Result<(CookieJar, Redirect), Error> {
-    let (auth_url, oidc_state) = oidc::begin_auth(&state.oidc_provider);
+    let (auth_url, oidc_state) =
+        oidc::begin_auth(&state.oidc_provider, params.redirect_target.clone())
+            .map_err(|err| Error::Unauthenticated(err.into()))?;
 
     let jar = jar.add(
         Cookie::build((
@@ -43,6 +45,12 @@ pub async fn init(
     );
 
     Ok((jar, Redirect::temporary(auth_url.as_ref())))
+}
+
+#[derive(Deserialize)]
+pub struct CallbackParams {
+    state: String,
+    code: String,
 }
 
 pub async fn callback(
@@ -63,7 +71,7 @@ pub async fn callback(
     let jar = jar.remove(Cookie::from("s"));
 
     // exchange with oidc provider
-    let authenticated = oidc::complete_auth(
+    let (authenticated, redirect_target) = oidc::complete_auth(
         &state.oidc_provider,
         oidc_state,
         oidc::CallbackParams {
@@ -90,5 +98,8 @@ pub async fn callback(
             )),
     );
 
-    Ok((jar, Redirect::temporary(&format!("/"))))
+    Ok((
+        jar,
+        Redirect::temporary(redirect_target.as_ref().map_or("/", |s| s.as_str())),
+    ))
 }

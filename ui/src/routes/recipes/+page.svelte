@@ -1,4 +1,5 @@
 <script lang="ts">
+  import StreamedError from '$lib/components/StreamedError.svelte';
   import { goto } from '$app/navigation';
   import { page } from '$app/stores';
   import { setQueryParameters } from '$lib/replace-query-parameter';
@@ -35,7 +36,7 @@
   </form>
 
   <TagFilter
-    promisedTags={data.tags}
+    promisedTags={data.promisedTags}
     defaultTagSet={tagValues}
     on:applied={(event) => {
       goto(
@@ -46,7 +47,7 @@
 </div>
 
 <div class="flex flex-col">
-  {#await data.page}
+  {#await data.promisedRecipePage}
     <div>Loading...</div>
   {:then page}
     {#each page.data as recipe (recipe.id)}
@@ -59,6 +60,6 @@
       <a href={`/recipes?${setQueryParameters(searchParams, { cursor: page.next })}`}>Next page</a>
     {/if}
   {:catch error}
-    <div>Could not load recipes.</div>
+    <StreamedError {error}>Could not load recipes.</StreamedError>
   {/await}
 </div>

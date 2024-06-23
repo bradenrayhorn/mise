@@ -28,3 +28,8 @@ export type IngredientBlock = {
   title?: string;
   ingredients: Array<string>;
 };
+
+export type InstructionBlock = {
+  title?: string;
+  instructions: Array<string>;
+};

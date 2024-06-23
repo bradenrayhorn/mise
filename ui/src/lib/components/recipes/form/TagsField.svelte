@@ -4,6 +4,7 @@
   import type { Tag } from '$lib/types/tag';
   import { createDropdownMenu, melt } from '@melt-ui/svelte';
   import TagModal from './TagModal.svelte';
+  import StreamedError from '$lib/components/StreamedError.svelte';
 
   export let superform: SuperForm<Infer<RecipeFormSchema>>;
   export let promisedTags: Promise<Array<Tag>>;
@@ -39,6 +40,6 @@
     <TagModal element={item} />
     <div use:melt={$arrow} />
   </div>
-{:catch}
-  oh no
+{:catch error}
+  <StreamedError {error}>Failed to load tags.</StreamedError>
 {/await}

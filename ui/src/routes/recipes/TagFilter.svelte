@@ -3,6 +3,7 @@
   import { createDialog, melt } from '@melt-ui/svelte';
   import { createEventDispatcher } from 'svelte';
   import TagFilterOption from './TagFilterOption.svelte';
+  import StreamedError from '$lib/components/StreamedError.svelte';
 
   export let promisedTags: Promise<Array<Tag>>;
   export let defaultTagSet: Array<string>;
@@ -55,4 +56,6 @@
       </div>
     </div>
   {/if}
+{:catch error}
+  <StreamedError {error}>Failed to load tags.</StreamedError>
 {/await}
