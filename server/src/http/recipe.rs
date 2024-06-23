@@ -34,7 +34,13 @@ pub struct Recipe {
     ingredient_blocks: Vec<Ingredients>,
     instruction_blocks: Vec<Instructions>,
     notes: Option<String>,
-    tags: Vec<String>,
+    tags: Vec<AttachedTag>,
+}
+
+#[derive(Serialize)]
+pub struct AttachedTag {
+    id: String,
+    name: String,
 }
 
 #[derive(Serialize)]
@@ -152,7 +158,14 @@ pub async fn get(
                 })
                 .collect(),
             notes: recipe.notes.map(Into::into),
-            tags: recipe.tags.into_iter().map(|tag| tag.name.into()).collect(),
+            tags: recipe
+                .tags
+                .into_iter()
+                .map(|tag| AttachedTag {
+                    id: tag.id.into(),
+                    name: tag.name.into(),
+                })
+                .collect(),
         },
     }))
 }

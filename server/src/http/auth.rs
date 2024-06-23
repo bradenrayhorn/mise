@@ -49,7 +49,7 @@ pub async fn callback(
     jar: CookieJar,
     State(state): State<AppState>,
     params: Query<CallbackParams>,
-) -> Result<(CookieJar, String), Error> {
+) -> Result<(CookieJar, Redirect), Error> {
     let oidc_state = serde_json::from_str::<oidc::AuthState>(
         jar.get("s")
             .ok_or(Error::Unauthenticated(anyhow!(
@@ -90,5 +90,5 @@ pub async fn callback(
             )),
     );
 
-    Ok((jar, format!("authenticated = {}", authenticated.subject)))
+    Ok((jar, Redirect::temporary(&format!("/"))))
 }

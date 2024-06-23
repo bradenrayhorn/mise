@@ -172,8 +172,13 @@ impl Harness {
     }
 
     pub async fn authenticate(&mut self, username: &str) -> Result<()> {
-        let jar = Arc::new(reqwest::cookie::Jar::default());
-        let auth_client = reqwest::ClientBuilder::new().cookie_provider(jar).build()?;
+        let jar = reqwest_cookie_store::CookieStoreMutex::new(
+            reqwest_cookie_store::CookieStore::new(None),
+        );
+        let jar = Arc::new(jar);
+        let auth_client = reqwest::ClientBuilder::new()
+            .cookie_provider(jar.clone())
+            .build()?;
 
         let r = auth_client
             .get(format!("http://localhost:{}/auth/init", self.http_port))
@@ -182,17 +187,18 @@ impl Harness {
 
         let login_url = format!("{}&username={username}", r.url().as_str());
 
-        let r2 = auth_client.get(&login_url).send().await?;
-        let id_cookie = cookie::Cookie::parse(
-            r2.headers()
-                .get_all("set-cookie")
-                .into_iter()
-                .find(|header| header.to_str().unwrap().contains("id="))
-                .map(|v| v.to_str().unwrap())
-                .unwrap_or_else(|| ""),
-        )?;
+        auth_client.get(&login_url).send().await?;
 
-        self.session_id = Some(id_cookie.value().to_string());
+        let session_id = {
+            let store = jar.lock().unwrap();
+            store
+                .get("localhost", "/", "id")
+                .unwrap()
+                .value()
+                .to_string()
+        };
+
+        self.session_id = Some(session_id);
 
         Ok(())
     }
