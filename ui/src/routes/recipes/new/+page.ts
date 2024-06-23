@@ -7,7 +7,13 @@ import { streamedPromise } from '$lib/handle-streamed-error';
 
 export const load: PageLoad = async ({ fetch, url }) => {
   const form = await superValidate(zod(schema), {
-    defaults: { title: '', notes: '', ingredient_blocks: [{ ingredients: [''] }], tags: [] },
+    defaults: {
+      title: '',
+      notes: '',
+      ingredient_blocks: [{ ingredients: [''] }],
+      instruction_blocks: [{ instructions: [''] }],
+      tags: [],
+    },
   });
 
   return {

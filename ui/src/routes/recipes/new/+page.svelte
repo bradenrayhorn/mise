@@ -11,6 +11,7 @@
   import TagsField from '$lib/components/recipes/form/TagsField.svelte';
   import { handleSuperformError, superformGoto } from '$lib/error-to-superform';
   import { page } from '$app/stores';
+  import InstructionsField from '$lib/components/recipes/form/InstructionsField.svelte';
 
   export let data: PageData;
   const superform = superForm(data.form, {
@@ -31,7 +32,7 @@
             image: form.data.image,
             notes: form.data.notes,
             ingredient_blocks: form.data.ingredient_blocks,
-            instruction_blocks: [],
+            instruction_blocks: form.data.instruction_blocks,
             tags: form.data.tags,
           },
         });
@@ -73,6 +74,8 @@
 
     <div class="flex-1">
       <h2>Instructions</h2>
+
+      <InstructionsField {superform} />
     </div>
   </div>
 </form>

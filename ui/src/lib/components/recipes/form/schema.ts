@@ -14,6 +14,12 @@ export const schema = z
         ingredients: z.string().trim().array(),
       })
       .array(),
+    instruction_blocks: z
+      .object({
+        title: z.string().optional(),
+        instructions: z.string().trim().array(),
+      })
+      .array(),
     tags: z
       .object({
         id: z.string(),

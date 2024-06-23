@@ -17,6 +17,7 @@ export type DetailedRecipe = {
   notes?: string;
   tags: Array<TagOnRecipe>;
   ingredient_blocks: Array<IngredientBlock>;
+  instruction_blocks: Array<InstructionBlock>;
 };
 
 export type DetailedRecipeWithHash = {

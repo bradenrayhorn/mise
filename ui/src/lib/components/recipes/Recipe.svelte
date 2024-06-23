@@ -45,5 +45,19 @@
 
   <div class="flex-1">
     <h2>Instructions</h2>
+
+    {#each recipe.instruction_blocks as b}
+      {#if b.title}
+        <div>
+          {b.title}
+        </div>
+      {/if}
+
+      {#each b.instructions as instruction, i}
+        <div>
+          {i + 1}. {instruction}
+        </div>
+      {/each}
+    {/each}
   </div>
 </div>
