@@ -20,7 +20,7 @@ async fn main() {
     let (_worker_pool, senders) = match sqlite::datastore_handler(
         "mise.db",
         &sqlite::DatastoreConfig {
-            recipe_page_size: 50,
+            recipe_page_size: 10,
         },
     ) {
         Ok(pool) => pool,

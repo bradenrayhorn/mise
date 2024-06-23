@@ -24,6 +24,7 @@ async fn can_create_and_get_recipe() -> Result<()> {
     let harness = setup::with_auth().await?;
 
     let image_id = harness.create_image().await?;
+    let tag_id = harness.create_tag("Main Dish").await?;
 
     let response = harness
         .post("/api/v1/recipes")
@@ -39,7 +40,7 @@ async fn can_create_and_get_recipe() -> Result<()> {
                 &["Broil the chicken", "Add the parmesan"],
             )]),
             notes: Some("Best served hot!".into()),
-            tag_ids: vec![harness.create_tag("Main Dish").await?],
+            tag_ids: vec![tag_id.clone()],
         })
         .send()
         .await?;
@@ -70,7 +71,13 @@ async fn can_create_and_get_recipe() -> Result<()> {
         result.instruction_blocks
     );
     assert_eq!(Some("Best served hot!".into()), result.notes);
-    assert_eq!(vec!["Main Dish"], result.tags);
+    assert_eq!(
+        vec![responses::TagOnRecipe {
+            id: tag_id,
+            name: "Main Dish".into()
+        }],
+        result.tags
+    );
 
     Ok(())
 }
@@ -111,6 +118,8 @@ async fn can_create_and_update_recipe() -> Result<()> {
     let hash = response.json::<responses::GetRecipe>().await?.data.hash;
 
     // send an update
+    let tag_id = harness.create_tag("Salads").await?;
+
     let response = harness
         .put(&format!("/api/v1/recipes/{id}"))
         .json(&requests::UpdateRecipe {
@@ -120,7 +129,7 @@ async fn can_create_and_update_recipe() -> Result<()> {
             ingredients: requests::IngredientBlock::new(&[(None, &["salad"])]),
             instructions: requests::InstructionBlock::new(&[(None, &["serve"])]),
             notes: None,
-            tag_ids: vec![harness.create_tag("Salads").await?],
+            tag_ids: vec![tag_id.clone()],
         })
         .send()
         .await?;
@@ -149,7 +158,13 @@ async fn can_create_and_update_recipe() -> Result<()> {
         result.instruction_blocks
     );
     assert_eq!(None, result.notes);
-    assert_eq!(vec!["Salads"], result.tags);
+    assert_eq!(
+        vec![responses::TagOnRecipe {
+            id: tag_id,
+            name: "Salads".into()
+        }],
+        result.tags
+    );
 
     Ok(())
 }

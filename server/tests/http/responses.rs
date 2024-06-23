@@ -28,7 +28,7 @@ pub struct Recipe {
     pub ingredient_blocks: Vec<IngredientBlock>,
     pub instruction_blocks: Vec<InstructionBlock>,
     pub notes: Option<String>,
-    pub tags: Vec<String>,
+    pub tags: Vec<TagOnRecipe>,
 }
 
 #[derive(Debug, Deserialize, PartialEq, Eq)]
@@ -52,6 +52,12 @@ pub struct ListedRecipe {
 
 #[derive(Debug, Deserialize, PartialEq, Eq)]
 pub struct Tag {
+    pub id: String,
+    pub name: String,
+}
+
+#[derive(Debug, Deserialize, PartialEq, Eq)]
+pub struct TagOnRecipe {
     pub id: String,
     pub name: String,
 }
