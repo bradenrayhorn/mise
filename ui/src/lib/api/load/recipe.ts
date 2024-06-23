@@ -1,14 +1,15 @@
 import type { DetailedRecipeWithHash, ListedRecipe, RecipePage } from '$lib/types/recipe';
-import { error } from '@sveltejs/kit';
-import type { WithFetch } from '../fetch';
+import type { APICall } from '../fetch';
 import type { Tag } from '$lib/types/tag';
+import { handleAPIError } from '../handle-error';
 
 export const getRecipes = async ({
   fetch: _fetch,
+  url,
   cursor,
   search,
   tags,
-}: WithFetch & { cursor: string; search: string; tags: string }): Promise<RecipePage> => {
+}: APICall & { cursor: string; search: string; tags: string }): Promise<RecipePage> => {
   type Response = {
     data: Array<ListedRecipe>;
     next: string | null;
@@ -29,8 +30,7 @@ export const getRecipes = async ({
   const res = await _fetch('/api/v1/recipes?' + params.toString());
 
   if (!res.ok) {
-    return error(500, 'oh no');
-    //return await getError(res);
+    return await handleAPIError(res, url);
   }
 
   return await res.json().then((json: Response) => ({
@@ -41,8 +41,9 @@ export const getRecipes = async ({
 
 export const getRecipe = async ({
   fetch: _fetch,
+  url,
   id,
-}: WithFetch & { id: string }): Promise<DetailedRecipeWithHash> => {
+}: APICall & { id: string }): Promise<DetailedRecipeWithHash> => {
   type Response = {
     data: DetailedRecipeResponse;
   };
@@ -65,8 +66,7 @@ export const getRecipe = async ({
   const res = await _fetch(`/api/v1/recipes/${id}`);
 
   if (!res.ok) {
-    return error(500, 'oh no');
-    //return await getError(res);
+    return await handleAPIError(res, url);
   }
 
   return await res.json().then((json: Response) => ({

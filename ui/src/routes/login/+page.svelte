@@ -4,7 +4,7 @@
   <div class="max-w-60 text-center">
     <h1 class="font-bold text-3xl font-serif mb-16">mise</h1>
 
-    <a class="text-primary-800 underline" href="/auth/init">Log in</a>
+    <a class="text-primary-800 underline" href="/auth/init?redirect_target=/recipes">Log in</a>
   </div>
 
   <div class="w-full max-w-60 h-0.5 mt-16 bg-neutral-100" />

@@ -1,3 +1,4 @@
-export type WithFetch = {
+export type APICall = {
   fetch: typeof fetch;
+  url: URL;
 };

@@ -7,8 +7,10 @@
   import IngredientsField from '$lib/components/recipes/form/IngredientsField.svelte';
   import { schema } from '$lib/components/recipes/form/schema';
   import ImageField from '$lib/components/recipes/form/ImageField.svelte';
-  import { uploadImage } from '$lib/api/requests/image';
+  import { createRecipe } from '$lib/api/action/recipe';
   import TagsField from '$lib/components/recipes/form/TagsField.svelte';
+  import { handleSuperformError, superformGoto } from '$lib/error-to-superform';
+  import { page } from '$app/stores';
 
   export let data: PageData;
   const superform = superForm(data.form, {
@@ -16,29 +18,31 @@
     dataType: 'json',
     validators: zodClient(schema),
     onUpdate: async function ({ form }) {
-      console.log({ form });
-      if (form.valid) {
-        await fetch('/api/v1/recipes', {
-          method: 'POST',
-          headers: {
-            'content-type': 'application/json',
-          },
-          body: JSON.stringify({
+      if (!form.valid) {
+        return;
+      }
+
+      try {
+        await createRecipe({
+          fetch,
+          url: $page.url,
+          recipe: {
             title: form.data.title,
-            image_id: form.data.image ? await uploadImage(form.data.image) : undefined,
-            notes: form.data.notes.trim().length > 0 ? form.data.notes.trim() : null,
-            ingredients: form.data.ingredient_blocks
-              .map((b) => ({ ...b, ingredients: b.ingredients.filter((i) => i.trim().length > 0) }))
-              .filter((b) => b.ingredients.length > 0),
-            instructions: [],
-            tag_ids: form.data.tags.map((t) => t.id),
-          }),
+            image: form.data.image,
+            notes: form.data.notes,
+            ingredient_blocks: form.data.ingredient_blocks,
+            instruction_blocks: [],
+            tags: form.data.tags,
+          },
         });
+      } catch (error: any) {
+        await handleSuperformError(form, error, superformGoto);
       }
     },
   });
 
-  const { form, errors, enhance } = superform;
+  const { form, errors, enhance, message } = superform;
+  $: console.log($message, $errors);
 </script>
 
 <form method="POST" use:enhance>

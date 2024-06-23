@@ -30,6 +30,9 @@ pub enum Error {
     #[error("Missing Expires In.")]
     MissingExpiresIn,
 
+    #[error("Invalid redirect target. Must begin with forward slash.")]
+    InvalidRedirectTarget,
+
     #[error("Could not compute expires at from: {0:?}.")]
     InvalidExpiresIn(Duration),
 
@@ -135,6 +138,7 @@ pub struct AuthState {
     csrf_token: CsrfToken,
     nonce: Nonce,
     pkce_verifier: PkceCodeVerifier,
+    redirect_target: Option<String>,
 }
 
 pub struct CallbackParams<'a> {
@@ -150,7 +154,16 @@ pub struct Authenticated {
     pub expires_at: chrono::DateTime<Utc>,
 }
 
-pub fn begin_auth(provider: &Provider) -> (openidconnect::url::Url, AuthState) {
+pub fn begin_auth(
+    provider: &Provider,
+    redirect_target: Option<String>,
+) -> Result<(openidconnect::url::Url, AuthState), Error> {
+    if let Some(redirect_target) = &redirect_target {
+        if !redirect_target.starts_with('/') {
+            return Err(Error::InvalidRedirectTarget);
+        }
+    }
+
     let (pkce_challenge, pkce_verifier) = PkceCodeChallenge::new_random_sha256();
     let (auth_url, csrf_token, nonce) = provider
         .openid_client
@@ -165,21 +178,22 @@ pub fn begin_auth(provider: &Provider) -> (openidconnect::url::Url, AuthState) {
         .add_scope(Scope::new("profile".into()))
         .url();
 
-    (
+    Ok((
         auth_url,
         AuthState {
             csrf_token,
             nonce,
             pkce_verifier,
+            redirect_target,
         },
-    )
+    ))
 }
 
 pub async fn complete_auth<'a>(
     provider: &Provider,
     state: AuthState,
     params: CallbackParams<'a>,
-) -> Result<Authenticated, Error> {
+) -> Result<(Authenticated, Option<String>), Error> {
     if sha256::digest(state.csrf_token.secret()) != sha256::digest(params.state) {
         return Err(Error::CsrfMismatch);
     }
@@ -192,7 +206,9 @@ pub async fn complete_auth<'a>(
         .await
         .context("Code exchange failure.")?;
 
-    to_authenticated(provider, Some(&state.nonce), &token_response)
+    let authenticated = to_authenticated(provider, Some(&state.nonce), &token_response)?;
+
+    Ok((authenticated, state.redirect_target))
 }
 
 pub async fn refresh_auth(

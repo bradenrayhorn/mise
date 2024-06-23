@@ -5,7 +5,7 @@ use axum::{
     extract::{DefaultBodyLimit, FromRef, Request, State},
     http::StatusCode,
     middleware::{self, Next},
-    response::{IntoResponse, Response},
+    response::{IntoResponse, Redirect, Response},
     Extension, Router,
 };
 use axum_extra::extract::{cookie::Key, CookieJar};
@@ -103,8 +103,12 @@ impl Server {
                             .route("/:id", axum::routing::get(http::image::get))
                             .layer(DefaultBodyLimit::max(MAX_IMAGE_BODY_SIZE)),
                     )
-                    .layer(middleware::from_fn_with_state(state.clone(), auth)),
+                    .layer(middleware::from_fn_with_state(
+                        state.clone(),
+                        auth_middleware,
+                    )),
             )
+            .route("/", axum::routing::get(handle_base_redirect))
             //
             .with_state(state);
 
@@ -113,6 +117,18 @@ impl Server {
         axum::serve(listener, router).await?;
 
         Ok(())
+    }
+}
+
+async fn handle_base_redirect(
+    State(state): State<AppState>,
+    jar: CookieJar,
+) -> (CookieJar, Redirect) {
+    let previous_jar = jar.clone();
+
+    match check_if_authenticated(&state.session_store, &state.oidc_provider, jar).await {
+        Ok((jar, _)) => (jar, Redirect::temporary("/recipes")),
+        Err(_) => (previous_jar, Redirect::temporary("/login")),
     }
 }
 
@@ -131,30 +147,45 @@ impl From<AuthenticatedUser> for domain::user::Authenticated {
     }
 }
 
-async fn auth(
+async fn auth_middleware(
     State(state): State<AppState>,
     jar: CookieJar,
     mut req: Request,
     next: Next,
 ) -> Result<(CookieJar, Response), Error> {
+    let previous_jar = jar.clone();
+
+    let (jar, user) =
+        match check_if_authenticated(&state.session_store, &state.oidc_provider, jar).await {
+            Ok(r) => r,
+            Err(err) => {
+                let jar = previous_jar.remove(Cookie::from("id"));
+                return Ok((jar, err.into_response()));
+            }
+        };
+
+    req.extensions_mut().insert(user);
+
+    Ok((jar, next.run(req).await))
+}
+
+async fn check_if_authenticated(
+    session_store: &SessionStore,
+    oidc_provider: &oidc::Provider,
+    jar: CookieJar,
+) -> Result<(CookieJar, AuthenticatedUser), Error> {
     let session_key = jar
         .get("id")
         .ok_or(Error::Unauthenticated(anyhow!("missing session cookie")))?
         .value();
 
-    let session = match core::session::get(
-        &state.session_store,
-        &state.oidc_provider,
+    // try to fetch the session
+    let session = core::session::get(
+        session_store,
+        oidc_provider,
         SessionKey(session_key.to_string()),
     )
-    .await
-    {
-        Ok(session) => session,
-        Err(err) => {
-            let jar = jar.remove(Cookie::from("id"));
-            return Ok((jar, err.into_response()));
-        }
-    };
+    .await?;
 
     // Update the cookie if the session key changed.
     let jar = if session_key == session.key.to_string() {
@@ -175,9 +206,8 @@ async fn auth(
     let user = AuthenticatedUser {
         id: session.user_id,
     };
-    req.extensions_mut().insert(user);
 
-    Ok((jar, next.run(req).await))
+    Ok((jar, user))
 }
 
 impl IntoResponse for Error {
