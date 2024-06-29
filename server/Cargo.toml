@@ -43,3 +43,4 @@ async-trait = "0.1.80"
 hex = "0.4.3"
 semver = "1.0.23"
 reqwest_cookie_store = "0.8.0"
+tower-http = { version = "0.5.2", features = ["fs"] }

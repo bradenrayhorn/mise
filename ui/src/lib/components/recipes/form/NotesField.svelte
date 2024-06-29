@@ -1,15 +1,18 @@
 <script lang="ts">
-  export let value: string;
-  export let errors: string[] | undefined = undefined;
+  import { formFieldProxy, type Infer, type SuperForm } from 'sveltekit-superforms';
+  import type { RecipeFormSchema } from './schema';
+
+  export let superform: SuperForm<Infer<RecipeFormSchema>>;
+
+  const { value, errors } = formFieldProxy(superform, 'notes');
 </script>
 
 <label>
   <span>Notes</span>
   <textarea
-    class="border border-black"
-    bind:value
-    aria-invalid={errors ? 'true' : undefined}
-    {...$$restProps}
+    class="input resize-none h-40"
+    bind:value={$value}
+    aria-invalid={$errors ? 'true' : undefined}
   />
 </label>
-{#if errors}<span class="invalid">{errors}</span>{/if}
+{#if $errors}<span class="invalid">{$errors}</span>{/if}

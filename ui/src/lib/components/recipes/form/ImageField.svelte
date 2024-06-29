@@ -9,13 +9,17 @@
 </script>
 
 {#if $file.length === 1}
-  <img src={URL.createObjectURL($file[0])} alt="uploaded recipe" />
+  <img
+    src={URL.createObjectURL($file[0])}
+    alt="uploaded recipe"
+    class="w-full max-w-80 h-56 object-cover rounded shadow-inner"
+  />
 {/if}
 
 <label>
   <span>Image</span>
   <input
-    class="border border-black"
+    class="input text-sm block"
     type="file"
     bind:files={$file}
     accept="image/png, image/jpeg"

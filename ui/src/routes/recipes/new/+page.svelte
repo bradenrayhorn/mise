@@ -1,4 +1,6 @@
 <script lang="ts">
+  import IconClose from '~icons/mdi/close-thick';
+  import IconLoading from '~icons/mdi/loading';
   import { superForm } from 'sveltekit-superforms';
   import type { PageData } from './$types';
   import { zodClient } from 'sveltekit-superforms/adapters';
@@ -12,6 +14,7 @@
   import { handleSuperformError, superformGoto } from '$lib/error-to-superform';
   import { page } from '$app/stores';
   import InstructionsField from '$lib/components/recipes/form/InstructionsField.svelte';
+  import { goto } from '$app/navigation';
 
   export let data: PageData;
   const superform = superForm(data.form, {
@@ -39,41 +42,53 @@
       } catch (error: any) {
         await handleSuperformError(form, error, superformGoto);
       }
+
+      goto('/recipes');
     },
   });
 
-  const { form, errors, enhance, message } = superform;
-  $: console.log($message, $errors);
+  const { enhance, submitting } = superform;
 </script>
 
-<form method="POST" use:enhance>
-  <div class="flex justify-between mb-16">
-    <h1 class="font-bold text-3xl font-serif">new recipe</h1>
+<div class="absolute top-1 left-1 z-10 flex items-center">
+  <a class="rounded-full bg-neutral-100 text-neutral-700 p-1" href={data.backURL}><IconClose /></a>
+</div>
 
-    <button type="submit">Save</button>
+<form method="POST" use:enhance class="pb-8">
+  <div class="flex justify-between mb-8 px-4 md:px-8 lg:px-12 pt-12">
+    <h1 class="font-bold text-3xl font-serif">Add Recipe</h1>
+
+    <button
+      type="submit"
+      class="bg-primary-800 text-neutral-50 font-semibold px-4 py-1 rounded flex items-center gap-2"
+      disabled={$submitting}
+    >
+      Save
+      {#if $submitting}
+        <IconLoading class="animate-spin" />
+      {/if}
+    </button>
   </div>
 
-  <div class="flex flex-col md:flex-row gap-8 px-2">
-    <div class="flex-1 flex flex-col">
-      <h2>Attributes</h2>
+  <div class="flex flex-col md:flex-row gap-8 px-4 md:px-8 lg:px-12">
+    <div class="flex-1 flex flex-col gap-6">
+      <TitleField {superform} />
 
       <ImageField {superform} />
 
-      <TitleField bind:value={$form.title} errors={$errors.title} />
-
-      <NotesField bind:value={$form.notes} errors={$errors.notes} />
+      <NotesField {superform} />
 
       <TagsField {superform} promisedTags={data.tags} />
     </div>
 
     <div class="flex-1">
-      <h2>Ingredients</h2>
+      <h2 class="text-xl font-bold font-serif mb-4 md:mb-6">Ingredients</h2>
 
       <IngredientsField {superform} />
     </div>
 
     <div class="flex-1">
-      <h2>Instructions</h2>
+      <h2 class="text-xl font-bold font-serif mb-4 md:mb-6">Instructions</h2>
 
       <InstructionsField {superform} />
     </div>

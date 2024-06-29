@@ -3,6 +3,7 @@ import type { TagOnRecipe } from './tag';
 export type ListedRecipe = {
   id: string;
   title: string;
+  image_id?: string;
 };
 
 export type RecipePage = {

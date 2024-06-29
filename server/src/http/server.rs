@@ -109,6 +109,11 @@ impl Server {
                     )),
             )
             .route("/", axum::routing::get(handle_base_redirect))
+            .fallback_service(
+                tower_http::services::ServeDir::new("../ui/build").not_found_service(
+                    tower_http::services::ServeFile::new("../ui/build/index.html"),
+                ),
+            )
             //
             .with_state(state);
 

@@ -17,10 +17,18 @@ export const load: PageLoad = async ({ fetch, url, params }) => {
     ingredients: [...block.ingredients, ''],
   }));
 
+  if (ingredient_blocks.length === 1 && ingredient_blocks[0].title) {
+    ingredient_blocks.push({ title: undefined, ingredients: [''] });
+  }
+
   const instruction_blocks = recipe.instruction_blocks.map((block) => ({
     title: block.title,
     instructions: [...block.instructions, ''],
   }));
+
+  if (instruction_blocks.length === 1 && instruction_blocks[0].title) {
+    instruction_blocks.push({ title: undefined, instructions: [''] });
+  }
 
   const form = await superValidate(zod(schema), {
     defaults: {
@@ -40,5 +48,6 @@ export const load: PageLoad = async ({ fetch, url, params }) => {
     hash,
     id: params.id,
     tags: streamedPromise(getTags({ fetch, url })),
+    backURL: `/recipes/${params.id}`,
   };
 };

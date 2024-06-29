@@ -1,16 +1,19 @@
 <script lang="ts">
-  export let value: string;
-  export let errors: string[] | undefined = undefined;
+  import { formFieldProxy, type Infer, type SuperForm } from 'sveltekit-superforms';
+  import type { RecipeFormSchema } from './schema';
+
+  export let superform: SuperForm<Infer<RecipeFormSchema>>;
+
+  const { value, errors } = formFieldProxy(superform, 'title');
 </script>
 
 <label>
   <span>Title</span>
   <input
-    class="border border-black"
+    class="input"
     type="text"
-    bind:value
-    aria-invalid={errors ? 'true' : undefined}
-    {...$$restProps}
+    bind:value={$value}
+    aria-invalid={$errors ? 'true' : undefined}
   />
 </label>
-{#if errors}<span class="invalid">{errors}</span>{/if}
+{#if $errors}<span class="invalid">{$errors}</span>{/if}

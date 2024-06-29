@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { Tag } from '$lib/types/tag';
   import { createCheckbox, createSync, melt } from '@melt-ui/svelte';
+  import IconCheck from '~icons/mdi/check-bold';
 
   export let tag: Tag;
   export let isChecked: boolean;
@@ -17,13 +18,16 @@
   $: sync.checked(isChecked, (v) => (isChecked = !!v));
 </script>
 
-<div>
-  <button use:melt={$root}>
-    {#if $localIsChecked}
-      X
-    {/if}
-    <input use:melt={$input} />
+<button
+  use:melt={$root}
+  class="w-full flex gap-2 items-center justify-between"
+  class:font-semibold={$localIsChecked}
+>
+  <input use:melt={$input} />
 
-    {tag.name}
-  </button>
-</div>
+  {tag.name}
+
+  {#if $localIsChecked}
+    <IconCheck />
+  {/if}
+</button>
