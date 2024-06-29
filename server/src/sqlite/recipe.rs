@@ -2,7 +2,7 @@ use rusqlite::{params, Connection};
 use sea_query::{Cond, Expr, Query, SqliteQueryBuilder};
 
 use crate::{
-    datastore::{Error, HashedRecipeDocument, RecipeDocument},
+    datastore::{Error, HashedRecipeDocument, RecipeDocument, VersionedRecipeDocument},
     domain::{self, ListedRecipe},
 };
 
@@ -37,10 +37,14 @@ pub fn insert(
     conn: &mut Connection,
     id: &str,
     user_id: &str,
-    recipe: &RecipeDocument,
+    recipe: RecipeDocument,
 ) -> Result<(), Error> {
+    let versioned_recipe = VersionedRecipeDocument::from(recipe);
+
     let serialized_document =
-        postcard::to_allocvec(recipe).map_err(|err| Error::Unknown(err.into()))?;
+        postcard::to_allocvec(&versioned_recipe).map_err(|err| Error::Unknown(err.into()))?;
+
+    let recipe = RecipeDocument::from(versioned_recipe);
 
     let tx = conn.transaction()?;
 
@@ -62,7 +66,7 @@ pub fn insert(
         stmt.execute(params![id, 0, user_id])?;
 
         // create tags
-        update_tags_for_recipe(&tx, id, recipe.tag_ids.clone())?;
+        update_tags_for_recipe(&tx, id, recipe.tag_ids)?;
     }
 
     tx.commit()?;
@@ -74,18 +78,21 @@ pub fn update(
     conn: &mut Connection,
     id: &str,
     user_id: &str,
-    recipe: &RecipeDocument,
+    recipe: RecipeDocument,
     current_hash: &str,
 ) -> Result<(), Error> {
     let tx = conn.transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)?;
 
     {
         let current_document = get_document(&tx, id)?;
-        let current_serialized_document = postcard::to_allocvec(&current_document.document)
-            .map_err(|err| Error::Unknown(err.into()))?;
+        let current_serialized_document =
+            postcard::to_allocvec(&VersionedRecipeDocument::from(current_document.document))
+                .map_err(|err| Error::Unknown(err.into()))?;
 
+        let versioned_recipe = VersionedRecipeDocument::from(recipe);
         let new_serialized_document =
-            postcard::to_allocvec(recipe).map_err(|err| Error::Unknown(err.into()))?;
+            postcard::to_allocvec(&versioned_recipe).map_err(|err| Error::Unknown(err.into()))?;
+        let recipe = RecipeDocument::from(versioned_recipe);
 
         // validate current document has not changed
         if current_document.hash != current_hash {
@@ -117,7 +124,7 @@ pub fn update(
         stmt.execute(params![id, patch_count, patch, user_id])?;
 
         // update tags
-        update_tags_for_recipe(&tx, id, recipe.tag_ids.clone())?;
+        update_tags_for_recipe(&tx, id, recipe.tag_ids)?;
     }
 
     tx.commit()?;
@@ -267,8 +274,9 @@ pub fn get_revision(
     }
 
     // turn into a domain recipe
-    let document: RecipeDocument =
+    let versioned_document: VersionedRecipeDocument =
         postcard::from_bytes(&serialized_document).map_err(|err| Error::Unknown(err.into()))?;
+    let document: RecipeDocument = versioned_document.into();
     let hash = sha256::digest(&serialized_document);
 
     Ok(domain::Recipe {
@@ -300,8 +308,9 @@ fn get_document(conn: &Connection, id: &str) -> Result<HashedRecipeDocument, Err
     let mut stmt = conn.prepare_cached(q)?;
     let serialized_document: Vec<u8> = stmt.query_row([id], |row| row.get(0))?;
 
-    let document: RecipeDocument =
+    let versioned_document: VersionedRecipeDocument =
         postcard::from_bytes(&serialized_document).map_err(|err| Error::Unknown(err.into()))?;
+    let document: RecipeDocument = versioned_document.into();
     let hash = sha256::digest(&serialized_document);
 
     Ok(HashedRecipeDocument { document, hash })
