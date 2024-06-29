@@ -2,9 +2,9 @@
   import { type SuperForm, type Infer, arrayProxy } from 'sveltekit-superforms';
   import { type RecipeFormSchema } from './schema';
   import type { Tag } from '$lib/types/tag';
-  import { createDropdownMenu, melt } from '@melt-ui/svelte';
-  import TagModal from './TagModal.svelte';
   import StreamedError from '$lib/components/StreamedError.svelte';
+  import SingleTag from '$lib/components/SingleTag.svelte';
+  import TagPicker from '$lib/components/TagPicker.svelte';
 
   export let superform: SuperForm<Infer<RecipeFormSchema>>;
   export let promisedTags: Promise<Array<Tag>>;
@@ -12,34 +12,32 @@
   const { values: tags } = arrayProxy(superform, 'tags');
 
   $: selectedTagsSet = new Set($tags.map((t) => t.id));
-
-  const {
-    elements: { menu, item, trigger, arrow, separator },
-  } = createDropdownMenu();
 </script>
 
-{#each $tags as tag}
-  <div>{tag.name}</div>
-{/each}
-
 {#await promisedTags}
-  <button disabled>Add Tag</button>
+  Loading...
 {:then availableTags}
-  <button use:melt={$trigger}>Add Tag</button>
-  <div use:melt={$menu}>
-    {#each availableTags.filter((t) => !selectedTagsSet.has(t.id)) as tag (tag.id)}
-      <button
-        use:melt={$item}
-        on:click={() => {
-          let next = [...$tags, tag];
-          $tags = next;
-        }}>{tag.name}</button
-      >
-    {/each}
-    <div use:melt={$separator} />
-    <TagModal element={item} />
-    <div use:melt={$arrow} />
-  </div>
+  <TagPicker
+    canCreate={true}
+    tags={availableTags.filter((t) => !selectedTagsSet.has(t.id))}
+    on:select={({ detail: { tagID } }) => {
+      const nextTag = availableTags.find((t) => t.id === tagID);
+      if (nextTag) {
+        $tags = [...$tags, nextTag];
+      }
+    }}
+  />
 {:catch error}
   <StreamedError {error}>Failed to load tags.</StreamedError>
 {/await}
+
+<div class="flex flex-wrap gap-2">
+  {#each $tags as tag}
+    <SingleTag
+      canDelete={true}
+      on:click={() => {
+        $tags = $tags.filter((t) => t.id !== tag.id);
+      }}>{tag.name}</SingleTag
+    >
+  {/each}
+</div>

@@ -8,6 +8,8 @@ export const load: PageLoad = async ({ fetch, url }) => {
   const search = url.searchParams.get('search') ?? '';
   const tags = url.searchParams.get('tags') ?? '';
 
+  localStorage.setItem('last-recipes-query', url.searchParams.toString());
+
   return {
     promisedRecipePage: streamedPromise(getRecipes({ fetch, url, cursor, search, tags })),
     promisedTags: streamedPromise(getTags({ fetch, url })),

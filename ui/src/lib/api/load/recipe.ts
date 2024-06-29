@@ -56,11 +56,16 @@ export const getRecipe = async ({
     notes: string | null;
     tags: Array<Tag>;
     ingredient_blocks: Array<IngredientBlockResponse>;
+    instruction_blocks: Array<InstructionBlockResponse>;
   };
 
   type IngredientBlockResponse = {
     title: string | null;
     ingredients: Array<string>;
+  };
+  type InstructionBlockResponse = {
+    title: string | null;
+    instructions: Array<string>;
   };
 
   const res = await _fetch(`/api/v1/recipes/${id}`);
@@ -72,13 +77,19 @@ export const getRecipe = async ({
   return await res.json().then((json: Response) => ({
     hash: json.data.hash,
     recipe: {
-      ...json.data,
+      id: json.data.id,
+      hash: json.data.hash,
+      title: json.data.title,
       image_id: json.data.image_id ?? undefined,
       notes: json.data.notes ?? undefined,
       tags: json.data.tags,
       ingredient_blocks: json.data.ingredient_blocks.map((block) => ({
         title: block.title ?? undefined,
         ingredients: block.ingredients,
+      })),
+      instruction_blocks: json.data.instruction_blocks.map((block) => ({
+        title: block.title ?? undefined,
+        instructions: block.instructions,
       })),
     },
   }));

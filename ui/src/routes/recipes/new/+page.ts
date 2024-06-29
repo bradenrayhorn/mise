@@ -16,8 +16,11 @@ export const load: PageLoad = async ({ fetch, url }) => {
     },
   });
 
+  const backURL = `/recipes?${localStorage.getItem('last-recipes-query')}`;
+
   return {
     form,
     tags: streamedPromise(getTags({ fetch, url })),
+    backURL,
   };
 };
