@@ -2,13 +2,13 @@ use std::{net::SocketAddr, sync::Arc};
 
 use anyhow::anyhow;
 use axum::{
-    extract::{DefaultBodyLimit, FromRef, Request, State},
+    extract::{DefaultBodyLimit, Request, State},
     http::StatusCode,
     middleware::{self, Next},
     response::{IntoResponse, Redirect, Response},
     Extension, Router,
 };
-use axum_extra::extract::{cookie::Key, CookieJar};
+use axum_extra::extract::CookieJar;
 use cookie::Cookie;
 
 use crate::{
@@ -36,15 +36,9 @@ pub struct Server {
 pub struct AppState {
     pub datasource: Pool,
     pub session_store: SessionStore,
-    pub key: Key,
+    pub key: ring::hmac::Key,
     pub oidc_provider: Arc<oidc::Provider>,
     pub image_store: Arc<ImageStore>,
-}
-
-impl FromRef<AppState> for Key {
-    fn from_ref(state: &AppState) -> Self {
-        state.key.clone()
-    }
 }
 
 impl Server {
@@ -68,8 +62,12 @@ impl Server {
     pub async fn start(&self) -> anyhow::Result<()> {
         println!("Starting http server on port {:?}", self.config.http_port);
 
+        let rng = ring::rand::SystemRandom::new();
+        let key = ring::hmac::Key::generate(ring::hmac::HMAC_SHA256, &rng)
+            .map_err(|_| Error::Other(anyhow!("ring key generation error.")))?;
+
         let state = AppState {
-            key: Key::generate(),
+            key,
             session_store: self.session_store.clone(),
             datasource: self.datasource.clone(),
             oidc_provider: self.oidc_provider.clone(),

@@ -7,7 +7,7 @@ use axum_extra::extract::{
     cookie::{Cookie, SameSite},
     CookieJar,
 };
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use crate::{
     core::{self, Error},
@@ -21,6 +21,12 @@ pub struct InitParams {
     redirect_target: Option<String>,
 }
 
+#[derive(Serialize, Deserialize)]
+struct SignedCookie {
+    value: String,
+    tag: Vec<u8>,
+}
+
 pub async fn init(
     State(state): State<AppState>,
     jar: CookieJar,
@@ -30,18 +36,25 @@ pub async fn init(
         oidc::begin_auth(&state.oidc_provider, params.redirect_target.clone())
             .map_err(|err| Error::Unauthenticated(err.into()))?;
 
+    let cookie_value =
+        serde_json::to_string(&oidc_state).map_err(|err| Error::Other(err.into()))?;
+
+    let tag = ring::hmac::sign(&state.key, cookie_value.as_bytes());
+    let signed_cookie = serde_json::to_string(&SignedCookie {
+        value: cookie_value,
+        tag: tag.as_ref().to_vec(),
+    })
+    .map_err(|err| Error::Other(err.into()))?;
+
     let jar = jar.add(
-        Cookie::build((
-            "s",
-            serde_json::to_string(&oidc_state).map_err(|err| Error::Other(err.into()))?,
-        ))
-        .path("/")
-        .http_only(true)
-        .secure(true)
-        // must be lax so that the cookie is attached upon redirect from the authorization server
-        .same_site(SameSite::Lax)
-        .max_age(cookie::time::Duration::seconds(180))
-        .build(),
+        Cookie::build(("s", signed_cookie))
+            .path("/")
+            .http_only(true)
+            .secure(true)
+            // must be lax so that the cookie is attached upon redirect from the authorization server
+            .same_site(SameSite::Lax)
+            .max_age(cookie::time::Duration::seconds(180))
+            .build(),
     );
 
     Ok((jar, Redirect::temporary(auth_url.as_ref())))
@@ -58,7 +71,7 @@ pub async fn callback(
     State(state): State<AppState>,
     params: Query<CallbackParams>,
 ) -> Result<(CookieJar, Redirect), Error> {
-    let oidc_state = serde_json::from_str::<oidc::AuthState>(
+    let signed_cookie = serde_json::from_str::<SignedCookie>(
         jar.get("s")
             .ok_or(Error::Unauthenticated(anyhow!(
                 "Missing OIDC state cookie."
@@ -66,6 +79,16 @@ pub async fn callback(
             .value(),
     )
     .map_err(|err| Error::Other(err.into()))?;
+
+    ring::hmac::verify(
+        &state.key,
+        signed_cookie.value.as_bytes(),
+        signed_cookie.tag.as_ref(),
+    )
+    .map_err(|_| Error::Unauthenticated(anyhow!("Cookie signature validation failed.")))?;
+
+    let oidc_state = serde_json::from_str::<oidc::AuthState>(&signed_cookie.value)
+        .map_err(|err| Error::Other(err.into()))?;
 
     // remove state cookie now that it has been used
     let jar = jar.remove(Cookie::from("s"));
