@@ -168,7 +168,7 @@ impl ThreadWorker {
                         recipe,
                         respond_to,
                     } => {
-                        let _ = respond_to.send(recipe::insert(&mut conn, &id, &user_id, &recipe));
+                        let _ = respond_to.send(recipe::insert(&mut conn, &id, &user_id, recipe));
                     }
                     Message::UpdateRecipe {
                         id,
@@ -181,7 +181,7 @@ impl ThreadWorker {
                             &mut conn,
                             &id,
                             &user_id,
-                            &recipe,
+                            recipe,
                             &current_hash,
                         ));
                     }

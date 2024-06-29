@@ -19,6 +19,53 @@ pub struct RecipeDocument {
     pub image_id: Option<domain::image::Id>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum VersionedRecipeDocument {
+    V1 {
+        title: String,
+        ingredients: Vec<StringifiedBlock>,
+        instructions: Vec<StringifiedBlock>,
+        notes: Option<String>,
+        tag_ids: Vec<domain::tag::Id>,
+        image_id: Option<domain::image::Id>,
+    },
+}
+
+impl From<VersionedRecipeDocument> for RecipeDocument {
+    fn from(value: VersionedRecipeDocument) -> Self {
+        match value {
+            VersionedRecipeDocument::V1 {
+                title,
+                ingredients,
+                instructions,
+                notes,
+                tag_ids,
+                image_id,
+            } => RecipeDocument {
+                title,
+                ingredients,
+                instructions,
+                notes,
+                tag_ids,
+                image_id,
+            },
+        }
+    }
+}
+
+impl From<RecipeDocument> for VersionedRecipeDocument {
+    fn from(value: RecipeDocument) -> Self {
+        VersionedRecipeDocument::V1 {
+            title: value.title,
+            ingredients: value.ingredients,
+            instructions: value.instructions,
+            notes: value.notes,
+            tag_ids: value.tag_ids,
+            image_id: value.image_id,
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct HashedRecipeDocument {
     pub document: RecipeDocument,
