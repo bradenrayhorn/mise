@@ -30,4 +30,15 @@ export default [
   {
     ignores: ['build/', '.svelte-kit/', 'dist/'],
   },
+  {
+    rules: {
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+        },
+      ],
+    },
+  },
 ];
