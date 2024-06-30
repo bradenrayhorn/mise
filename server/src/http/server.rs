@@ -1,4 +1,4 @@
-use std::{net::SocketAddr, sync::Arc};
+use std::sync::Arc;
 
 use anyhow::anyhow;
 use axum::{
@@ -61,7 +61,10 @@ impl Server {
     }
 
     pub async fn start(&self) -> anyhow::Result<()> {
-        println!("Starting http server on port {:?}", self.config.http_port);
+        println!(
+            "Starting http server on 0.0.0.0:{:?}",
+            self.config.http_port
+        );
 
         let rng = ring::rand::SystemRandom::new();
         let key = ring::hmac::Key::generate(ring::hmac::HMAC_SHA256, &rng)
@@ -117,24 +120,55 @@ impl Server {
                     // cache static assets
                     .layer(middleware::from_fn(static_cache_middleware))
                     .service(
-                        tower_http::services::ServeDir::new("../ui/build").not_found_service(
-                            // but do not cache index.html file
-                            ServiceBuilder::new()
-                                .layer(middleware::from_fn(no_cache_middleware))
-                                .service(tower_http::services::ServeFile::new(
-                                    "../ui/build/index.html",
-                                )),
-                        ),
+                        tower_http::services::ServeDir::new(&self.config.static_build_path)
+                            .not_found_service(
+                                // but do not cache index.html file
+                                ServiceBuilder::new()
+                                    .layer(middleware::from_fn(no_cache_middleware))
+                                    .service(tower_http::services::ServeFile::new(format!(
+                                        "{}/index.html",
+                                        &self.config.static_build_path
+                                    ))),
+                            ),
                     ),
             )
-            //
+            .layer(tower_http::timeout::TimeoutLayer::new(
+                std::time::Duration::from_secs(30),
+            ))
             .with_state(state);
 
-        let addr = SocketAddr::from(([127, 0, 0, 1], self.config.http_port));
-        let listener = tokio::net::TcpListener::bind(addr).await?;
-        axum::serve(listener, router).await?;
+        let listener =
+            tokio::net::TcpListener::bind(format!("0.0.0.0:{}", self.config.http_port)).await?;
+        axum::serve(listener, router)
+            .with_graceful_shutdown(shutdown_signal())
+            .await?;
 
         Ok(())
+    }
+}
+
+// from axum graceful shutdown example
+async fn shutdown_signal() {
+    let ctrl_c = async {
+        tokio::signal::ctrl_c()
+            .await
+            .expect("could not install ctrl-c handler");
+    };
+
+    #[cfg(unix)]
+    let terminate = async {
+        tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())
+            .expect("could not install signal handler")
+            .recv()
+            .await;
+    };
+
+    #[cfg(not(unix))]
+    let terminate = std::future::pending::<()>();
+
+    tokio::select! {
+        () = ctrl_c => {},
+        () = terminate => {},
     }
 }
 

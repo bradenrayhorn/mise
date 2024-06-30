@@ -70,7 +70,7 @@ pub struct Harness {
     _oidc_server: OidcServer,
     http_port: u16,
     db_path: String,
-    cache_path: String,
+    session_db_path: String,
     images_path: String,
     client: reqwest::Client,
     base_url: String,
@@ -81,7 +81,7 @@ impl Drop for Harness {
     fn drop(&mut self) {
         // TODO - shutdown db pools AND server
         let _ = std::fs::remove_file(&self.db_path);
-        let _ = std::fs::remove_file(&self.cache_path);
+        let _ = std::fs::remove_file(&self.session_db_path);
         let _ = std::fs::remove_dir_all(&self.images_path);
     }
 }
@@ -101,13 +101,14 @@ impl Harness {
             .collect();
         let images_path = format!("/tmp/{}-mise-images", random_prefix);
         let db_path = format!("/tmp/{}-mise.db", random_prefix);
-        let cache_path = format!("/tmp/{}-mise-cache.db", random_prefix);
+        let session_db_path = format!("/tmp/{}-mise-sessions.db", random_prefix);
 
         std::fs::create_dir(&images_path)?;
 
         let config = mise::config::Config {
             http_port,
             origin: format!("http://localhost:{http_port}"),
+            static_build_path: "../ui/build".to_string(),
             oidc: mise::config::Oidc {
                 issuer_url: format!("http://localhost:{}", oidc_server.port),
                 client_id: "dev-client".to_string(),
@@ -115,6 +116,7 @@ impl Harness {
             },
             sqlite: mise::config::Sqlite {
                 db_path: db_path.clone(),
+                session_db_path: session_db_path.clone(),
             },
             image_backend: mise::config::ImageBackend::File(mise::config::ImageBackendFile {
                 directory: images_path.clone(),
@@ -126,7 +128,7 @@ impl Harness {
             .unwrap();
 
         let sv_db_path = db_path.clone();
-        let sv_cache_path = cache_path.clone();
+        let sv_cache_path = session_db_path.clone();
         let sv_images_path = images_path.clone();
         tokio::task::spawn(async move {
             let (_, connections) = mise::sqlite::datastore_handler(
@@ -163,7 +165,7 @@ impl Harness {
             _oidc_server: oidc_server,
             http_port,
             db_path,
-            cache_path,
+            session_db_path,
             images_path,
             client,
             base_url: format!("http://localhost:{http_port}"),

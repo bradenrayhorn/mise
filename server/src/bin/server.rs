@@ -18,7 +18,7 @@ async fn main() {
     };
 
     let (_worker_pool, senders) = match sqlite::datastore_handler(
-        "mise.db",
+        &config.sqlite.db_path,
         &sqlite::DatastoreConfig {
             recipe_page_size: 10,
         },
@@ -30,7 +30,7 @@ async fn main() {
         }
     };
 
-    let session_store_sender = match sqlite::session_store("mise_sessions.db") {
+    let session_store_sender = match sqlite::session_store(&config.sqlite.session_db_path) {
         Ok(sender) => sender,
         Err(err) => {
             println!("error with sqlite session store: {:?}", err);

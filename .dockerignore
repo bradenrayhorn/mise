@@ -1,0 +1,5 @@
+server/target
+server/images
+ui/node_modules
+ui/build
+ui/.svelte-kit
