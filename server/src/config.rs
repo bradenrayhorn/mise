@@ -45,6 +45,7 @@ mod internal {
     #[derive(Deserialize)]
     pub struct Sqlite {
         pub db_path: String,
+        pub session_db_path: String,
     }
 
     #[derive(Deserialize)]
@@ -65,6 +66,7 @@ mod internal {
 pub struct Config {
     pub http_port: u16,
     pub origin: String,
+    pub static_build_path: String,
 
     pub oidc: Oidc,
     pub sqlite: Sqlite,
@@ -91,6 +93,7 @@ pub struct ImageBackendFile {
 
 pub struct Sqlite {
     pub db_path: String,
+    pub session_db_path: String,
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -117,6 +120,9 @@ pub fn from_filesystem() -> Result<Config, Error> {
     Ok(Config {
         http_port: parsed.http_port.unwrap_or(3000),
         origin: parsed.origin,
+        static_build_path: env::var("MISE_STATIC_BUILD")
+            .ok()
+            .unwrap_or("../ui/build".to_owned()),
         oidc: Oidc {
             issuer_url: parsed.oidc.issuer_url,
             client_id: parsed.oidc.client_id,
@@ -124,6 +130,7 @@ pub fn from_filesystem() -> Result<Config, Error> {
         },
         sqlite: Sqlite {
             db_path: parsed.sqlite.db_path,
+            session_db_path: parsed.sqlite.session_db_path,
         },
         image_backend: match parsed.images.backend {
             internal::ImageBackend::S3 => {

@@ -13,7 +13,14 @@ anyhow = "1.0"
 axum = { version = "0.7.5", features = ["multipart"] }
 serde = { version = "1.0.199", features = ["derive"] }
 openidconnect = { version = "4.0.0-alpha.1" }
-reqwest = { version = "0.12.4", features = ["cookies", "json", "multipart"] }
+reqwest = { version = "0.12.4", default-features = false, features = [
+	"http2",
+	"rustls-tls",
+	"charset",
+	"cookies",
+	"json",
+	"multipart",
+] }
 axum-extra = { version = "0.9.3", features = ["cookie-private"] }
 serde_json = "1.0.117"
 cookie = "0.18.1"
@@ -43,5 +50,5 @@ async-trait = "0.1.80"
 hex = "0.4.3"
 semver = "1.0.23"
 reqwest_cookie_store = "0.8.0"
-tower-http = { version = "0.5.2", features = ["fs"] }
+tower-http = { version = "0.5.2", features = ["fs", "timeout"] }
 tower = "0.4.13"
