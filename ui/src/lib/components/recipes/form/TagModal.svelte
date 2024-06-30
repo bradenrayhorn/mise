@@ -4,7 +4,7 @@
   import { defaults, superForm } from 'sveltekit-superforms';
   import { zod } from 'sveltekit-superforms/adapters';
   import { schema } from './tag-schema';
-  import { fade, slide } from 'svelte/transition';
+  import { fade } from 'svelte/transition';
 
   export let element: AnyMeltElement;
 

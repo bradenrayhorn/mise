@@ -3,7 +3,6 @@
   import StreamedError from '$lib/components/StreamedError.svelte';
   import TagPicker from '$lib/components/TagPicker.svelte';
   import type { Tag } from '$lib/types/tag';
-  import { melt } from '@melt-ui/svelte';
   import { createEventDispatcher } from 'svelte';
 
   export let promisedTags: Promise<Array<Tag>>;

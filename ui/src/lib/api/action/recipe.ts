@@ -60,7 +60,7 @@ export async function updateRecipe({
     body: JSON.stringify({
       ...cleanRecipeParams(recipe),
       previous_hash: hash,
-      image_id: image ? await uploadImage({ fetch: _fetch, url, image }) : undefined,
+      image_id,
     }),
   });
 

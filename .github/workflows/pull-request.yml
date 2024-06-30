@@ -50,3 +50,47 @@ jobs:
       - name: test
         run: cargo test
 
+  lint-svelte:
+    name: Lint Svelte
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # v4
+      - name: Setup node
+        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4
+        with:
+          node-version-file: "./ui/.nvmrc"
+
+      - name: Install dependencies
+        run: npm install
+        working-directory: ./ui
+
+      - name: Prettier and ESLint
+        run: npm run lint
+        working-directory: ./ui
+        if: always()
+
+      - name: svelte-check
+        run: npm run check -- --fail-on-warnings
+        working-directory: ./ui
+        if: always()
+
+  test-svelte:
+    name: Test Svelte
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # v4
+      - name: Setup node
+        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4
+        with:
+          node-version-file: "./ui/.nvmrc"
+
+      - name: Install dependencies
+        run: npm install
+        working-directory: ./ui
+
+      - name: Vitest
+        run: npm run test:unit
+        working-directory: ./ui
+        if: always()

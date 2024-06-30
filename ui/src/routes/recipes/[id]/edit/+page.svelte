@@ -43,7 +43,7 @@
             tags: form.data.tags,
           },
         });
-      } catch (error: any) {
+      } catch (error) {
         await handleSuperformError(form, error, superformGoto);
       }
 
