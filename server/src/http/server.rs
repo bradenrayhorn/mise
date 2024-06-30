@@ -3,13 +3,14 @@ use std::{net::SocketAddr, sync::Arc};
 use anyhow::anyhow;
 use axum::{
     extract::{DefaultBodyLimit, Request, State},
-    http::StatusCode,
+    http::{HeaderValue, StatusCode},
     middleware::{self, Next},
     response::{IntoResponse, Redirect, Response},
     Extension, Router,
 };
 use axum_extra::extract::CookieJar;
 use cookie::Cookie;
+use tower::ServiceBuilder;
 
 use crate::{
     config::Config,
@@ -106,11 +107,25 @@ impl Server {
                         auth_middleware,
                     )),
             )
+            //
+            // Base path redirect
             .route("/", axum::routing::get(handle_base_redirect))
+            //
+            // Fallback to serve frontend Single Page App
             .fallback_service(
-                tower_http::services::ServeDir::new("../ui/build").not_found_service(
-                    tower_http::services::ServeFile::new("../ui/build/index.html"),
-                ),
+                ServiceBuilder::new()
+                    // cache static assets
+                    .layer(middleware::from_fn(static_cache_middleware))
+                    .service(
+                        tower_http::services::ServeDir::new("../ui/build").not_found_service(
+                            // but do not cache index.html file
+                            ServiceBuilder::new()
+                                .layer(middleware::from_fn(no_cache_middleware))
+                                .service(tower_http::services::ServeFile::new(
+                                    "../ui/build/index.html",
+                                )),
+                        ),
+                    ),
             )
             //
             .with_state(state);
@@ -170,6 +185,28 @@ async fn auth_middleware(
     req.extensions_mut().insert(user);
 
     Ok((jar, next.run(req).await))
+}
+
+async fn static_cache_middleware(request: Request, next: Next) -> Response {
+    let mut response = next.run(request).await;
+    if !response.headers().contains_key("Cache-Control") {
+        response.headers_mut().insert(
+            "Cache-Control",
+            HeaderValue::from_static("public, immutable, max-age=1209600"),
+        );
+    }
+    response
+}
+
+async fn no_cache_middleware(request: Request, next: Next) -> Response {
+    let mut response = next.run(request).await;
+    if !response.headers().contains_key("Cache-Control") {
+        response.headers_mut().insert(
+            "Cache-Control",
+            HeaderValue::from_static("max-age=0, no-cache, must-revalidate"),
+        );
+    }
+    response
 }
 
 async fn check_if_authenticated(
