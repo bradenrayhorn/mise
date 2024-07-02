@@ -57,6 +57,7 @@ jobs:
 
           set +e
           gh actions-cache delete "rust-sccache-amd64-${{ steps.run_number.outputs.prev_rn }}" -R $REPO -B main --confirm
+          echo "Done"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
@@ -140,6 +141,7 @@ jobs:
 
           set +e
           gh actions-cache delete "rust-sccache-arm64-${{ steps.run_number.outputs.prev_rn }}" -R $REPO -B main --confirm
+          echo "Done"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
