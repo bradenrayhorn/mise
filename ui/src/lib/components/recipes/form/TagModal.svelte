@@ -11,7 +11,7 @@
   const {
     elements: { trigger, portalled, overlay, content, title, close },
     states: { open },
-  } = createDialog();
+  } = createDialog({ closeOnOutsideClick: false });
 
   const { form, errors, enhance } = superForm(defaults(zod(schema)), {
     SPA: true,
@@ -44,6 +44,10 @@
     <div
       use:melt={$overlay}
       class="fixed z-40 bg-black/50 top-0 bottom-0 right-0 left-0"
+      aria-hidden="true"
+      on:click|stopPropagation={() => {
+        $open = false;
+      }}
       transition:fade={{ duration: 100 }}
     />
     <div
