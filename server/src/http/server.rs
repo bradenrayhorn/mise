@@ -121,7 +121,7 @@ impl Server {
                     .layer(middleware::from_fn(static_cache_middleware))
                     .service(
                         tower_http::services::ServeDir::new(&self.config.static_build_path)
-                            .not_found_service(
+                            .fallback(
                                 // but do not cache index.html file
                                 ServiceBuilder::new()
                                     .layer(middleware::from_fn(no_cache_middleware))
