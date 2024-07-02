@@ -20,13 +20,13 @@
     elements: { trigger, portalled, overlay, content, title, close },
     states: { open },
   } = createDialog({
+    closeOnOutsideClick: false,
     onOpenChange: function ({ next }) {
       if (next) {
         nextTags = Object.fromEntries(defaultTagSet.map((id) => [id, true])); // reset tag selection
       }
       return next;
     },
-    forceVisible: true,
   });
 
   let nextTags: { [id: string]: boolean } = Object.fromEntries(
@@ -61,6 +61,10 @@
     <div
       use:melt={$overlay}
       class="fixed z-40 bg-black/50 top-0 bottom-0 right-0 left-0"
+      aria-hidden="true"
+      on:click|stopPropagation={() => {
+        $open = false;
+      }}
       transition:fade={{ duration: 100 }}
     />
     <div
