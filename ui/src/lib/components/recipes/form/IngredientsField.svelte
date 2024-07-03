@@ -13,7 +13,7 @@
     <div>
       {#if $blocks.length > 1}
         <div class="font-serif font-bold mb-4 flex justify-between">
-          {$blocks[i].title ? $blocks[i].title : `Component ${i + 1}`}
+          {$blocks[i].title ? $blocks[i].title : `Section ${i + 1}`}
 
           <button
             class="text-lg"
@@ -75,5 +75,5 @@
   class="text-sm text-text-300 text-right mt-4 w-full"
   on:click|preventDefault={() => {
     $blocks = [...$blocks, { title: '', ingredients: [''] }];
-  }}>Add additional component</button
+  }}>Add additional section</button
 >
