@@ -21,6 +21,12 @@ macro_rules! recipes_tests {
             a_test!($cd, recipes, can_list_recipes_over_multiple_pages);
             a_test!($cd, recipes, can_list_with_title_filter);
             a_test!($cd, recipes, can_list_with_tag_filter);
+            a_test!($cd, recipes, can_list_recipe_if_it_has_tag_with_no_filter);
+            a_test!(
+                $cd,
+                recipes,
+                filters_properly_if_has_multiple_tags_matching_count_but_wrong_tags
+            );
 
             a_test!($cd, recipes, can_update_recipe);
             a_test!($cd, recipes, cannot_update_with_bad_hash);
@@ -720,21 +726,93 @@ pub async fn can_list_with_tag_filter(store: datastore::Pool) -> Result<()> {
 
     let result = store.list_recipes(filter.clone(), None).await?;
 
-    assert_eq!(2, result.items.len());
-    let recipe: ComparableListedRecipe = result.items[0].clone().into();
-    assert_eq!(recipe_id_3, recipe.id);
-    assert_eq!("Baked beans", recipe.title);
-    assert_eq!(None, recipe.image_id);
+    assert_eq!(1, result.items.len());
+    assert!(result.next.is_none());
 
-    let recipe: ComparableListedRecipe = result.items[1].clone().into();
+    let recipe: ComparableListedRecipe = result.items[0].clone().into();
     assert_eq!(recipe_id_1, recipe.id);
     assert_eq!("Good Chicken", recipe.title);
     assert_eq!(None, recipe.image_id);
 
-    let result = store.list_recipes(filter, result.next).await?;
+    Ok(())
+}
 
+pub async fn can_list_recipe_if_it_has_tag_with_no_filter(store: datastore::Pool) -> Result<()> {
+    let user = user(&store).await?;
+
+    let tag1 = tag(&store, &user.id, "Tag1").await?;
+    let tag2 = tag(&store, &user.id, "Tag2").await?;
+
+    let recipe_id_1 = domain::recipe::Id::new();
+    store
+        .create_recipe(
+            recipe_id_1.clone().into(),
+            user.id.clone(),
+            RecipeDocument {
+                title: "Good Chicken".into(),
+                image_id: None,
+                ingredients: vec![],
+                instructions: vec![],
+                notes: None,
+                tag_ids: vec![tag1.clone(), tag2.clone()],
+            },
+        )
+        .await?;
+
+    // fetch recipes
+
+    let filter = domain::filter::Recipe {
+        name: None,
+        tag_ids: vec![],
+    };
+
+    let result = store.list_recipes(filter.clone(), None).await?;
+
+    assert_eq!(1, result.items.len());
     assert!(result.next.is_none());
+
+    assert_eq!(recipe_id_1, result.items[0].id);
+
+    Ok(())
+}
+
+pub async fn filters_properly_if_has_multiple_tags_matching_count_but_wrong_tags(
+    store: datastore::Pool,
+) -> Result<()> {
+    let user = user(&store).await?;
+
+    let tag1 = tag(&store, &user.id, "Tag1").await?;
+    let tag2 = tag(&store, &user.id, "Tag2").await?;
+    let tag3 = tag(&store, &user.id, "Tag3").await?;
+    let tag4 = tag(&store, &user.id, "Tag4").await?;
+
+    let recipe_id_1 = domain::recipe::Id::new();
+    store
+        .create_recipe(
+            recipe_id_1.clone().into(),
+            user.id.clone(),
+            RecipeDocument {
+                title: "Good Chicken".into(),
+                image_id: None,
+                ingredients: vec![],
+                instructions: vec![],
+                notes: None,
+                tag_ids: vec![tag1.clone(), tag2.clone()],
+            },
+        )
+        .await?;
+
+    // fetch recipes
+
+    let filter = domain::filter::Recipe {
+        name: None,
+        tag_ids: vec![tag3, tag4],
+    };
+
+    let result = store.list_recipes(filter.clone(), None).await?;
+
     assert_eq!(0, result.items.len());
+    assert!(result.next.is_none());
 
     Ok(())
 }
