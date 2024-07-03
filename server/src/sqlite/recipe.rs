@@ -1,3 +1,4 @@
+use anyhow::Context;
 use rusqlite::{params, Connection};
 use sea_query::{Cond, Expr, Query, SqliteQueryBuilder};
 
@@ -138,7 +139,11 @@ pub fn list_recipes(
     filter: domain::filter::Recipe,
     cursor: Option<domain::page::cursor::Recipe>,
 ) -> Result<domain::page::Recipe, Error> {
-    let (query, values) = Query::select()
+    let tag_count =
+        u64::try_from(filter.tag_ids.len()).context("could not convert vec len to u64")?;
+
+    let mut binding = Query::select();
+    let builder = binding
         .column((sea::Recipes::Table, sea::Recipes::Id))
         .column(sea::Recipes::Title)
         .column(sea::Recipes::ImageId)
@@ -190,8 +195,17 @@ pub fn list_recipes(
             (sea::Recipes::Table, sea::Recipes::Id),
             sea_query::Order::Asc,
         )
-        .limit(page_size)
-        .build(SqliteQueryBuilder);
+        .limit(page_size);
+
+    if tag_count > 0 {
+        builder.and_having(
+            Expr::col((sea::Recipes::Table, sea::Recipes::Id))
+                .count()
+                .eq(tag_count),
+        );
+    }
+
+    let (query, values) = builder.build(SqliteQueryBuilder);
     let params: sea::Params = values.into();
 
     let mut stmt = conn.prepare_cached(&query)?;

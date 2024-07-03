@@ -296,7 +296,7 @@ async fn can_list_recipes_with_filters() -> Result<()> {
             ingredients: requests::IngredientBlock::new(&[]),
             instructions: requests::InstructionBlock::new(&[]),
             notes: None,
-            tag_ids: vec![tag_2.clone()],
+            tag_ids: vec![tag_1.clone()],
         })
         .send()
         .await?;
@@ -311,7 +311,7 @@ async fn can_list_recipes_with_filters() -> Result<()> {
             ingredients: requests::IngredientBlock::new(&[]),
             instructions: requests::InstructionBlock::new(&[]),
             notes: None,
-            tag_ids: vec![],
+            tag_ids: vec![tag_2.clone()],
         })
         .send()
         .await?;
@@ -319,9 +319,7 @@ async fn can_list_recipes_with_filters() -> Result<()> {
 
     // get page one
     let response = harness
-        .get(&format!(
-            "/api/v1/recipes?name=Alpha&tag_ids={tag_1},{tag_2}"
-        ))
+        .get(&format!("/api/v1/recipes?name=Alpha&tag_ids={tag_1}"))
         .send()
         .await?;
     assert_eq!(StatusCode::OK, response.status());
@@ -346,7 +344,7 @@ async fn can_list_recipes_with_filters() -> Result<()> {
     // get page two
     let response = harness
         .get(&format!(
-            "/api/v1/recipes?name=Alpha&tag_ids={tag_1},{tag_2}&next={}",
+            "/api/v1/recipes?name=Alpha&tag_ids={tag_1}&next={}",
             page_1_result.next.unwrap(),
         ))
         .send()
