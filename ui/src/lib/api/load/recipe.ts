@@ -54,6 +54,7 @@ export const getRecipe = async ({
     title: string;
     image_id: string | null;
     notes: string | null;
+    rich_notes: string | null;
     tags: Array<Tag>;
     ingredient_blocks: Array<IngredientBlockResponse>;
     instruction_blocks: Array<InstructionBlockResponse>;
@@ -66,6 +67,7 @@ export const getRecipe = async ({
   type InstructionBlockResponse = {
     title: string | null;
     instructions: Array<string>;
+    rich_instructions: Array<string>;
   };
 
   const res = await _fetch(`/api/v1/recipes/${id}`);
@@ -82,6 +84,7 @@ export const getRecipe = async ({
       title: json.data.title,
       image_id: json.data.image_id ?? undefined,
       notes: json.data.notes ?? undefined,
+      rich_notes: json.data.rich_notes ?? undefined,
       tags: json.data.tags,
       ingredient_blocks: json.data.ingredient_blocks.map((block) => ({
         title: block.title ?? undefined,
@@ -90,6 +93,7 @@ export const getRecipe = async ({
       instruction_blocks: json.data.instruction_blocks.map((block) => ({
         title: block.title ?? undefined,
         instructions: block.instructions,
+        rich_instructions: block.rich_instructions,
       })),
     },
   }));

@@ -19,7 +19,7 @@
   </div>
 
   <div class="flex flex-col md:flex-row gap-8 px-4 md:px-8 lg:px-12">
-    {#if recipe.image_id || recipe.tags.length > 0 || recipe.notes}
+    {#if recipe.image_id || recipe.tags.length > 0 || recipe.rich_notes}
       <div class="flex-1 flex flex-col">
         {#if recipe.image_id}
           <img
@@ -35,7 +35,12 @@
           {/each}
         </div>
 
-        <div>{recipe.notes ?? ''}</div>
+        {#if recipe.rich_notes}
+          <div class="prose">
+            <!-- eslint-disable svelte/no-at-html-tags -->
+            {@html recipe.rich_notes}
+          </div>
+        {/if}
       </div>
     {/if}
 
@@ -76,9 +81,10 @@
             {/if}
 
             <ol class="list-decimal ml-4 flex flex-col gap-1">
-              {#each b.instructions as instruction}
+              {#each b.rich_instructions as instruction}
                 <li>
-                  {instruction}
+                  <!-- eslint-disable svelte/no-at-html-tags -->
+                  <div class="prose">{@html instruction}</div>
                 </li>
               {/each}
             </ol>

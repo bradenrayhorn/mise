@@ -6,5 +6,9 @@ export const load: PageLoad = async ({ fetch, url, params }) => {
 
   const backURL = `/recipes?${localStorage.getItem('last-recipes-query')}`;
 
-  return { recipe, id: params.id, backURL };
+  return {
+    recipe,
+    id: params.id,
+    backURL,
+  };
 };

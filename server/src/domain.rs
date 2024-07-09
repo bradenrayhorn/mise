@@ -293,6 +293,16 @@ pub mod recipe {
         }
     }
 
+    impl Notes {
+        #[must_use]
+        pub fn into_html(&self) -> String {
+            let mut unsafe_html = String::new();
+            pulldown_cmark::html::push_html(&mut unsafe_html, pulldown_cmark::Parser::new(&self.0));
+
+            ammonia::clean(&unsafe_html)
+        }
+    }
+
     #[derive(Debug, Clone, Deserialize, Serialize)]
     pub struct StringifiedBlock {
         pub title: Option<String>,
@@ -365,6 +375,16 @@ pub mod recipe {
 
     required_and_trimmed_string!(InstructionBlockTitle);
     required_and_trimmed_string!(Instruction);
+
+    impl Instruction {
+        #[must_use]
+        pub fn into_html(&self) -> String {
+            let mut unsafe_html = String::new();
+            pulldown_cmark::html::push_html(&mut unsafe_html, pulldown_cmark::Parser::new(&self.0));
+
+            ammonia::clean(&unsafe_html)
+        }
+    }
 
     required_and_trimmed_string!(IngredientBlockTitle);
     required_and_trimmed_string!(Ingredient);

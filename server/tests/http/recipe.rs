@@ -66,11 +66,16 @@ async fn can_create_and_get_recipe() -> Result<()> {
     assert_eq!(
         vec![responses::InstructionBlock {
             title: None,
-            instructions: vec!["Broil the chicken".into(), "Add the parmesan".into()]
+            instructions: vec!["Broil the chicken".into(), "Add the parmesan".into()],
+            rich_instructions: vec![
+                "<p>Broil the chicken</p>\n".into(),
+                "<p>Add the parmesan</p>\n".into()
+            ]
         }],
         result.instruction_blocks
     );
     assert_eq!(Some("Best served hot!".into()), result.notes);
+    assert_eq!(Some("<p>Best served hot!</p>\n".into()), result.rich_notes);
     assert_eq!(
         vec![responses::TagOnRecipe {
             id: tag_id,
@@ -153,11 +158,13 @@ async fn can_create_and_update_recipe() -> Result<()> {
     assert_eq!(
         vec![responses::InstructionBlock {
             title: None,
-            instructions: vec!["serve".into()]
+            instructions: vec!["serve".into()],
+            rich_instructions: vec!["<p>serve</p>\n".into()]
         }],
         result.instruction_blocks
     );
     assert_eq!(None, result.notes);
+    assert_eq!(None, result.rich_notes);
     assert_eq!(
         vec![responses::TagOnRecipe {
             id: tag_id,
