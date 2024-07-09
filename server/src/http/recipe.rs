@@ -19,8 +19,8 @@ use super::{
 pub struct CreateParams {
     title: String,
     image_id: Option<String>,
-    ingredients: Vec<Ingredients>,
-    instructions: Vec<Instructions>,
+    ingredients: Vec<IngredientBlock>,
+    instructions: Vec<InstructionBlock>,
     notes: Option<String>,
     tag_ids: Vec<domain::tag::Id>,
 }
@@ -31,9 +31,10 @@ pub struct Recipe {
     hash: String,
     title: String,
     image_id: Option<String>,
-    ingredient_blocks: Vec<Ingredients>,
-    instruction_blocks: Vec<Instructions>,
+    ingredient_blocks: Vec<IngredientBlock>,
+    instruction_blocks: Vec<RichInstructionBlock>,
     notes: Option<String>,
+    rich_notes: Option<String>,
     tags: Vec<AttachedTag>,
 }
 
@@ -57,18 +58,25 @@ pub struct Page {
 }
 
 #[derive(Deserialize, Serialize)]
-pub struct Instructions {
+pub struct InstructionBlock {
     title: Option<String>,
     instructions: Vec<String>,
 }
 
+#[derive(Serialize)]
+pub struct RichInstructionBlock {
+    title: Option<String>,
+    instructions: Vec<String>,
+    rich_instructions: Vec<String>,
+}
+
 #[derive(Deserialize, Serialize)]
-pub struct Ingredients {
+pub struct IngredientBlock {
     title: Option<String>,
     ingredients: Vec<String>,
 }
 
-fn parse_instructions(block: Instructions) -> Result<domain::recipe::InstructionBlock, Error> {
+fn parse_instructions(block: InstructionBlock) -> Result<domain::recipe::InstructionBlock, Error> {
     Ok(domain::recipe::InstructionBlock {
         title: match block.title {
             None => None,
@@ -82,7 +90,7 @@ fn parse_instructions(block: Instructions) -> Result<domain::recipe::Instruction
     })
 }
 
-fn parse_ingredients(block: Ingredients) -> Result<domain::recipe::IngredientBlock, Error> {
+fn parse_ingredients(block: IngredientBlock) -> Result<domain::recipe::IngredientBlock, Error> {
     Ok(domain::recipe::IngredientBlock {
         title: match block.title {
             None => None,
@@ -144,7 +152,7 @@ pub async fn get(
             ingredient_blocks: recipe
                 .ingredients
                 .into_iter()
-                .map(|block| Ingredients {
+                .map(|block| IngredientBlock {
                     title: block.title.map(String::from),
                     ingredients: block.ingredients.into_iter().map(String::from).collect(),
                 })
@@ -152,12 +160,23 @@ pub async fn get(
             instruction_blocks: recipe
                 .instructions
                 .into_iter()
-                .map(|block| Instructions {
+                .map(|block| RichInstructionBlock {
                     title: block.title.map(String::from),
-                    instructions: block.instructions.into_iter().map(String::from).collect(),
+                    instructions: block
+                        .instructions
+                        .clone()
+                        .into_iter()
+                        .map(String::from)
+                        .collect(),
+                    rich_instructions: block
+                        .instructions
+                        .into_iter()
+                        .map(|instruction| instruction.into_html())
+                        .collect(),
                 })
                 .collect(),
-            notes: recipe.notes.map(Into::into),
+            notes: recipe.notes.clone().map(Into::into),
+            rich_notes: recipe.notes.map(|note| note.into_html()),
             tags: recipe
                 .tags
                 .into_iter()
@@ -226,8 +245,8 @@ pub struct UpdateParams {
     previous_hash: String,
     title: String,
     image_id: Option<String>,
-    ingredients: Vec<Ingredients>,
-    instructions: Vec<Instructions>,
+    ingredients: Vec<IngredientBlock>,
+    instructions: Vec<InstructionBlock>,
     notes: Option<String>,
     tag_ids: Vec<domain::tag::Id>,
 }

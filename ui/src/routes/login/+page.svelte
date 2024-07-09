@@ -3,7 +3,7 @@
     <h1 class="font-bold text-3xl font-serif mb-16">mise</h1>
 
     <a
-      class="text-text-primary bg-primary-800 rounded px-5 py-2 font-semibold"
+      class="text-text-on-primary bg-primary-800 rounded px-5 py-2 font-semibold"
       href="/auth/init?redirect_target=/recipes">Log in</a
     >
   </div>

@@ -55,3 +55,5 @@ semver = "1.0.23"
 reqwest_cookie_store = "0.8.0"
 tower-http = { version = "0.5.2", features = ["fs", "timeout"] }
 tower = "0.4.13"
+ammonia = "4.0.0"
+pulldown-cmark = "0.11.0"

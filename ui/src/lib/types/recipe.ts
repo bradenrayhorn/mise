@@ -16,9 +16,10 @@ export type DetailedRecipe = {
   title: string;
   image_id?: string;
   notes?: string;
+  rich_notes?: string;
   tags: Array<TagOnRecipe>;
   ingredient_blocks: Array<IngredientBlock>;
-  instruction_blocks: Array<InstructionBlock>;
+  instruction_blocks: Array<RichInstructionBlock>;
 };
 
 export type DetailedRecipeWithHash = {
@@ -35,3 +36,5 @@ export type InstructionBlock = {
   title?: string;
   instructions: Array<string>;
 };
+
+type RichInstructionBlock = InstructionBlock & { rich_instructions: Array<string> };

@@ -26,7 +26,9 @@ export default {
             200: colors.zinc['800'],
             300: colors.zinc['700'],
 
-            primary: colors.zinc['100'],
+            primary: '#246D4D',
+
+            'on-primary': colors.zinc['100'],
           },
           //
           // Color page and object backgrounds. Higher numbers means content is at a higher
@@ -86,6 +88,10 @@ export default {
             100: colors.zinc['100'],
             200: colors.zinc['200'],
             300: colors.zinc['300'],
+
+            primary: '#6DA68B',
+
+            'on-primary': colors.zinc['100'],
           },
           //
           // Color page and object backgrounds. Higher numbers means content is at a higher

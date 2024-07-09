@@ -45,4 +45,18 @@
   .input {
     @apply border border-neutral-700 rounded bg-base-100 py-2 px-4 w-full outline-none focus:shadow-primary-700 focus:border-primary-700 focus:shadow-outline;
   }
+
+  .prose {
+    & p {
+      @apply my-2 last-of-type:mb-0 first-of-type:mt-0;
+    }
+
+    & a {
+      @apply text-text-primary underline;
+    }
+
+    & ul {
+      @apply list-disc ml-4;
+    }
+  }
 }
