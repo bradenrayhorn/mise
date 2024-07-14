@@ -39,11 +39,114 @@
     font-weight: bold;
     font-style: normal;
   }
+
+  :root {
+    /* Color palettes */
+    --color-primary-50: #c0e2d4;
+    --color-primary-100: #a5cdb9;
+    --color-primary-200: #8dbfa7;
+    --color-primary-300: #77ab92;
+    --color-primary-400: #669d82;
+    --color-primary-500: #558e73;
+    --color-primary-600: #447d61;
+    --color-primary-700: #34634c;
+    --color-primary-800: #2d5441;
+    --color-primary-900: #244234;
+    --color-primary-950: #1b3025;
+
+    --color-food-1: #1c3144;
+    --color-food-2: #2e5266;
+    --color-food-3: #8a7090;
+    --color-food-4: #fe654f;
+    --color-food-5: #00798c;
+    --color-food-6: #595a4a;
+    --color-food-7: #f2a359;
+    --color-food-8: #de3c4b;
+    --color-food-9: #37371f;
+    --color-food-10: #957fef;
+
+    /* Light theme */
+
+    --color-alpha-50: rgba(0, 0, 0, 0.04);
+    --color-alpha-100: rgba(0, 0, 0, 0.06);
+    --color-alpha-200: rgba(0, 0, 0, 0.08);
+    --color-alpha-300: rgba(0, 0, 0, 0.16);
+    --color-alpha-400: rgba(0, 0, 0, 0.24);
+    --color-alpha-500: rgba(0, 0, 0, 0.36);
+    --color-alpha-600: rgba(0, 0, 0, 0.48);
+    --color-alpha-700: rgba(0, 0, 0, 0.64);
+    --color-alpha-800: rgba(0, 0, 0, 0.8);
+    --color-alpha-900: rgba(0, 0, 0, 0.92);
+
+    /*  Backgrounds */
+    --color-base-500: #fdfdfd;
+    --color-base-600: #ffffff;
+
+    --color-base-primaryHover: rgb(230, 240, 235);
+    --color-base-backdrop: rgba(0, 0, 0, 0.4);
+
+    --color-divider-default: var(--color-alpha-200);
+
+    /*  Text */
+    --color-fg-default: #1f2937;
+    --color-fg-muted: #474f5a;
+
+    /*  Links */
+    --color-link-primary: #246d4d;
+
+    /*  Buttons */
+    --color-button-fgPrimary: #fafafa;
+    --color-button-bgPrimary: var(--color-primary-600);
+    --color-button-bgPrimaryHover: var(--color-primary-700);
+    --color-button-bgPrimaryActive: var(--color-primary-800);
+
+    --color-tag-fg: var(--color-primary-700);
+    --color-tag-bg: rgb(230, 240, 235);
+    --color-tag-divider: var(--color-primary-600);
+
+    /*  Inputs */
+    --color-inputBorder-default: var(--color-alpha-700);
+    --color-inputBorder-active: var(--color-primary-700);
+  }
+
+  .dark {
+    /* Dark theme */
+
+    --color-alpha-50: rgba(255, 255, 255, 0.04);
+    --color-alpha-100: rgba(255, 255, 255, 0.06);
+    --color-alpha-200: rgba(255, 255, 255, 0.08);
+    --color-alpha-300: rgba(255, 255, 255, 0.16);
+    --color-alpha-400: rgba(255, 255, 255, 0.24);
+    --color-alpha-500: rgba(255, 255, 255, 0.36);
+    --color-alpha-600: rgba(255, 255, 255, 0.48);
+    --color-alpha-700: rgba(255, 255, 255, 0.64);
+    --color-alpha-800: rgba(255, 255, 255, 0.8);
+    --color-alpha-900: rgba(255, 255, 255, 0.92);
+
+    /*  Backgrounds */
+    --color-base-500: #0e1118;
+    --color-base-600: #1b1f2a;
+
+    --color-base-primaryHover: rgba(52, 99, 76, 0.24);
+    --color-base-backdrop: rgba(0, 0, 0, 0.75);
+
+    /*  Text */
+    --color-fg-default: #e2e8f0;
+    --color-fg-muted: #bcc1c9;
+
+    /*  Links */
+    --color-link-primary: #6da68b;
+
+    /*  Buttons */
+    --color-tag-fg: var(--color-primary-200);
+    --color-tag-bg: var(--color-base-primaryHover);
+    --color-tag-divider: var(--color-primary-600);
+  }
 }
 
 @layer components {
   .input {
-    @apply border border-neutral-700 rounded bg-base-100 py-2 px-4 w-full outline-none focus:shadow-primary-700 focus:border-primary-700 focus:shadow-outline;
+    @apply border border-inputBorder-default rounded bg-base-500 py-2 px-4 w-full outline-none focus:shadow-inputBorder-active focus:border-inputBorder-active focus:shadow-outline;
   }
 
   .prose {
@@ -52,11 +155,33 @@
     }
 
     & a {
-      @apply text-text-primary underline;
+      @apply text-link-primary underline;
     }
 
     & ul {
       @apply list-disc ml-4;
+    }
+  }
+
+  .btn-link {
+    @apply hover:underline;
+  }
+
+  .btn-solid {
+    @apply px-3.5 py-2 rounded font-semibold transition-colors;
+
+    &.btn-sm {
+      @apply text-sm;
+    }
+
+    &.btn-primary {
+      @apply text-button-fgPrimary bg-button-bgPrimary hover:bg-button-bgPrimaryHover active:bg-button-bgPrimaryActive;
+      @apply disabled:text-alpha-600 disabled:bg-alpha-200;
+    }
+
+    &.btn-gray {
+      @apply bg-alpha-100 hover:bg-alpha-200 active:bg-alpha-300 data-active:bg-alpha-300;
+      @apply disabled:text-alpha-600 disabled:bg-alpha-200;
     }
   }
 }

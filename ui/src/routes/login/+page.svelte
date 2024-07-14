@@ -2,15 +2,12 @@
   <div class="max-w-60 text-center">
     <h1 class="font-bold text-3xl font-serif mb-16">mise</h1>
 
-    <a
-      class="text-text-on-primary bg-primary-800 rounded px-5 py-2 font-semibold"
-      href="/auth/init?redirect_target=/recipes">Log in</a
-    >
+    <a class="btn-solid btn-primary" href="/auth/init?redirect_target=/recipes">Log in</a>
   </div>
 
-  <div class="w-full max-w-60 h-0.5 mt-16 bg-neutral-100" />
+  <div class="w-full max-w-60 h-0.5 mt-16 bg-divider-default" />
 
   <div class="flex mt-8 text-xs">
-    <a href="/about" class="hover:underline text-text-300">About</a>
+    <a href="/about" class="hover:underline text-fg-muted">About</a>
   </div>
 </div>

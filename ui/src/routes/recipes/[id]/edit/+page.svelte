@@ -1,6 +1,4 @@
 <script lang="ts">
-  import IconClose from '~icons/mdi/close-thick';
-  import IconLoading from '~icons/mdi/loading';
   import { superForm } from 'sveltekit-superforms';
   import type { PageData } from './$types';
   import { zodClient } from 'sveltekit-superforms/adapters';
@@ -15,6 +13,8 @@
   import { page } from '$app/stores';
   import InstructionsField from '$lib/components/recipes/form/InstructionsField.svelte';
   import { goto } from '$app/navigation';
+  import CloseIconButton from '$lib/components/CloseIconButton.svelte';
+  import Button from '$lib/components/Button.svelte';
 
   export let data: PageData;
   const superform = superForm(data.form, {
@@ -55,23 +55,14 @@
 </script>
 
 <div class="absolute top-1 left-1 z-10 flex items-center">
-  <a class="rounded-full bg-neutral-100 text-neutral-700 p-1" href={data.backURL}><IconClose /></a>
+  <CloseIconButton href={data.backURL} />
 </div>
 
 <form method="POST" use:enhance class="pb-8">
   <div class="flex justify-between mb-8 px-4 md:px-8 lg:px-12 pt-12">
     <h1 class="font-bold text-3xl font-serif">Edit Recipe</h1>
 
-    <button
-      type="submit"
-      class="bg-primary-800 text-neutral-50 font-semibold px-4 py-1 rounded flex items-center gap-2"
-      disabled={$submitting}
-    >
-      Save
-      {#if $submitting}
-        <IconLoading class="animate-spin" />
-      {/if}
-    </button>
+    <Button type="submit" class="btn-solid btn-primary" isLoading={$submitting}>Save</Button>
   </div>
 
   <div class="flex flex-col md:flex-row gap-8 px-4 md:px-8 lg:px-12">

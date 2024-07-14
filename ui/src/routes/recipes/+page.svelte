@@ -2,6 +2,7 @@
   import IconChef from '~icons/mdi/chef-hat';
   import IconSad from '~icons/mdi/emoticon-sad-outline';
   import IconRight from '~icons/mdi/chevron-right';
+  import IconAdd from '~icons/mdi/plus';
   import StreamedError from '$lib/components/StreamedError.svelte';
   import { goto } from '$app/navigation';
   import { page } from '$app/stores';
@@ -21,10 +22,12 @@
 </script>
 
 <div class="w-full min-h-dvh mx-auto flex flex-col justify-between">
-  <div class="p-4 mb-4 flex justify-between items-center">
+  <div class="p-4 mb-4 flex justify-between items-baseline">
     <h1 class="font-bold text-3xl font-serif">Recipes</h1>
 
-    <a href="/recipes/new" class="text-sm text-primary-800 font-semibold">Add</a>
+    <a href="/recipes/new" class="text-sm btn-solid btn-primary flex items-center gap-1"
+      >Add<IconAdd aria-hidden="true" /></a
+    >
   </div>
 
   <div class="flex grow">
@@ -91,7 +94,7 @@
             <div class="flex flex-col pl-4 md:px-4">
               {#each page.data as recipe (recipe.id)}
                 <a
-                  class="flex items-center border-b-neutral-100 border-b py-3 pr-4 md:px-4 hover:bg-base-200 hover:shadow transition"
+                  class="flex items-center border-b-divider-default border-b py-3 pr-4 md:px-4 hover:bg-base-600 hover:shadow transition"
                   href={`/recipes/${recipe.id}`}
                 >
                   {#if recipe.image_id}
@@ -109,7 +112,7 @@
                 </a>
               {:else}
                 <div class="flex flex-col items-center pt-12">
-                  <div class="flex flex-col items-center justify-center text-text-300 mb-6">
+                  <div class="flex flex-col items-center justify-center text-fg-muted mb-6">
                     <IconChef class="text-6xl -mb-4 -ml-1" />
                     <IconSad class="text-5xl" />
                   </div>
@@ -123,7 +126,7 @@
               {#if hasCursor}
                 <a
                   href={`/recipes?${setQueryParameters(searchParams, { cursor: '' })}`}
-                  class="text-sm">Back to first</a
+                  class="text-sm btn-link">Back to first</a
                 >
               {:else}
                 <div />
@@ -131,7 +134,7 @@
 
               {#if page.next}
                 <a
-                  class="flex items-center text-sm"
+                  class="flex items-center text-sm btn-link"
                   href={`/recipes?${setQueryParameters(searchParams, { cursor: page.next })}`}
                   >Next<IconRight /></a
                 >
@@ -146,10 +149,8 @@
       </div>
     </div>
   </div>
-  <div
-    class="bg-base-100 w-full px-4 py-2 mt-3 border-b-primary-500 border-b-4 flex justify-between text-xs"
-  >
+  <div class="w-full px-4 py-4 mt-3 flex justify-between text-xs text-fg-muted">
     <div>mise</div>
-    <a href="/settings">Settings</a>
+    <a href="/settings" class="btn-link">Settings</a>
   </div>
 </div>

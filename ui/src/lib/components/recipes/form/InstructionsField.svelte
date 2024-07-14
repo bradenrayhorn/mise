@@ -72,7 +72,7 @@
 </div>
 
 <button
-  class="text-sm text-text-300 text-right mt-4 w-full"
+  class="text-sm text-fg-muted text-right mt-4 w-full"
   on:click|preventDefault={() => {
     $blocks = [...$blocks, { title: '', instructions: [''] }];
   }}>Add additional section</button

@@ -1,21 +1,21 @@
 <script lang="ts">
-  import IconClose from '~icons/mdi/close-thick';
   import SingleTag from '$lib/components/SingleTag.svelte';
   import type { PageData } from './$types';
+  import CloseIconButton from '$lib/components/CloseIconButton.svelte';
 
   export let data: PageData;
   $: recipe = data.recipe;
 </script>
 
 <div class="absolute top-1 left-1 z-10 flex items-center">
-  <a class="rounded-full bg-neutral-100 text-neutral-700 p-1" href={data.backURL}><IconClose /></a>
+  <CloseIconButton href={data.backURL} />
 </div>
 
 <div class="w-full h-full flex flex-col pb-8">
-  <div class="flex justify-between items-top px-4 md:px-8 lg:px-12 pb-8 pt-12">
+  <div class="flex justify-between items-baseline px-4 md:px-8 lg:px-12 pb-8 pt-12">
     <div class="text-3xl font-serif font-bold pr-4">{recipe.title}</div>
 
-    <a href={`/recipes/${data.id}/edit`}>Edit</a>
+    <a href={`/recipes/${data.id}/edit`} class="btn-link text-sm">Edit</a>
   </div>
 
   <div class="flex flex-col md:flex-row gap-8 px-4 md:px-8 lg:px-12">
