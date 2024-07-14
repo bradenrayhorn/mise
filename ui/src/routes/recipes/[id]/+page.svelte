@@ -15,7 +15,7 @@
   <div class="flex justify-between items-baseline px-4 md:px-8 lg:px-12 pb-8 pt-12">
     <div class="text-3xl font-serif font-bold pr-4">{recipe.title}</div>
 
-    <a href={`/recipes/${data.id}/edit`} class="btn-link text-sm">Edit</a>
+    <a href={`/recipes/${data.id}/edit`} class="btn-link text-sm text-fg-muted">Edit</a>
   </div>
 
   <div class="flex flex-col md:flex-row gap-8 px-4 md:px-8 lg:px-12">

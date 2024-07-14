@@ -25,7 +25,7 @@
   <div class="p-4 mb-4 flex justify-between items-baseline">
     <h1 class="font-bold text-3xl font-serif">Recipes</h1>
 
-    <a href="/recipes/new" class="text-sm btn-solid btn-primary flex items-center gap-1"
+    <a href="/recipes/new" class="text-sm btn-link text-fg-muted flex gap-2 items-center"
       >Add<IconAdd aria-hidden="true" /></a
     >
   </div>
