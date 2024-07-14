@@ -23,32 +23,33 @@
 
 <button
   use:melt={$trigger}
-  class="w-full rounded bg-neutral-100 text-sm font-semibold text-center py-1 hover:bg-neutral-200 transition-colors"
+  class="btn-solid btn-gray w-full text-sm text-center py-1"
+  data-active={$open}
 >
   Add Tag
 </button>
 
 {#if open}
   <div
-    class="z-10 max-h-60 overflow-y-auto flex-col shadow rounded bg-base-200 p-1 min-w-40"
+    class="z-10 max-h-60 overflow-y-auto flex flex-col shadow rounded bg-base-600 p-1 min-w-40"
     use:melt={$menu}
   >
     {#each tags as tag (tag.id)}
-      <div
-        class="pl-3 data-[highlighted]:bg-primary-100 text-text-200 py-1"
+      <button
+        class="pl-3 data-[highlighted]:bg-base-primaryHover py-1 text-left"
         use:melt={$item}
         on:m-click={() => {
           onSelect(tag.id);
         }}
       >
         {tag.name}
-      </div>
+      </button>
     {:else}
       No options
     {/each}
 
     {#if canCreate}
-      <div class="h-px bg-primary-200 my-2" use:melt={$separator} />
+      <div class="h-px shrink-0 bg-divider-default my-2" use:melt={$separator} />
 
       <TagModal element={item} />
     {/if}

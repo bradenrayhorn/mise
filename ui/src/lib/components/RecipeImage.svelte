@@ -45,7 +45,7 @@
 </script>
 
 <div
-  class={`w-full h-full ${colorsMap[indexes[0]]} flex items-center justify-center text-neutral-50 dark:text-neutral-950`}
+  class={`w-full h-full ${colorsMap[indexes[0]]} flex items-center justify-center text-[rgba(255,255,255,0.72)]`}
 >
   <svelte:component this={iconsMap[indexes[1]]} />
 </div>

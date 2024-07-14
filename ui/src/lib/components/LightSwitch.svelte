@@ -7,7 +7,7 @@
 </script>
 
 <button
-  class="w-8 h-8 bg-base-100 shadow rounded-full flex items-center justify-center"
+  class="w-8 h-8 bg-base-500 shadow rounded-full flex items-center justify-center"
   on:click={() => {
     setTheme(!isDark);
     isDark = !isDark;

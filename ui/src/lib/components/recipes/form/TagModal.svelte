@@ -1,10 +1,11 @@
 <script lang="ts">
-  import IconClose from '~icons/mdi/close-thick';
+  import IconClose from '~icons/mdi/close';
   import { createDialog, melt, type AnyMeltElement } from '@melt-ui/svelte';
   import { defaults, superForm } from 'sveltekit-superforms';
   import { zod } from 'sveltekit-superforms/adapters';
   import { schema } from './tag-schema';
   import { fade } from 'svelte/transition';
+  import Button from '$lib/components/Button.svelte';
 
   export let element: AnyMeltElement;
 
@@ -13,7 +14,7 @@
     states: { open },
   } = createDialog({ closeOnOutsideClick: false });
 
-  const { form, errors, enhance } = superForm(defaults(zod(schema)), {
+  const { form, errors, enhance, submitting } = superForm(defaults(zod(schema)), {
     SPA: true,
     validators: zod(schema),
     onUpdate: async function ({ form }) {
@@ -36,14 +37,14 @@
 <button
   use:melt={$element}
   use:melt={$trigger}
-  class="pl-3 w-full text-left data-[highlighted]:bg-primary-100 text-text-200">Create Tag</button
+  class="pl-3 w-full text-left data-[highlighted]:bg-base-primaryHover">Create Tag</button
 >
 
 {#if $open}
   <div use:melt={$portalled}>
     <div
       use:melt={$overlay}
-      class="fixed z-40 bg-black/50 top-0 bottom-0 right-0 left-0"
+      class="fixed z-40 bg-base-backdrop top-0 bottom-0 right-0 left-0"
       aria-hidden="true"
       on:click|stopPropagation={() => {
         $open = false;
@@ -52,13 +53,13 @@
     />
     <div
       use:melt={$content}
-      class="fixed z-50 bottom-0 left-0 right-0 md:bottom-1/2 md:left-1/2 md:-translate-x-1/2 bg-base-100 rounded-t-xl md:rounded-lg md:max-w-96 flex flex-col"
+      class="fixed z-50 bottom-0 left-0 right-0 md:bottom-1/2 md:left-1/2 md:-translate-x-1/2 bg-base-500 rounded-t-xl md:rounded-lg md:max-w-96 flex flex-col"
       transition:fade={{ duration: 100 }}
     >
       <form method="POST" use:enhance>
-        <div class="flex items-center p-4 border-b-neutral-100 border-b mb-4 shrink-0">
+        <div class="flex items-center p-4 border-b-divider-default border-b mb-4 shrink-0">
           <div class="flex-1 flex items-center">
-            <button use:melt={$close} class="rounded-full bg-neutral-100 text-neutral-700 p-1"
+            <button use:melt={$close} class="rounded-full text-fg-muted p-1 text-lg"
               ><IconClose /></button
             >
           </div>
@@ -79,15 +80,11 @@
         </div>
 
         <div class="shrink-0 p-4 flex gap-2">
-          <button
-            use:melt={$close}
-            class="border-neutral-800 text-neutral-800 border-2 rounded w-full py-2 font-semibold"
+          <button use:melt={$close} class="btn-solid btn-gray btn-sm grow" disabled={$submitting}
             >Cancel</button
           >
-          <button
-            type="submit"
-            class="bg-primary-800 text-neutral-50 dark:bg-primary-200 dark:text-neutral-950 rounded w-full py-2 font-semibold"
-            >Save</button
+          <Button type="submit" class="btn-solid btn-primary btn-sm grow" isLoading={$submitting}
+            >Save</Button
           >
         </div>
       </form>
