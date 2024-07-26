@@ -30,7 +30,7 @@ impl From<Error> for core::Error {
 }
 
 // maximum number of seconds a session may last before refresh
-pub const SESSION_EXPIRES_IN: i64 = 60 * 60 * 24;
+pub const SESSION_EXPIRES_IN: i64 = 60 * 60 * 90;
 
 pub struct Active {
     pub key: SessionKey,
