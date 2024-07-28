@@ -5,18 +5,27 @@
   import StreamedError from '$lib/components/StreamedError.svelte';
   import SingleTag from '$lib/components/SingleTag.svelte';
   import TagPicker from '$lib/components/TagPicker.svelte';
+  import { createQuery } from '@tanstack/svelte-query';
+  import { queryKeys } from '$lib/api/query-keys';
+  import { getTags } from '$lib/api/load/tag';
 
   export let superform: SuperForm<Infer<RecipeFormSchema>>;
-  export let promisedTags: Promise<Array<Tag>>;
+  const tagsQuery = createQuery<Array<Tag>>({
+    queryKey: [queryKeys.tag.list],
+    queryFn: () => getTags({ fetch }),
+  });
+  $: availableTags = $tagsQuery.data;
 
   const { values: tags } = arrayProxy(superform, 'tags');
 
   $: selectedTagsSet = new Set($tags.map((t) => t.id));
 </script>
 
-{#await promisedTags}
+{#if $tagsQuery.isPending}
   Loading...
-{:then availableTags}
+{:else if $tagsQuery.isError}
+  <StreamedError error={$tagsQuery.error}>Failed to load tags.</StreamedError>
+{:else if availableTags}
   <TagPicker
     canCreate={true}
     tags={availableTags.filter((t) => !selectedTagsSet.has(t.id))}
@@ -27,9 +36,7 @@
       }
     }}
   />
-{:catch error}
-  <StreamedError {error}>Failed to load tags.</StreamedError>
-{/await}
+{/if}
 
 <div class="flex flex-wrap gap-2">
   {#each $tags as tag}

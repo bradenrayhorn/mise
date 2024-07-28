@@ -15,7 +15,6 @@ type RecipeParams = {
 
 export async function createRecipe({
   fetch: _fetch,
-  url,
   recipe: { image, ...recipe },
 }: APICall & { recipe: RecipeParams }) {
   const res = await fetch('/api/v1/recipes', {
@@ -25,18 +24,17 @@ export async function createRecipe({
     },
     body: JSON.stringify({
       ...cleanRecipeParams(recipe),
-      image_id: image ? await uploadImage({ fetch: _fetch, url, image }) : undefined,
+      image_id: image ? await uploadImage({ fetch: _fetch, image }) : undefined,
     }),
   });
 
   if (!res.ok) {
-    await handleAPIError(res, url);
+    await handleAPIError(res);
   }
 }
 
 export async function updateRecipe({
   fetch: _fetch,
-  url,
   id,
   hash,
   currentRecipe,
@@ -45,8 +43,8 @@ export async function updateRecipe({
   let image_id = currentRecipe.image_id;
   if (image) {
     // only upload new image if the image has changed
-    if (image.name !== hash) {
-      image_id = await uploadImage({ fetch: _fetch, url, image });
+    if (image.type !== 'mise/image_id') {
+      image_id = await uploadImage({ fetch: _fetch, image });
     }
   } else {
     image_id = undefined;
@@ -65,7 +63,7 @@ export async function updateRecipe({
   });
 
   if (!res.ok) {
-    await handleAPIError(res, url);
+    await handleAPIError(res);
   }
 }
 

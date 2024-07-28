@@ -8,8 +8,16 @@
   import TagFilterOption from './TagFilterOption.svelte';
   import StreamedError from '$lib/components/StreamedError.svelte';
   import { fade, slide } from 'svelte/transition';
+  import { queryKeys } from '$lib/api/query-keys';
+  import { getTags } from '$lib/api/load/tag';
+  import { createQuery } from '@tanstack/svelte-query';
 
-  export let promisedTags: Promise<Array<Tag>>;
+  const tagsQuery = createQuery<Array<Tag>>({
+    queryKey: [queryKeys.tag.list],
+    queryFn: () => getTags({ fetch }),
+  });
+  $: tags = $tagsQuery.data;
+
   export let defaultTagSet: Array<string>;
 
   $: hasTagsApplied = defaultTagSet.length > 0;
@@ -83,17 +91,17 @@
       </div>
 
       <div class="flex flex-col flex-1 gap-2 overflow-y-auto px-4">
-        {#await promisedTags}
+        {#if $tagsQuery.isPending}
           Loading...
-        {:then tags}
+        {:else if $tagsQuery.isError}
+          <StreamedError error={$tagsQuery.error}>Failed to load tags.</StreamedError>
+        {:else if tags !== undefined}
           {#each tags as tag (tag.id)}
             <TagFilterOption {tag} bind:isChecked={nextTags[tag.id]} />
           {:else}
             No tags available.
           {/each}
-        {:catch error}
-          <StreamedError {error}>Failed to load tags.</StreamedError>
-        {/await}
+        {/if}
       </div>
 
       <div class="shrink-0 p-4 flex gap-2">

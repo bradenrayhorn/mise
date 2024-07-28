@@ -31,3 +31,12 @@ export const schema = z
   .required();
 
 export type RecipeFormSchema = typeof schema;
+
+export type RecipeFormType = {
+  title: string;
+  notes: string;
+  image?: File;
+  ingredient_blocks: Array<{ title?: string; ingredients: Array<string> }>;
+  instruction_blocks: Array<{ title?: string; instructions: Array<string> }>;
+  tags: Array<{ id: string; name: string }>;
+};

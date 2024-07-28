@@ -5,7 +5,6 @@ import { handleAPIError } from '../handle-error';
 
 export const getRecipes = async ({
   fetch: _fetch,
-  url,
   cursor,
   search,
   tags,
@@ -30,7 +29,7 @@ export const getRecipes = async ({
   const res = await _fetch('/api/v1/recipes?' + params.toString());
 
   if (!res.ok) {
-    return await handleAPIError(res, url);
+    return await handleAPIError(res);
   }
 
   return await res.json().then((json: Response) => ({
@@ -41,7 +40,6 @@ export const getRecipes = async ({
 
 export const getRecipe = async ({
   fetch: _fetch,
-  url,
   id,
 }: APICall & { id: string }): Promise<DetailedRecipeWithHash> => {
   type Response = {
@@ -73,7 +71,7 @@ export const getRecipe = async ({
   const res = await _fetch(`/api/v1/recipes/${id}`);
 
   if (!res.ok) {
-    return await handleAPIError(res, url);
+    return await handleAPIError(res);
   }
 
   return await res.json().then((json: Response) => ({

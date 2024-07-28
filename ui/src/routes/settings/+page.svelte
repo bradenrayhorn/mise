@@ -1,51 +1,26 @@
 <script lang="ts">
-  import IconBack from '~icons/mdi/chevron-left';
-  import IconAbout from '~icons/mdi/about-variant';
-  import IconLight from '~icons/mdi/weather-sunny';
-  import IconDark from '~icons/mdi/moon-and-stars';
-  import { setTheme, isThemeDark } from '$lib/theme-switch';
-  import type { PageData } from './$types';
+  import { queryKeys } from '$lib/api/query-keys';
+  import { createQuery } from '@tanstack/svelte-query';
+  import SettingsPage from './SettingsPage.svelte';
+  import { getSelf } from '$lib/api/load/user';
+  import PageLoadingState from '$lib/components/page-states/PageLoadingState.svelte';
+  import PageErrorState from '$lib/components/page-states/PageErrorState.svelte';
 
-  let isDark = isThemeDark();
+  $: query = createQuery<string>({
+    queryKey: [queryKeys.user.self],
+    queryFn: () => getSelf({ fetch }),
+    refetchOnMount: true,
+    staleTime: 0,
+    gcTime: 0,
+  });
 
-  export let data: PageData;
+  const backURL = `/recipes?${localStorage.getItem('last-recipes-query')}`;
 </script>
 
-<div class="w-full h-full">
-  <div class="flex flex-col max-w-md mx-auto px-4 gap-8">
-    <div class="py-6">
-      <h1 class="font-serif font-bold text-3xl mb-4">Settings</h1>
-
-      <a href={data.backURL} class="flex items-center">
-        <IconBack />
-        <span class="text-sm">Back to recipes</span>
-      </a>
-    </div>
-
-    <button
-      class="flex items-center gap-2"
-      on:click={() => {
-        setTheme(!isDark);
-        isDark = !isDark;
-      }}
-    >
-      {#if isDark}
-        <IconLight />
-      {:else}
-        <IconDark />
-      {/if}
-      <span class="text-sm">
-        {#if isDark}
-          Switch to light mode
-        {:else}
-          Switch to dark mode
-        {/if}
-      </span>
-    </button>
-
-    <a href="/about" class="flex items-center gap-2">
-      <IconAbout />
-      <span class="text-sm">About mise</span>
-    </a>
-  </div>
-</div>
+{#if $query.isPending}
+  <PageLoadingState />
+{:else if $query.isError}
+  <PageErrorState error={$query.error} />
+{:else}
+  <SettingsPage {backURL} />
+{/if}

@@ -10,7 +10,12 @@
 >
   <slot />
   {#if canDelete}
-    <button class="ml-2 px-2 border-l border-tag-divider" aria-label="Delete tag" on:click>
+    <button
+      class="ml-2 px-2 border-l border-tag-divider"
+      aria-label="Delete tag"
+      type="button"
+      on:click
+    >
       <DeleteIcon />
     </button>
   {/if}

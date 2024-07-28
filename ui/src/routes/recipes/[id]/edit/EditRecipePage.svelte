@@ -4,44 +4,45 @@
   import TitleField from '$lib/components/recipes/form/TitleField.svelte';
   import NotesField from '$lib/components/recipes/form/NotesField.svelte';
   import IngredientsField from '$lib/components/recipes/form/IngredientsField.svelte';
-  import { schema } from '$lib/components/recipes/form/schema';
+  import { schema, type RecipeFormType } from '$lib/components/recipes/form/schema';
   import ImageField from '$lib/components/recipes/form/ImageField.svelte';
-  import { createRecipe } from '$lib/api/action/recipe';
   import TagsField from '$lib/components/recipes/form/TagsField.svelte';
+  import { updateRecipe } from '$lib/api/action/recipe';
   import { handleSuperformError } from '$lib/error-to-superform';
   import InstructionsField from '$lib/components/recipes/form/InstructionsField.svelte';
   import { goto } from '$app/navigation';
-  import Button from '$lib/components/Button.svelte';
   import CloseIconButton from '$lib/components/CloseIconButton.svelte';
-  import { queryKeys } from '$lib/api/query-keys';
+  import Button from '$lib/components/Button.svelte';
+  import type { DetailedRecipe } from '$lib/types/recipe';
   import { useQueryClient } from '@tanstack/svelte-query';
+  import { queryKeys } from '$lib/api/query-keys';
   import { useAuth } from '$lib/auth-context';
 
-  const backURL = `/recipes?${localStorage.getItem('last-recipes-query')}`;
+  export let backURL: string;
+  export let id: string;
+  export let recipe: DetailedRecipe;
+  export let hash: string;
+  export let initialData: RecipeFormType;
 
   const client = useQueryClient();
   const auth = useAuth();
-
-  const initialData = {
-    title: '',
-    notes: '',
-    ingredient_blocks: [{ ingredients: [''] }],
-    instruction_blocks: [{ instructions: [''] }],
-    tags: [],
-  };
 
   const superform = superForm(defaults(initialData, zod(schema)), {
     SPA: true,
     dataType: 'json',
     validators: zod(schema),
+    resetForm: false,
     onUpdate: async function ({ form }) {
       if (!form.valid) {
         return;
       }
 
       try {
-        await createRecipe({
+        await updateRecipe({
           fetch,
+          id: id,
+          hash: hash,
+          currentRecipe: recipe,
           recipe: {
             title: form.data.title,
             image: form.data.image,
@@ -52,8 +53,9 @@
           },
         });
 
+        await client.invalidateQueries({ queryKey: queryKeys.recipe.get(id) });
         await client.invalidateQueries({ queryKey: [queryKeys.recipe.list] });
-        await goto('/recipes');
+        await goto(backURL);
       } catch (error) {
         await handleSuperformError(form, error, auth);
       }
@@ -68,8 +70,8 @@
 </div>
 
 <form method="POST" use:enhance class="pb-8">
-  <div class="flex justify-between items-baseline mb-8 px-4 md:px-8 lg:px-12 pt-12">
-    <h1 class="font-bold text-3xl font-serif">Add Recipe</h1>
+  <div class="flex justify-between mb-8 px-4 md:px-8 lg:px-12 pt-12">
+    <h1 class="font-bold text-3xl font-serif">Edit Recipe</h1>
 
     <Button type="submit" class="btn-solid btn-primary" isLoading={$submitting}>Save</Button>
   </div>

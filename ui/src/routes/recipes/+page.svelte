@@ -7,15 +7,30 @@
   import { goto } from '$app/navigation';
   import { page } from '$app/stores';
   import { setQueryParameters } from '$lib/replace-query-parameter';
-  import type { PageData } from './$types';
   import TagFilter from './TagFilter.svelte';
   import RecipeImage from '$lib/components/RecipeImage.svelte';
   import DesktopTagFilter from './DesktopTagFilter.svelte';
+  import { createQuery, useQueryClient } from '@tanstack/svelte-query';
+  import type { RecipePage } from '$lib/types/recipe';
+  import { getRecipe, getRecipes } from '$lib/api/load/recipe';
+  import { queryKeys } from '$lib/api/query-keys';
+  import PrefetchLink from '$lib/components/PrefetchLink.svelte';
 
-  export let data: PageData;
+  const client = useQueryClient();
+
+  $: localStorage.setItem('last-recipes-query', $page.url.searchParams.toString());
 
   $: hasCursor = $page.url.searchParams.has('cursor');
   $: searchParams = $page.url.searchParams;
+
+  $: cursor = $page.url.searchParams.get('cursor') ?? '';
+  $: search = $page.url.searchParams.get('search') ?? '';
+  $: tags = $page.url.searchParams.get('tags') ?? '';
+
+  $: recipesQuery = createQuery<RecipePage>({
+    queryKey: [queryKeys.recipe.list, { cursor, search, tags }],
+    queryFn: () => getRecipes({ fetch, cursor, search, tags }),
+  });
 
   let searchValue = $page.url.searchParams.get('search') ?? '';
   $: tagValues = ($page.url.searchParams.get('tags') ?? '').split(',').filter((t) => t);
@@ -25,9 +40,9 @@
   <div class="p-4 mb-4 flex justify-between items-baseline">
     <h1 class="font-bold text-3xl font-serif">Recipes</h1>
 
-    <a href="/recipes/new" class="text-sm btn-link text-fg-muted flex gap-2 items-center"
-      >Add<IconAdd aria-hidden="true" /></a
-    >
+    <a href="/recipes/new" class="text-sm btn-link text-fg-muted flex gap-2 items-center">
+      Add<IconAdd aria-hidden="true" />
+    </a>
   </div>
 
   <div class="flex grow">
@@ -35,7 +50,6 @@
       <div class="font-bold mb-4">Filter</div>
       <DesktopTagFilter
         defaultTagSet={tagValues}
-        promisedTags={data.promisedTags}
         on:applied={(event) => {
           goto(
             `/recipes?${setQueryParameters(searchParams, { cursor: '', tags: event.detail.tag_ids.join(',') })}`,
@@ -73,7 +87,6 @@
 
           <div class="items-center flex md:hidden">
             <TagFilter
-              promisedTags={data.promisedTags}
               defaultTagSet={tagValues}
               on:applied={(event) => {
                 goto(
@@ -88,14 +101,22 @@
         </div>
 
         <div class="flex flex-col">
-          {#await data.promisedRecipePage}
+          {#if $recipesQuery.status === 'pending'}
             <div>Loading...</div>
-          {:then page}
+          {:else if $recipesQuery.status === 'error'}
+            <StreamedError error={$recipesQuery.error}>Could not load recipes.</StreamedError>
+          {:else}
             <div class="flex flex-col pl-4 md:px-4">
-              {#each page.data as recipe (recipe.id)}
-                <a
-                  class="flex items-center border-b-divider-default border-b py-3 pr-4 md:px-4 hover:bg-base-600 hover:shadow transition"
+              {#each $recipesQuery.data.data as recipe (recipe.id)}
+                <PrefetchLink
+                  class="flex items-center border-b-divider-default border-b py-3 pr-4 md:px-4 hover:bg-base-600 hover:shadow transition data-[loading]:bg-base-primaryHover data-[loading]:animate-pulse"
                   href={`/recipes/${recipe.id}`}
+                  prefetch={async () => {
+                    await client.prefetchQuery({
+                      queryKey: queryKeys.recipe.get(recipe.id),
+                      queryFn: () => getRecipe({ fetch, id: recipe.id }),
+                    });
+                  }}
                 >
                   {#if recipe.image_id}
                     <img
@@ -109,7 +130,7 @@
                     </div>
                   {/if}
                   <span class="ml-4 font-semibold line-clamp-2">{recipe.title}</span>
-                </a>
+                </PrefetchLink>
               {:else}
                 <div class="flex flex-col items-center pt-12">
                   <div class="flex flex-col items-center justify-center text-fg-muted mb-6">
@@ -132,19 +153,17 @@
                 <div />
               {/if}
 
-              {#if page.next}
+              {#if $recipesQuery.data.next}
                 <a
                   class="flex items-center text-sm btn-link"
-                  href={`/recipes?${setQueryParameters(searchParams, { cursor: page.next })}`}
+                  href={`/recipes?${setQueryParameters(searchParams, { cursor: $recipesQuery.data.next })}`}
                   >Next<IconRight /></a
                 >
               {:else}
                 <div />
               {/if}
             </div>
-          {:catch error}
-            <StreamedError {error}>Could not load recipes.</StreamedError>
-          {/await}
+          {/if}
         </div>
       </div>
     </div>

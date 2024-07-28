@@ -1,11 +1,19 @@
 <script lang="ts">
+  import { getTags } from '$lib/api/load/tag';
+  import { queryKeys } from '$lib/api/query-keys';
   import SingleTag from '$lib/components/SingleTag.svelte';
   import StreamedError from '$lib/components/StreamedError.svelte';
   import TagPicker from '$lib/components/TagPicker.svelte';
   import type { Tag } from '$lib/types/tag';
+  import { createQuery } from '@tanstack/svelte-query';
   import { createEventDispatcher } from 'svelte';
 
-  export let promisedTags: Promise<Array<Tag>>;
+  const tagsQuery = createQuery<Array<Tag>>({
+    queryKey: [queryKeys.tag.list],
+    queryFn: () => getTags({ fetch }),
+  });
+
+  $: tags = $tagsQuery.data;
   export let defaultTagSet: Array<string>;
 
   const dispatch = createEventDispatcher();
@@ -18,9 +26,11 @@
 </script>
 
 <div class="w-full">
-  {#await promisedTags}
+  {#if $tagsQuery.isPending}
     Loading...
-  {:then tags}
+  {:else if $tagsQuery.isError}
+    <StreamedError error={$tagsQuery.error}>Failed to load tags.</StreamedError>
+  {:else if tags !== undefined}
     <div class="flex flex-wrap gap-2">
       {#each defaultTagSet as id (id)}
         <SingleTag
@@ -41,7 +51,5 @@
         }}
       />
     </div>
-  {:catch error}
-    <StreamedError {error}>Failed to load tags.</StreamedError>
-  {/await}
+  {/if}
 </div>

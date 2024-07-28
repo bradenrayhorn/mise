@@ -1,91 +1,64 @@
 <script lang="ts">
-  import { superForm } from 'sveltekit-superforms';
-  import type { PageData } from './$types';
-  import { zodClient } from 'sveltekit-superforms/adapters';
-  import TitleField from '$lib/components/recipes/form/TitleField.svelte';
-  import NotesField from '$lib/components/recipes/form/NotesField.svelte';
-  import IngredientsField from '$lib/components/recipes/form/IngredientsField.svelte';
-  import { schema } from '$lib/components/recipes/form/schema';
-  import ImageField from '$lib/components/recipes/form/ImageField.svelte';
-  import TagsField from '$lib/components/recipes/form/TagsField.svelte';
-  import { updateRecipe } from '$lib/api/action/recipe';
-  import { handleSuperformError, superformGoto } from '$lib/error-to-superform';
   import { page } from '$app/stores';
-  import InstructionsField from '$lib/components/recipes/form/InstructionsField.svelte';
-  import { goto } from '$app/navigation';
-  import CloseIconButton from '$lib/components/CloseIconButton.svelte';
-  import Button from '$lib/components/Button.svelte';
+  import { queryKeys } from '$lib/api/query-keys';
+  import PageErrorState from '$lib/components/page-states/PageErrorState.svelte';
+  import PageLoadingState from '$lib/components/page-states/PageLoadingState.svelte';
+  import type { DetailedRecipeWithHash } from '$lib/types/recipe';
+  import { createQuery } from '@tanstack/svelte-query';
+  import EditRecipePage from './EditRecipePage.svelte';
+  import { getRecipe } from '$lib/api/load/recipe';
 
-  export let data: PageData;
-  const superform = superForm(data.form, {
-    SPA: true,
-    dataType: 'json',
-    validators: zodClient(schema),
-    resetForm: false,
-    onUpdate: async function ({ form }) {
-      if (!form.valid) {
-        return;
-      }
+  const id = $page.params['id'];
+  const backURL = `/recipes/${id}`;
 
-      try {
-        await updateRecipe({
-          fetch,
-          url: $page.url,
-          id: data.id,
-          hash: data.hash,
-          currentRecipe: data.recipe,
-          recipe: {
-            title: form.data.title,
-            image: form.data.image,
-            notes: form.data.notes,
-            ingredient_blocks: form.data.ingredient_blocks,
-            instruction_blocks: form.data.instruction_blocks,
-            tags: form.data.tags,
-          },
-        });
-      } catch (error) {
-        await handleSuperformError(form, error, superformGoto);
-      }
-
-      goto(data.backURL);
-    },
+  $: query = createQuery<DetailedRecipeWithHash>({
+    queryKey: queryKeys.recipe.get(id),
+    queryFn: () => getRecipe({ fetch, id }),
   });
 
-  const { enhance, submitting } = superform;
+  function buildInitialData({ recipe }: DetailedRecipeWithHash) {
+    const ingredient_blocks = recipe.ingredient_blocks.map((block) => ({
+      title: block.title,
+      ingredients: [...block.ingredients, ''],
+    }));
+
+    if (ingredient_blocks.length === 1 && ingredient_blocks[0].title) {
+      ingredient_blocks.push({ title: undefined, ingredients: [''] });
+    }
+
+    const instruction_blocks = recipe.instruction_blocks.map((block) => ({
+      title: block.title,
+      instructions: [...block.instructions, ''],
+    }));
+
+    if (instruction_blocks.length === 1 && instruction_blocks[0].title) {
+      instruction_blocks.push({ title: undefined, instructions: [''] });
+    }
+
+    return {
+      title: recipe.title,
+      notes: recipe.notes ?? '',
+      image: recipe.image_id ? new File([], recipe.image_id, { type: 'mise/image_id' }) : undefined,
+      tags: recipe.tags,
+      ingredient_blocks: ingredient_blocks.length > 0 ? ingredient_blocks : [{ ingredients: [''] }],
+      instruction_blocks:
+        instruction_blocks.length > 0 ? instruction_blocks : [{ instructions: [''] }],
+    };
+  }
+
+  $: initialData = $query.data ? buildInitialData($query.data) : undefined;
 </script>
 
-<div class="absolute top-1 left-1 z-10 flex items-center">
-  <CloseIconButton href={data.backURL} />
-</div>
-
-<form method="POST" use:enhance class="pb-8">
-  <div class="flex justify-between mb-8 px-4 md:px-8 lg:px-12 pt-12">
-    <h1 class="font-bold text-3xl font-serif">Edit Recipe</h1>
-
-    <Button type="submit" class="btn-solid btn-primary" isLoading={$submitting}>Save</Button>
-  </div>
-
-  <div class="flex flex-col md:flex-row gap-8 px-4 md:px-8 lg:px-12">
-    <div class="flex-1 flex flex-col gap-6">
-      <TitleField {superform} />
-
-      <ImageField {superform} />
-
-      <NotesField {superform} />
-
-      <TagsField {superform} promisedTags={data.tags} />
-    </div>
-
-    <div class="flex-1">
-      <h2 class="text-xl font-bold font-serif mb-4 md:mb-6">Ingredients</h2>
-
-      <IngredientsField {superform} />
-    </div>
-
-    <div class="flex-1">
-      <h2 class="text-xl font-bold font-serif mb-4 md:mb-6">Instructions</h2>
-
-      <InstructionsField {superform} />
-    </div>
-  </div>
-</form>
+{#if $query.isPending}
+  <PageLoadingState />
+{:else if $query.isError}
+  <PageErrorState error={$query.error} />
+{:else if initialData !== undefined}
+  <EditRecipePage
+    {id}
+    {backURL}
+    {initialData}
+    hash={$query.data.hash}
+    recipe={$query.data.recipe}
+  />
+{/if}
