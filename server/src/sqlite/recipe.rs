@@ -143,59 +143,58 @@ pub fn list_recipes(
         u64::try_from(filter.tag_ids.len()).context("could not convert vec len to u64")?;
 
     let mut binding = Query::select();
-    let builder = binding
-        .column((sea::Recipes::Table, sea::Recipes::Id))
-        .column(sea::Recipes::Title)
-        .column(sea::Recipes::ImageId)
-        .from(sea::Recipes::Table)
-        .left_join(
-            sea::RecipeTags::Table,
-            Expr::col((sea::Recipes::Table, sea::Recipes::Id))
-                .equals((sea::RecipeTags::Table, sea::RecipeTags::RecipeId)),
-        )
-        .cond_where(
-            Cond::all()
-                .add_option(cursor.map(|cursor| {
-                    Cond::any()
-                        .add(Expr::col(sea::Recipes::Title).gt(&cursor.name))
-                        .add(
-                            Cond::all()
-                                .add(Expr::col(sea::Recipes::Title).eq(&cursor.name))
-                                .add(
-                                    Expr::col((sea::Recipes::Table, sea::Recipes::Id))
-                                        .gt(&cursor.id),
-                                ),
-                        )
-                }))
-                .add_option(
-                    filter
-                        .name
-                        .map(|name| Expr::col(sea::Recipes::Title).like(format!("%{name}%"))),
-                )
-                .add_option(if filter.tag_ids.is_empty() {
-                    None
-                } else {
-                    let tag_ids: Vec<String> = filter
-                        .tag_ids
-                        .into_iter()
-                        .map(Into::<String>::into)
-                        .collect();
-                    Some(Expr::col(sea::RecipeTags::TagId).is_in(tag_ids))
-                }),
-        )
-        .group_by_columns([
-            (sea::Recipes::Table, sea::Recipes::Id),
-            (sea::Recipes::Table, sea::Recipes::Title),
-        ])
-        .order_by(
-            (sea::Recipes::Table, sea::Recipes::Title),
-            sea_query::Order::Asc,
-        )
-        .order_by(
-            (sea::Recipes::Table, sea::Recipes::Id),
-            sea_query::Order::Asc,
-        )
-        .limit(page_size);
+    let builder =
+        binding
+            .column((sea::Recipes::Table, sea::Recipes::Id))
+            .column(sea::Recipes::Title)
+            .column(sea::Recipes::ImageId)
+            .from(sea::Recipes::Table)
+            .left_join(
+                sea::RecipeTags::Table,
+                Expr::col((sea::Recipes::Table, sea::Recipes::Id))
+                    .equals((sea::RecipeTags::Table, sea::RecipeTags::RecipeId)),
+            )
+            .cond_where(
+                Cond::all()
+                    .add_option(cursor.map(|cursor| {
+                        Cond::any()
+                            .add(Expr::col(sea::Recipes::Title).gt(&cursor.name))
+                            .add(
+                                Cond::all()
+                                    .add(Expr::col(sea::Recipes::Title).eq(&cursor.name))
+                                    .add(
+                                        Expr::col((sea::Recipes::Table, sea::Recipes::Id))
+                                            .gt(&cursor.id),
+                                    ),
+                            )
+                    }))
+                    .add_option(filter.name.map(|name| {
+                        Expr::col(sea::Recipes::Title).like(format!("%{}%", name.trim()))
+                    }))
+                    .add_option(if filter.tag_ids.is_empty() {
+                        None
+                    } else {
+                        let tag_ids: Vec<String> = filter
+                            .tag_ids
+                            .into_iter()
+                            .map(Into::<String>::into)
+                            .collect();
+                        Some(Expr::col(sea::RecipeTags::TagId).is_in(tag_ids))
+                    }),
+            )
+            .group_by_columns([
+                (sea::Recipes::Table, sea::Recipes::Id),
+                (sea::Recipes::Table, sea::Recipes::Title),
+            ])
+            .order_by(
+                (sea::Recipes::Table, sea::Recipes::Title),
+                sea_query::Order::Asc,
+            )
+            .order_by(
+                (sea::Recipes::Table, sea::Recipes::Id),
+                sea_query::Order::Asc,
+            )
+            .limit(page_size);
 
     if tag_count > 0 {
         builder.and_having(

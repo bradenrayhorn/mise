@@ -644,7 +644,7 @@ pub async fn can_list_with_title_filter(store: datastore::Pool) -> Result<()> {
     let result = store
         .list_recipes(
             domain::filter::Recipe {
-                name: Some("Chick".into()),
+                name: Some(" Chick".into()),
                 tag_ids: vec![],
             },
             None,
