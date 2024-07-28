@@ -10,7 +10,9 @@
 
 {#if $file.length === 1}
   <img
-    src={URL.createObjectURL($file[0])}
+    src={$file[0].type === 'mise/image_id'
+      ? `/api/v1/images/${$file[0].name}`
+      : URL.createObjectURL($file[0])}
     alt="uploaded recipe"
     class="w-full max-w-80 h-56 object-cover rounded shadow-inner"
   />

@@ -34,6 +34,8 @@ export default {
         500: 'var(--color-base-500)',
         600: 'var(--color-base-600)',
 
+        skeleton: 'var(--color-base-skeleton)',
+
         primaryHover: 'var(--color-base-primaryHover)',
 
         backdrop: 'var(--color-base-backdrop)',

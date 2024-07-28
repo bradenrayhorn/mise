@@ -6,8 +6,12 @@
   import { schema } from './tag-schema';
   import { fade } from 'svelte/transition';
   import Button from '$lib/components/Button.svelte';
+  import { useQueryClient } from '@tanstack/svelte-query';
+  import { queryKeys } from '$lib/api/query-keys';
 
   export let element: AnyMeltElement;
+
+  const client = useQueryClient();
 
   const {
     elements: { trigger, portalled, overlay, content, title, close },
@@ -18,7 +22,6 @@
     SPA: true,
     validators: zod(schema),
     onUpdate: async function ({ form }) {
-      console.log({ form });
       if (form.valid) {
         await fetch(`/api/v1/tags`, {
           method: 'POST',
@@ -29,6 +32,10 @@
             name: form.data.name,
           }),
         });
+
+        await client.invalidateQueries({ queryKey: [queryKeys.tag.list] });
+
+        $open = false;
       }
     },
   });

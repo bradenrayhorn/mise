@@ -1,7 +1,7 @@
 import type { APICall } from '../fetch';
 import { handleAPIError } from '../handle-error';
 
-export async function uploadImage({ fetch: _fetch, url, image }: APICall & { image: File }) {
+export async function uploadImage({ fetch: _fetch, image }: APICall & { image: File }) {
   const formData = new FormData();
   formData.append('file', image);
 
@@ -11,7 +11,7 @@ export async function uploadImage({ fetch: _fetch, url, image }: APICall & { ima
   });
 
   if (!res.ok) {
-    await handleAPIError(res, url);
+    await handleAPIError(res);
   }
 
   return res.json().then((json: { data: string }) => json.data);
