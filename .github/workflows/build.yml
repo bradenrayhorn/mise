@@ -80,8 +80,10 @@ jobs:
             }
 
       - name: Build Rust licenses
-        working-directory: ./server
-        run: cargo install cargo-bundle-licenses && cargo bundle-licenses --format json --output ../ui/static/licenses/server-licenses.json
+        run: |
+          (cd ./server && cargo install cargo-bundle-licenses && cargo bundle-licenses --format json --output ../ui/static/licenses/server-licenses.json)
+          ls -lah ./ui/static/licenses
+          cat ./ui/static/licenses/server-licenses.json | tail -n 50
 
       - name: Build and push
         uses: docker/build-push-action@15560696de535e4014efeff63c48f16952e52dd1 # v6
