@@ -2,8 +2,12 @@ FROM node:20-alpine@sha256:928b24aaadbd47c1a7722c563b471195ce54788bf8230ce807e1d
 
 RUN mkdir /app
 COPY /ui app/
+COPY /server/rust-licenses.txt /app/src/rust-licenses.txt
+
 WORKDIR /app
+
 RUN npm install
+RUN GENERATE_LICENSES=true npm run build
 RUN npm run build
 
 FROM rust:1.79-alpine@sha256:a454f49f2e15e233f829a0fd9a7cbdac64b6f38ec08aeac227595d4fc6eb6d4d as server_builder
@@ -11,9 +15,9 @@ FROM rust:1.79-alpine@sha256:a454f49f2e15e233f829a0fd9a7cbdac64b6f38ec08aeac2275
 RUN apk add musl-dev pkgconfig wget
 
 RUN wget -O sccache.tar.gz https://github.com/mozilla/sccache/releases/download/v0.8.1/sccache-v0.8.1-$(uname -m)-unknown-linux-musl.tar.gz \
-    && tar xzf sccache.tar.gz \
-    && mv sccache-v0.8.1-$(uname -m)-unknown-linux-musl/sccache /usr/local/bin/sccache \
-    && chmod +x /usr/local/bin/sccache;
+	&& tar xzf sccache.tar.gz \
+	&& mv sccache-v0.8.1-$(uname -m)-unknown-linux-musl/sccache /usr/local/bin/sccache \
+	&& chmod +x /usr/local/bin/sccache;
 
 ENV SCCACHE_DIR=/sccache-cache
 ENV RUSTC_WRAPPER="/usr/local/bin/sccache"
