@@ -45,7 +45,7 @@
 
   <h2 class="my-8 text-2xl font-bold">Bundled libraries and licenses</h2>
 
-  <div class="whitespace-pre my-2">
+  <div class="whitespace-pre-line my-2">
     {#await uiLicenses}
       Loading...
     {:then text}
@@ -55,7 +55,7 @@
     {/await}
   </div>
 
-  <div class="whitespace-pre my-2">
+  <div class="whitespace-pre-line my-2">
     {#await serverLicenses}
       Loading...
     {:then licenses}
@@ -65,7 +65,7 @@
           <p><a href={license.repository}>{license.repository}</a></p>
           <p>{license.license}</p>
           {#each license.licenses as l (l.license)}
-            <div class="whitespace-pre">{l.text}</div>
+            <div class="whitespace-pre-line">{l.text}</div>
           {/each}
         </div>
       {/each}
