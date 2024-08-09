@@ -2,7 +2,6 @@ FROM node:20-alpine@sha256:928b24aaadbd47c1a7722c563b471195ce54788bf8230ce807e1d
 
 RUN mkdir /app
 COPY /ui app/
-COPY /server/rust-licenses.txt /app/src/rust-licenses.txt
 
 WORKDIR /app
 
