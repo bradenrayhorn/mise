@@ -42,6 +42,25 @@
           <input
             class="input"
             bind:value={$blocks[i].ingredients[j]}
+            on:paste={(e) => {
+              const pastedData = e.clipboardData?.getData('Text') ?? '';
+
+              const lines = pastedData
+                .split('\n')
+                .map((line) =>
+                  line
+                    .replace(/\(\$\d+\.\d{2}\)/g, '')
+                    .replace(/\$\d+\.\d{2}/g, '')
+                    .trim(),
+                )
+                .filter((line) => line);
+              if (pastedData.trim().length > 0 && lines.length > 1) {
+                e.preventDefault();
+                const ingredients = [...$blocks[i].ingredients];
+                ingredients.splice(j, 0, ...lines);
+                $blocks[i].ingredients = ingredients;
+              }
+            }}
             on:input={(e) => {
               const currentIngredients = $blocks[i].ingredients;
               if (
