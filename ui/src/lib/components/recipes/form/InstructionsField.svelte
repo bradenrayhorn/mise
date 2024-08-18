@@ -42,6 +42,20 @@
           <textarea
             class="input resize-none h-36"
             bind:value={$blocks[i].instructions[j]}
+            on:paste={(e) => {
+              const pastedData = e.clipboardData?.getData('Text') ?? '';
+
+              const lines = pastedData
+                .split('\n')
+                .map((line) => line.replace(/\d+\./g, '').trim())
+                .filter((line) => line);
+              if (pastedData.trim().length > 0 && lines.length > 1) {
+                e.preventDefault();
+                const instructions = [...$blocks[i].instructions];
+                instructions.splice(j, 0, ...lines);
+                $blocks[i].instructions = instructions;
+              }
+            }}
             on:input={(e) => {
               const currentInstructions = $blocks[i].instructions;
               if (
