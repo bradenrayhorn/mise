@@ -151,7 +151,7 @@ jobs:
         working-directory: ./e2e
         run: npm run test
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@834a144ee995460fba8ed112a2fc961b36a5ec5a # v4
         if: ${{ !cancelled() }}
         with:
           name: playwright-report

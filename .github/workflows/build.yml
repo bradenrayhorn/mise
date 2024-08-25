@@ -44,7 +44,7 @@ jobs:
           echo "prev_rn=$PREV_RN" >> $GITHUB_OUTPUT
 
       - name: Restore cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4
         id: cache-restore
         with:
           path: |
@@ -63,7 +63,7 @@ jobs:
           REPO: ${{ github.repository }}
 
       - name: Setup cache save
-        uses: actions/cache@v4
+        uses: actions/cache@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4
         id: cache-restore-save
         with:
           path: |
@@ -72,7 +72,7 @@ jobs:
           save-always: true
 
       - name: Inject cache into docker
-        uses: reproducible-containers/buildkit-cache-dance@v3.1.0
+        uses: reproducible-containers/buildkit-cache-dance@5de31fc1534ed8789e63d41ea933c5df9944a261 # v3.1.0
         with:
           cache-map: |
             {
@@ -128,7 +128,7 @@ jobs:
           echo "prev_rn=$PREV_RN" >> $GITHUB_OUTPUT
 
       - name: Restore cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4
         id: cache-restore
         with:
           path: |
@@ -147,7 +147,7 @@ jobs:
           REPO: ${{ github.repository }}
 
       - name: Setup cache save
-        uses: actions/cache@v4
+        uses: actions/cache@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4
         id: cache-restore-save
         with:
           path: |
@@ -156,7 +156,7 @@ jobs:
           save-always: true
 
       - name: Inject cache into docker
-        uses: reproducible-containers/buildkit-cache-dance@v3.1.0
+        uses: reproducible-containers/buildkit-cache-dance@5de31fc1534ed8789e63d41ea933c5df9944a261 # v3.1.0
         with:
           cache-map: |
             {
