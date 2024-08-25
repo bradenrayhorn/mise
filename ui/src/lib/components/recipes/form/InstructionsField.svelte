@@ -2,21 +2,32 @@
   import IconTrash from '~icons/mdi/trash-outline';
   import { type SuperForm, type Infer, arrayProxy } from 'sveltekit-superforms';
   import { type RecipeFormSchema } from './schema';
+  import type { InstructionBlock } from '$lib/types/recipe';
 
   export let superform: SuperForm<Infer<RecipeFormSchema>>;
 
   const { values: blocks } = arrayProxy(superform, 'instruction_blocks');
+
+  function makeInstructionLabel(blocks: InstructionBlock[], i: number, j: number) {
+    if (blocks.length === 1) {
+      return `Instruction ${j + 1}`;
+    } else {
+      const block = blocks[i]?.title ?? `Section ${i + 1}`;
+      return `${block} instruction ${j + 1}`;
+    }
+  }
 </script>
 
 <div class="flex flex-col gap-10">
-  {#each $blocks as _, i}
+  {#each $blocks as block, i}
     <div>
       {#if $blocks.length > 1}
         <div class="font-serif font-bold mb-4 flex justify-between">
-          {$blocks[i].title ? $blocks[i].title : `Section ${i + 1}`}
+          {block.title ? block.title : `Section ${i + 1}`}
 
           <button
             class="text-lg"
+            aria-label={`Delete ${block.title ? `${block.title} instructions` : `instructions section ${i + 1}`}`}
             on:click|preventDefault={() => {
               const next = [...$blocks];
               next.splice(i, 1);
@@ -31,7 +42,7 @@
               class="input"
               bind:value={$blocks[i].title}
               placeholder="Title"
-              aria-label="Title"
+              aria-label={`Instruction section ${i + 1} title`}
             />
           </label>
         </div>
@@ -42,6 +53,7 @@
           <textarea
             class="input resize-none h-36"
             bind:value={$blocks[i].instructions[j]}
+            aria-label={makeInstructionLabel($blocks, i, j)}
             on:paste={(e) => {
               const pastedData = e.clipboardData?.getData('Text') ?? '';
 

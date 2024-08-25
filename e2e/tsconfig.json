@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@tests/*": ["tests/*"]
+    },
+    "moduleResolution": "nodenext",
+    "target": "es6"
+  }
+}

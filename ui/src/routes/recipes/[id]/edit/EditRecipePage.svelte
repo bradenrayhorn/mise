@@ -17,6 +17,7 @@
   import { useQueryClient } from '@tanstack/svelte-query';
   import { queryKeys } from '$lib/api/query-keys';
   import { useAuth } from '$lib/auth-context';
+  import { uid } from 'uid';
 
   export let backURL: string;
   export let id: string;
@@ -63,6 +64,9 @@
   });
 
   const { enhance, submitting } = superform;
+
+  const ingredientsSectionID = uid();
+  const instructionsSectionID = uid();
 </script>
 
 <div class="absolute top-1 left-1 z-10 flex items-center">
@@ -87,16 +91,20 @@
       <TagsField {superform} />
     </div>
 
-    <div class="flex-1">
-      <h2 class="text-xl font-bold font-serif mb-4 md:mb-6">Ingredients</h2>
+    <section class="flex-1" aria-labelledby={ingredientsSectionID}>
+      <h2 class="text-xl font-bold font-serif mb-4 md:mb-6" id={ingredientsSectionID}>
+        Ingredients
+      </h2>
 
       <IngredientsField {superform} />
-    </div>
+    </section>
 
-    <div class="flex-1">
-      <h2 class="text-xl font-bold font-serif mb-4 md:mb-6">Instructions</h2>
+    <section class="flex-1" aria-labelledby={instructionsSectionID}>
+      <h2 class="text-xl font-bold font-serif mb-4 md:mb-6" id={instructionsSectionID}>
+        Instructions
+      </h2>
 
       <InstructionsField {superform} />
-    </div>
+    </section>
   </div>
 </form>

@@ -14,7 +14,7 @@
     gcTime: 0,
   });
 
-  const backURL = `/recipes?${localStorage.getItem('last-recipes-query')}`;
+  const backURL = `/recipes?${localStorage.getItem('last-recipes-query') ?? ''}`;
 </script>
 
 {#if $query.isPending}

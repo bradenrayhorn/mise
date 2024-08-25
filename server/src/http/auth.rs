@@ -50,7 +50,7 @@ pub async fn init(
         Cookie::build(("s", signed_cookie))
             .path("/")
             .http_only(true)
-            .secure(true)
+            .secure(!state.config.insecure_cookies)
             // must be lax so that the cookie is attached upon redirect from the authorization server
             .same_site(SameSite::Lax)
             .max_age(cookie::time::Duration::seconds(180))
@@ -114,7 +114,7 @@ pub async fn callback(
         Cookie::build(("id", session_key.to_string()))
             .path("/")
             .http_only(true)
-            .secure(true)
+            .secure(!state.config.insecure_cookies)
             .same_site(SameSite::Strict)
             .max_age(cookie::time::Duration::seconds(
                 core::session::SESSION_EXPIRES_IN,
