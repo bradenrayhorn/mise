@@ -90,17 +90,13 @@
     </div>
 
     <section class="flex-1" aria-labelledby={ingredientsSectionID}>
-      <h2 class="text-xl font-bold font-serif mb-4 md:mb-6" id={ingredientsSectionID}>
-        Ingredients
-      </h2>
+      <h2 class="text-xl font-bold mb-4 md:mb-6" id={ingredientsSectionID}>Ingredients</h2>
 
       <IngredientsField {superform} />
     </section>
 
     <section class="flex-1" aria-labelledby={instructionsSectionID}>
-      <h2 class="text-xl font-bold font-serif mb-4 md:mb-6" id={instructionsSectionID}>
-        Instructions
-      </h2>
+      <h2 class="text-xl font-bold mb-4 md:mb-6" id={instructionsSectionID}>Instructions</h2>
 
       <InstructionsField {superform} />
     </section>

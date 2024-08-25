@@ -52,16 +52,14 @@
     {/if}
 
     <section class="flex-1" aria-labelledby={ingredientsSectionID}>
-      <h2 class="font-serif text-xl font-bold mb-4 md:mb-6" id={ingredientsSectionID}>
-        Ingredients
-      </h2>
+      <h2 class="text-xl font-bold mb-4 md:mb-6" id={ingredientsSectionID}>Ingredients</h2>
 
       <div class="flex flex-col gap-4">
         {#each recipe.ingredient_blocks as b}
           {@const id = uid()}
           <div class="flex flex-col">
             {#if b.title}
-              <h3 class="font-serif font-bold mb-2" {id}>
+              <h3 class="font-bold mb-2" {id}>
                 {b.title}
               </h3>
             {/if}
@@ -82,16 +80,14 @@
     </section>
 
     <section class="flex-1" aria-labelledby={instructionsSectionID}>
-      <h2 class="font-serif text-xl font-bold mb-4 md:mb-6" id={instructionsSectionID}>
-        Instructions
-      </h2>
+      <h2 class="text-xl font-bold mb-4 md:mb-6" id={instructionsSectionID}>Instructions</h2>
 
       <div class="flex flex-col gap-4">
         {#each recipe.instruction_blocks as b}
           {@const id = uid()}
           <div class="flex flex-col">
             {#if b.title}
-              <h3 class="font-serif font-bold mb-2" {id}>
+              <h3 class="font-bold mb-2" {id}>
                 {b.title}
               </h3>
             {/if}
