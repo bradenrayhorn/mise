@@ -1,0 +1,22 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    ":separateMajorReleases",
+    ":ignoreModulesAndTests",
+    "group:monorepos",
+    "group:recommended",
+    "group:allNonMajor",
+    "workarounds:all",
+    "replacements:all",
+    "docker:pinDigests",
+    "helpers:pinGitHubActionDigests",
+    ":combinePatchMinorReleases",
+    ":disableRateLimiting",
+    ":pinDevDependencies",
+    ":semanticCommits"
+  ],
+  "schedule": ["every 2 week on monday"],
+  "minimumReleaseAge": "5 days",
+  "internalChecksFilter": "strict",
+  "ignorePaths": ["docker/docker-compose.yml"]
+}
