@@ -110,3 +110,50 @@ jobs:
         run: npm run test:unit
         working-directory: ./ui
         if: always()
+
+  test-e2e:
+    name: Test E2E
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+
+      - name: Setup node
+        uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4
+        with:
+          node-version-file: "./ui/.nvmrc"
+
+      - name: Setup go
+        uses: actions/setup-go@cdcb36043654635271a94b9a6d1392de5bb323a7 # v5
+        with:
+          go-version: '1.22'
+          cache: false
+
+      - name: setup vips
+        run: sudo apt-get update && sudo apt-get install -y libvips-tools && vips --version
+
+      - name: Install fake-oidc
+        run: go install github.com/bradenrayhorn/fake-oidc@v0
+
+      - name: Install Svelte dependencies
+        working-directory: ./ui
+        run: npm install
+
+      - name: Install Playwright dependencies
+        working-directory: ./e2e
+        run: npm install
+
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps
+        working-directory: ./e2e
+
+      - name: Run Playwright tests
+        working-directory: ./e2e
+        run: npm run test
+
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report
+          path: e2e/playwright-report/
+          retention-days: 2

@@ -34,13 +34,12 @@
     <div class="flex flex-wrap gap-2">
       {#each defaultTagSet as id (id)}
         <SingleTag
+          name={tags.find((t) => t.id === id)?.name ?? ''}
           canDelete={true}
           on:click={() => {
             onDelete(id);
           }}
-        >
-          {tags.find((t) => t.id === id)?.name}
-        </SingleTag>
+        />
       {/each}
     </div>
     <div class="mt-6 w-full text-right">

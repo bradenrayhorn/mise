@@ -108,6 +108,7 @@ impl Harness {
         let config = mise::config::Config {
             http_port,
             origin: format!("http://localhost:{http_port}"),
+            insecure_cookies: false,
             static_build_path: "../ui/build".to_string(),
             oidc: mise::config::Oidc {
                 issuer_url: format!("http://localhost:{}", oidc_server.port),

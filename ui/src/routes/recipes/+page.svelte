@@ -106,7 +106,7 @@
           {:else if $recipesQuery.status === 'error'}
             <StreamedError error={$recipesQuery.error}>Could not load recipes.</StreamedError>
           {:else}
-            <div class="flex flex-col pl-4 md:px-4">
+            <section class="flex flex-col pl-4 md:px-4" aria-label="Recipe list">
               {#each $recipesQuery.data.data as recipe (recipe.id)}
                 <PrefetchLink
                   class="flex items-center border-b-divider-default border-b py-3 pr-4 md:px-4 hover:bg-base-600 hover:shadow transition data-[loading]:bg-base-primaryHover data-[loading]:animate-pulse"
@@ -141,7 +141,7 @@
                   <span>No recipes found.</span>
                 </div>
               {/each}
-            </div>
+            </section>
 
             <div class="w-full flex justify-between py-3 px-4">
               {#if hasCursor}

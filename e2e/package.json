@@ -1,0 +1,12 @@
+{
+  "name": "mise-e2e",
+  "version": "1.0.0",
+  "scripts": {
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.46.1",
+    "prettier": "3.3.3",
+    "uid": "2.0.2"
+  }
+}

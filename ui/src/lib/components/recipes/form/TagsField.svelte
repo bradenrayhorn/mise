@@ -38,13 +38,14 @@
   />
 {/if}
 
-<div class="flex flex-wrap gap-2">
+<ul class="flex flex-wrap gap-2" aria-label="Tags">
   {#each $tags as tag}
     <SingleTag
+      name={tag.name}
       canDelete={true}
       on:click={() => {
         $tags = $tags.filter((t) => t.id !== tag.id);
-      }}>{tag.name}</SingleTag
-    >
+      }}
+    />
   {/each}
-</div>
+</ul>

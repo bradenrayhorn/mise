@@ -56,7 +56,7 @@
   }
 </script>
 
-<button use:melt={$trigger} class="text-2xl">
+<button use:melt={$trigger} class="text-2xl" aria-label="Tag filter">
   {#if hasTagsApplied}
     <IconTagActive />
   {:else}
@@ -105,9 +105,13 @@
       </div>
 
       <div class="shrink-0 p-4 flex gap-2">
-        <button disabled={!hasTagsApplied} on:click={onClear} class="btn-solid btn-gray btn-sm grow"
-          >Clear</button
+        <button
+          on:click={onClear}
+          disabled={!hasTagsApplied}
+          class="btn-solid btn-gray btn-sm grow"
         >
+          Clear
+        </button>
         <button on:click={onApply} class="btn-solid btn-primary btn-sm grow">Apply</button>
       </div>
     </div>

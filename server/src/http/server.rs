@@ -36,6 +36,7 @@ pub struct Server {
 #[derive(Clone)]
 pub struct AppState {
     pub datasource: Pool,
+    pub config: Config,
     pub session_store: SessionStore,
     pub key: ring::hmac::Key,
     pub oidc_provider: Arc<oidc::Provider>,
@@ -72,6 +73,7 @@ impl Server {
 
         let state = AppState {
             key,
+            config: self.config.clone(),
             session_store: self.session_store.clone(),
             datasource: self.datasource.clone(),
             oidc_provider: self.oidc_provider.clone(),
@@ -178,7 +180,14 @@ async fn handle_base_redirect(
 ) -> (CookieJar, Redirect) {
     let previous_jar = jar.clone();
 
-    match check_if_authenticated(&state.session_store, &state.oidc_provider, jar).await {
+    match check_if_authenticated(
+        &state.config,
+        &state.session_store,
+        &state.oidc_provider,
+        jar,
+    )
+    .await
+    {
         Ok((jar, _)) => (jar, Redirect::temporary("/recipes")),
         Err(_) => (previous_jar, Redirect::temporary("/login")),
     }
@@ -207,14 +216,20 @@ async fn auth_middleware(
 ) -> Result<(CookieJar, Response), Error> {
     let previous_jar = jar.clone();
 
-    let (jar, user) =
-        match check_if_authenticated(&state.session_store, &state.oidc_provider, jar).await {
-            Ok(r) => r,
-            Err(err) => {
-                let jar = previous_jar.remove(Cookie::from("id"));
-                return Ok((jar, err.into_response()));
-            }
-        };
+    let (jar, user) = match check_if_authenticated(
+        &state.config,
+        &state.session_store,
+        &state.oidc_provider,
+        jar,
+    )
+    .await
+    {
+        Ok(r) => r,
+        Err(err) => {
+            let jar = previous_jar.remove(Cookie::from("id"));
+            return Ok((jar, err.into_response()));
+        }
+    };
 
     req.extensions_mut().insert(user);
 
@@ -244,6 +259,7 @@ async fn no_cache_middleware(request: Request, next: Next) -> Response {
 }
 
 async fn check_if_authenticated(
+    config: &Config,
     session_store: &SessionStore,
     oidc_provider: &oidc::Provider,
     jar: CookieJar,
@@ -268,7 +284,7 @@ async fn check_if_authenticated(
         jar.add(
             Cookie::build(("id", session.key.to_string()))
                 .http_only(true)
-                .secure(true)
+                .secure(!config.insecure_cookies)
                 .path("/")
                 .same_site(cookie::SameSite::Strict)
                 .max_age(cookie::time::Duration::seconds(
