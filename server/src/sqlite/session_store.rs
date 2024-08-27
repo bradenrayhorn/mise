@@ -87,6 +87,9 @@ impl ThreadWorker {
                     } => {
                         let _ = respond_to.send(set(&conn, &session));
                     }
+                    Message::PruneExpired { respond_to } => {
+                        let _ = respond_to.send(prune_expired_sessions(&conn));
+                    }
                     Message::LockRefresh {
                         key,
                         max_lock,
@@ -97,6 +100,9 @@ impl ThreadWorker {
                     }
                     Message::UnlockRefresh { key, respond_to } => {
                         let _ = respond_to.send(unlock_refresh(&conn, &key));
+                    }
+                    Message::PruneExpiredRefresh { respond_to } => {
+                        let _ = respond_to.send(prune_expired_refresh_locks(&conn));
                     }
                 }
             }
@@ -149,6 +155,15 @@ fn delete(conn: &Connection, key: &SessionKey) -> Result<(), Error> {
     Ok(())
 }
 
+fn prune_expired_sessions(conn: &Connection) -> Result<(), Error> {
+    let q = "DELETE FROM sessions WHERE expires_at <= datetime('now')";
+
+    let mut stmt = conn.prepare_cached(q)?;
+    stmt.execute([])?;
+
+    Ok(())
+}
+
 fn lock_refresh(
     conn: &mut Connection,
     key: &SessionKey,
@@ -181,6 +196,15 @@ fn unlock_refresh(conn: &Connection, key: &SessionKey) -> Result<(), Error> {
 
     let mut stmt = conn.prepare_cached(q)?;
     stmt.execute([key])?;
+
+    Ok(())
+}
+
+fn prune_expired_refresh_locks(conn: &Connection) -> Result<(), Error> {
+    let q = "DELETE FROM refresh_locks WHERE lock_invalid_at <= datetime('now')";
+
+    let mut stmt = conn.prepare_cached(q)?;
+    stmt.execute([])?;
 
     Ok(())
 }

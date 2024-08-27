@@ -27,6 +27,9 @@ impl From<tokio::sync::oneshot::error::RecvError> for Error {
     }
 }
 
+const PRUNE_EXPIRED_SESSIONS_DELAY: u64 = 60 * 60;
+const PRUNE_EXPIRED_REFRESH_LOCKS_DELAY: u64 = 60 * 60;
+
 #[derive(Clone)]
 pub struct SessionStore {
     sender: mpsc::Sender<Message>,
@@ -38,7 +41,59 @@ pub struct RefreshLockStatus {
 
 impl SessionStore {
     #[must_use]
-    pub fn new(sender: mpsc::Sender<Message>) -> Self {
+    pub fn new(
+        sender: mpsc::Sender<Message>,
+        background_job_result_sender: mpsc::Sender<BackgroundResultMessage>,
+    ) -> Self {
+        let prune_sessions_sender = sender.clone();
+        let prune_refresh_locks_sender = sender.clone();
+        let prune_sessions_background_sender = background_job_result_sender.clone();
+        let prune_refresh_locks_background_sender = background_job_result_sender;
+
+        // prune expired sessions
+        tokio::spawn(async move {
+            loop {
+                let (tx, rx) = oneshot::channel();
+                let msg = Message::PruneExpired { respond_to: tx };
+
+                let _ = prune_sessions_sender.send(msg).await;
+                let result = rx
+                    .await
+                    .context("SessionStore::PruneExpired")
+                    .map_err(Error::Other)
+                    .and_then(|x| x);
+                let _ = prune_sessions_background_sender
+                    .send(BackgroundResultMessage::PruneExpiredSessions { result })
+                    .await;
+
+                tokio::time::sleep(std::time::Duration::from_secs(PRUNE_EXPIRED_SESSIONS_DELAY))
+                    .await;
+            }
+        });
+
+        // prune expired refresh locks
+        tokio::spawn(async move {
+            loop {
+                let (tx, rx) = oneshot::channel();
+                let msg = Message::PruneExpiredRefresh { respond_to: tx };
+
+                let _ = prune_refresh_locks_sender.send(msg).await;
+                let result = rx
+                    .await
+                    .context("SessionStore::PruneRefreshLocks")
+                    .map_err(Error::Other)
+                    .and_then(|x| x);
+                let _ = prune_refresh_locks_background_sender
+                    .send(BackgroundResultMessage::PruneExpiredRefreshLocks { result })
+                    .await;
+
+                tokio::time::sleep(std::time::Duration::from_secs(
+                    PRUNE_EXPIRED_REFRESH_LOCKS_DELAY,
+                ))
+                .await;
+            }
+        });
+
         SessionStore { sender }
     }
 
@@ -113,6 +168,12 @@ impl SessionStore {
     }
 }
 
+#[derive(Debug)]
+pub enum BackgroundResultMessage {
+    PruneExpiredSessions { result: Result<(), Error> },
+    PruneExpiredRefreshLocks { result: Result<(), Error> },
+}
+
 pub enum Message {
     Get {
         key: SessionKey,
@@ -126,6 +187,9 @@ pub enum Message {
         session: Session,
         respond_to: oneshot::Sender<Result<(), Error>>,
     },
+    PruneExpired {
+        respond_to: oneshot::Sender<Result<(), Error>>,
+    },
     LockRefresh {
         key: SessionKey,
         max_lock: Duration,
@@ -133,6 +197,9 @@ pub enum Message {
     },
     UnlockRefresh {
         key: SessionKey,
+        respond_to: oneshot::Sender<Result<(), Error>>,
+    },
+    PruneExpiredRefresh {
         respond_to: oneshot::Sender<Result<(), Error>>,
     },
 }

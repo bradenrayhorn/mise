@@ -3,9 +3,10 @@ use mise::{
     http::Server,
     imagestore::{self, ImageBackend},
     oidc, s3,
-    session_store::SessionStore,
+    session_store::{self, SessionStore},
     sqlite,
 };
+use tokio::sync::mpsc;
 
 #[tokio::main]
 async fn main() {
@@ -38,8 +39,26 @@ async fn main() {
         }
     };
 
+    let (background_result_sender, mut receiver) = mpsc::channel(8);
+    tokio::spawn(async move {
+        while let Some(msg) = receiver.recv().await {
+            match msg {
+                session_store::BackgroundResultMessage::PruneExpiredSessions { result } => {
+                    if let Err(err) = result {
+                        println!("Failed to prune sessions: {}.", err);
+                    }
+                }
+                session_store::BackgroundResultMessage::PruneExpiredRefreshLocks { result } => {
+                    if let Err(err) = result {
+                        println!("Failed to prune refresh locks: {}.", err);
+                    }
+                }
+            }
+        }
+    });
+
     let pool = datastore::Pool::new(senders);
-    let cache = SessionStore::new(session_store_sender);
+    let cache = SessionStore::new(session_store_sender, background_result_sender);
 
     let oidc_provider = oidc::Provider::new((&config).try_into().unwrap())
         .await
