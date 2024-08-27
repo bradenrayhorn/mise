@@ -142,10 +142,15 @@ impl Harness {
             let session_store =
                 mise::sqlite::session_store(&sv_cache_path).expect("could not make session store");
 
+            let (background_result_sender, mut receiver) = tokio::sync::mpsc::channel(8);
+            tokio::task::spawn(async move {
+                let _ = receiver.recv().await;
+            });
+
             let server = mise::http::Server::new(
                 config,
                 mise::datastore::Pool::new(connections),
-                mise::session_store::SessionStore::new(session_store),
+                mise::session_store::SessionStore::new(session_store, background_result_sender),
                 oidc,
                 ImageStore::new(Box::from(
                     file::ImageBackend::new(&sv_images_path)

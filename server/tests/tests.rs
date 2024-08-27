@@ -3,6 +3,10 @@ mod datastore {
     pub mod sqlite;
 }
 
+mod sessionstore {
+    mod sqlite;
+}
+
 mod http {
     mod auth;
     mod image;
