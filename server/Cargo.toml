@@ -45,7 +45,7 @@ bidiff = "1.0.0"
 bipatch = "1.0.0"
 postcard = { version = "1.0.8", features = ["alloc"] }
 zstd = "0.13.1"
-sea-query = { version = "0.31.0", default-features = false, features = [
+sea-query = { version = "0.32.0", default-features = false, features = [
 	"backend-sqlite",
 	"derive",
 ] }
@@ -54,7 +54,7 @@ async-trait = "0.1.80"
 hex = { version = "0.4.3", default-features = false }
 semver = "1.0.23"
 reqwest_cookie_store = "0.8.0"
-tower-http = { version = "0.5.2", features = ["fs", "timeout"] }
+tower-http = { version = "0.6.0", features = ["fs", "timeout"] }
 tower = "0.5.0"
 ammonia = "4.0.0"
 pulldown-cmark = "0.12.0"
