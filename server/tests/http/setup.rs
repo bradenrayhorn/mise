@@ -111,7 +111,7 @@ impl Harness {
             insecure_cookies: false,
             static_build_path: "../ui/build".to_string(),
             oidc: mise::config::Oidc {
-                issuer_url: format!("http://localhost:{}", oidc_server.port),
+                issuer_url: format!("http://[::]:{}", oidc_server.port),
                 client_id: "dev-client".to_string(),
                 client_secret: "secure-secret".to_string(),
             },
