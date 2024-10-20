@@ -3,7 +3,7 @@ origin = "http://127.0.0.1:3000"
 insecure_cookies = true
 
 [oidc]
-issuer_url = "http://localhost:7835"
+issuer_url = "http://[::]:7835"
 client_id = "dev-client"
 client_secret = "secure-secret"
 
