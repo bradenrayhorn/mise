@@ -1,6 +1,7 @@
 http_port = 3000
 origin = "http://127.0.0.1:3000"
 insecure_cookies = true
+search_index_directory = "../e2e/search-index"
 
 [oidc]
 issuer_url = "http://[::]:7835"

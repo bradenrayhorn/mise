@@ -10,5 +10,6 @@ pub mod http;
 pub mod imagestore;
 pub mod oidc;
 pub mod s3;
+pub mod search;
 pub mod session_store;
 pub mod sqlite;

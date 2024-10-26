@@ -132,7 +132,13 @@ pub async fn create(
         tag_ids: request.tag_ids,
     };
 
-    let id = core::recipe::create(&state.datasource, user.into(), creating_recipe).await?;
+    let id = core::recipe::create(
+        &state.datasource,
+        &state.search_backend,
+        user.into(),
+        creating_recipe,
+    )
+    .await?;
 
     Ok(axum::response::Json(responses::Data { data: id.into() }))
 }
@@ -203,7 +209,6 @@ pub async fn list(
     let base64_engine = base64::engine::general_purpose::URL_SAFE;
 
     let filter = domain::filter::Recipe {
-        name: params.title,
         tag_ids: match params.tag_ids {
             None => vec![],
             Some(tag_ids) => tag_ids
@@ -221,7 +226,14 @@ pub async fn list(
         }
     };
 
-    let page = core::recipe::list(&state.datasource, filter, cursor).await?;
+    let page = core::recipe::list(
+        &state.datasource,
+        &state.search_backend,
+        params.title,
+        filter,
+        cursor,
+    )
+    .await?;
 
     Ok(axum::response::Json(Page {
         data: page
@@ -281,7 +293,13 @@ pub async fn update(
         },
         tag_ids: request.tag_ids,
     };
-    core::recipe::update(&state.datasource, user.into(), updating_recipe).await?;
+    core::recipe::update(
+        &state.datasource,
+        &state.search_backend,
+        user.into(),
+        updating_recipe,
+    )
+    .await?;
 
     Ok(())
 }

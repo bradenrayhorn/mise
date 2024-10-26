@@ -1,11 +1,15 @@
 use crate::{
     core::Error,
     datastore::{self, Pool, RecipeDocument},
-    domain::{self, recipe::StringifiedBlock, CreatingRecipe, Recipe, UpdatingRecipe},
+    domain::{
+        self, recipe::StringifiedBlock, CreatingRecipe, ListedRecipe, Recipe, UpdatingRecipe,
+    },
+    search::Backend,
 };
 
 pub async fn create(
     datastore: &Pool,
+    search_backend: &Backend,
     user: domain::user::Authenticated,
     recipe: CreatingRecipe,
 ) -> Result<domain::recipe::Id, Error> {
@@ -33,11 +37,17 @@ pub async fn create(
         .await
         .map_err(|err| Error::Other(err.into()))?;
 
+    search_backend
+        .index_recipes()
+        .await
+        .map_err(|err| Error::Other(err.into()))?;
+
     Ok(id)
 }
 
 pub async fn update(
     datastore: &Pool,
+    search_backend: &Backend,
     user: domain::user::Authenticated,
     recipe: UpdatingRecipe,
 ) -> Result<(), Error> {
@@ -73,6 +83,11 @@ pub async fn update(
             _ => Error::Other(err.into()),
         })?;
 
+    search_backend
+        .index_recipes()
+        .await
+        .map_err(|err| Error::Other(err.into()))?;
+
     Ok(())
 }
 
@@ -88,11 +103,40 @@ pub async fn get(datastore: &Pool, id: domain::recipe::Id) -> Result<Recipe, Err
 
 pub async fn list(
     datastore: &Pool,
+    search_backend: &Backend,
+    query: Option<String>,
     filter: domain::filter::Recipe,
     cursor: Option<domain::page::cursor::Recipe>,
 ) -> Result<domain::page::Recipe, Error> {
-    datastore
-        .list_recipes(filter, cursor)
+    if let Some(search) = query {
+        let recipe_ids = search_backend
+            .search(search, filter)
+            .await
+            .map_err(|err| Error::Other(err.into()))?;
+
+        let recipes = futures::future::try_join_all(recipe_ids.into_iter().map(|id| async {
+            let recipe = datastore
+                .get_recipe(id.into())
+                .await
+                .map_err(|err| Error::Other(err.into()))?;
+
+            Ok(ListedRecipe {
+                id: recipe.id,
+                title: recipe.title,
+                image_id: recipe.image_id,
+            })
+        }))
         .await
-        .map_err(|err| Error::Other(err.into()))
+        .map_err(|err: Error| Error::Other(err.into()))?;
+
+        Ok(domain::page::Recipe {
+            items: recipes,
+            next: None,
+        })
+    } else {
+        datastore
+            .list_recipes(filter, cursor)
+            .await
+            .map_err(|err| Error::Other(err.into()))
+    }
 }

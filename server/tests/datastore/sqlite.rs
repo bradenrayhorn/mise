@@ -38,6 +38,7 @@ impl CreatesDatastore for SqliteCreator {
             &file_path,
             &sqlite::DatastoreConfig {
                 recipe_page_size: 2,
+                recipe_dump_page_size: 2,
             },
         )
         .unwrap();
