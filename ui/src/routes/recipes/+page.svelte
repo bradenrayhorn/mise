@@ -32,6 +32,8 @@
     queryFn: () => getRecipes({ fetch, cursor, search, tags }),
   });
 
+  $: hasSearch = search.trim().length > 0;
+
   let searchValue = $page.url.searchParams.get('search') ?? '';
   $: tagValues = ($page.url.searchParams.get('tags') ?? '').split(',').filter((t) => t);
 </script>
@@ -142,6 +144,12 @@
                 </div>
               {/each}
             </section>
+
+            {#if hasSearch}
+              <div class="w-full py-5 text-center text-fg-muted">
+                Search only returns top results. Refine your search to see more results.
+              </div>
+            {/if}
 
             <div class="w-full flex justify-between py-3 px-4">
               {#if hasCursor}

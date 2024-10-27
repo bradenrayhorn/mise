@@ -16,6 +16,7 @@ mod internal {
         pub http_port: Option<u16>,
         pub origin: String,
         pub insecure_cookies: Option<bool>,
+        pub search_index_directory: Option<String>,
 
         pub oidc: Oidc,
         pub sqlite: Sqlite,
@@ -71,6 +72,8 @@ pub struct Config {
     pub origin: String,
     pub insecure_cookies: bool,
     pub static_build_path: String,
+
+    pub search_index_directory: String,
 
     pub oidc: Oidc,
     pub sqlite: Sqlite,
@@ -132,6 +135,9 @@ pub fn from_filesystem() -> Result<Config, Error> {
         static_build_path: env::var("MISE_STATIC_BUILD")
             .ok()
             .unwrap_or("../ui/build".to_owned()),
+        search_index_directory: parsed
+            .search_index_directory
+            .unwrap_or("search-index".to_owned()),
         oidc: Oidc {
             issuer_url: parsed.oidc.issuer_url,
             client_id: parsed.oidc.client_id,

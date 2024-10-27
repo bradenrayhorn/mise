@@ -110,6 +110,15 @@ pub struct ListedRecipe {
     pub image_id: Option<image::Id>,
 }
 
+#[derive(Debug, Clone)]
+pub struct DumpedIndexableRecipe {
+    pub id: recipe::Id,
+    pub title: recipe::Title,
+    pub ingredients: Vec<recipe::IngredientBlock>,
+    pub instructions: Vec<recipe::InstructionBlock>,
+    pub tag_ids: Vec<tag::Id>,
+}
+
 #[derive(thiserror::Error, Debug)]
 pub enum ValidationError {
     #[error("{self}")]
@@ -122,7 +131,6 @@ pub mod filter {
 
     #[derive(Debug, Clone)]
     pub struct Recipe {
-        pub name: Option<String>,
         pub tag_ids: Vec<super::tag::Id>,
     }
 }
@@ -136,6 +144,12 @@ pub mod page {
         pub next: Option<cursor::Recipe>,
     }
 
+    #[derive(Debug, Clone)]
+    pub struct DumpedIndexableRecipe {
+        pub items: Vec<super::DumpedIndexableRecipe>,
+        pub next: Option<cursor::DumpedIndexableRecipe>,
+    }
+
     pub mod cursor {
         use serde::{Deserialize, Serialize};
 
@@ -143,6 +157,11 @@ pub mod page {
         pub struct Recipe {
             pub id: String,
             pub name: String,
+        }
+
+        #[derive(Debug, Clone)]
+        pub struct DumpedIndexableRecipe {
+            pub id: String,
         }
     }
 }
@@ -330,6 +349,41 @@ pub mod recipe {
                     .collect::<Result<Vec<Ingredient>, ValidationError>>()?,
             })
         }
+    }
+
+    #[must_use]
+    pub fn dump_ingredient_block(ingredients: Vec<IngredientBlock>) -> String {
+        ingredients
+            .into_iter()
+            .flat_map(|block| {
+                let mut b = vec![];
+                if let Some(title) = block.title {
+                    b.push(String::from(title));
+                }
+                let mut is: Vec<String> = block.ingredients.into_iter().map(String::from).collect();
+                b.append(&mut is);
+                b
+            })
+            .collect::<Vec<String>>()
+            .join(" ")
+    }
+
+    #[must_use]
+    pub fn dump_instruction_block(instructions: Vec<InstructionBlock>) -> String {
+        instructions
+            .into_iter()
+            .flat_map(|block| {
+                let mut b = vec![];
+                if let Some(title) = block.title {
+                    b.push(String::from(title));
+                }
+                let mut is: Vec<String> =
+                    block.instructions.into_iter().map(String::from).collect();
+                b.append(&mut is);
+                b
+            })
+            .collect::<Vec<String>>()
+            .join(" ")
     }
 
     impl From<IngredientBlock> for StringifiedBlock {

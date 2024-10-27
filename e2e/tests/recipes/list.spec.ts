@@ -75,12 +75,11 @@ test('can filter by tag and search', async ({ login: user, page, request, isMobi
 test('can use pagination', async ({ login: user, page, request, isMobile }) => {
   const tagA = await createTag({ user, request, name: 'Alpha' });
 
-  // these recipes should never show up - verifying search and filter remain applied
-  await createRecipe({ user, request, recipe: { title: `00`, tagIDs: [tagA] } });
+  // this recipes should never show up - verifying tag filter remains applied
   await createRecipe({ user, request, recipe: { title: `Prefix1`, tagIDs: [] } });
 
-  // add 25 recipes, page size is 10
-  for (let i = 10; i < 35; i++) {
+  // add 45 recipes, page size is 20
+  for (let i = 10; i < 55; i++) {
     await createRecipe({ user, request, recipe: { title: `Prefix${i}`, tagIDs: [tagA] } });
   }
 
@@ -88,28 +87,26 @@ test('can use pagination', async ({ login: user, page, request, isMobile }) => {
   await page.goto('/recipes');
   const recipeList = page.getByRole('region', { name: 'Recipe list' });
 
-  // add tag and search, these should be persisted through the navigation
+  // add tag filter, should be persisted through the navigation
   await addTagFilter({ page, user, isMobile, tags: ['Alpha'] });
-  await page.getByLabel('Search').fill(`${user}Prefix`);
-  await page.getByLabel('Search').press('Enter');
 
   // check page 1
   await expect(recipeList.getByRole('link')).toHaveText(
-    [...Array(10).keys()].map((i) => `${user}Prefix${i + 10}`),
+    [...Array(20).keys()].map((i) => `${user}Prefix${i + 10}`),
   );
 
   // next page (2)
   await page.getByRole('link', { name: 'Next' }).click();
 
   await expect(recipeList.getByRole('link')).toHaveText(
-    [...Array(10).keys()].map((i) => `${user}Prefix${i + 20}`),
+    [...Array(20).keys()].map((i) => `${user}Prefix${i + 30}`),
   );
 
   // next page (3), this is the last page
   await page.getByRole('link', { name: 'Next' }).click();
 
   await expect(recipeList.getByRole('link')).toHaveText(
-    [...Array(5).keys()].map((i) => `${user}Prefix${i + 30}`),
+    [...Array(5).keys()].map((i) => `${user}Prefix${i + 50}`),
   );
 
   // go back to page 1
@@ -117,11 +114,10 @@ test('can use pagination', async ({ login: user, page, request, isMobile }) => {
   await page.getByRole('link', { name: 'Back to first' }).click();
 
   await expect(recipeList.getByRole('link')).toHaveText(
-    [...Array(10).keys()].map((i) => `${user}Prefix${i + 10}`),
+    [...Array(20).keys()].map((i) => `${user}Prefix${i + 10}`),
   );
 
-  // search and tag are still here
-  await expect(page.getByLabel('Search')).toHaveValue(`${user}Prefix`);
+  // tag is still here
 
   if (isMobile) {
     await page.getByRole('button', { name: 'Tag filter' }).click();

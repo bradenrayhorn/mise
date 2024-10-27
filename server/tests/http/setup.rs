@@ -1,5 +1,5 @@
 use base64::Engine;
-use mise::{file, imagestore::ImageStore, oidc};
+use mise::{file, imagestore::ImageStore, oidc, search::Backend};
 use rand::{distributions::Alphanumeric, Rng};
 use std::{net::TcpListener, sync::Arc, time::Duration};
 
@@ -72,6 +72,7 @@ pub struct Harness {
     db_path: String,
     session_db_path: String,
     images_path: String,
+    index_path: String,
     client: reqwest::Client,
     base_url: String,
     session_id: Option<String>,
@@ -83,6 +84,7 @@ impl Drop for Harness {
         let _ = std::fs::remove_file(&self.db_path);
         let _ = std::fs::remove_file(&self.session_db_path);
         let _ = std::fs::remove_dir_all(&self.images_path);
+        let _ = std::fs::remove_dir_all(&self.index_path);
     }
 }
 
@@ -100,6 +102,7 @@ impl Harness {
             .map(char::from)
             .collect();
         let images_path = format!("/tmp/{}-mise-images", random_prefix);
+        let index_path = format!("/tmp/{}-mise-indexes", random_prefix);
         let db_path = format!("/tmp/{}-mise.db", random_prefix);
         let session_db_path = format!("/tmp/{}-mise-sessions.db", random_prefix);
 
@@ -110,6 +113,7 @@ impl Harness {
             origin: format!("http://localhost:{http_port}"),
             insecure_cookies: false,
             static_build_path: "../ui/build".to_string(),
+            search_index_directory: index_path.clone(),
             oidc: mise::config::Oidc {
                 issuer_url: format!("http://[::]:{}", oidc_server.port),
                 client_id: "dev-client".to_string(),
@@ -131,11 +135,13 @@ impl Harness {
         let sv_db_path = db_path.clone();
         let sv_cache_path = session_db_path.clone();
         let sv_images_path = images_path.clone();
+        let sv_index_path = index_path.clone();
         tokio::task::spawn(async move {
             let (_, connections) = mise::sqlite::datastore_handler(
                 &sv_db_path,
                 &mise::sqlite::DatastoreConfig {
                     recipe_page_size: 2,
+                    recipe_dump_page_size: 10,
                 },
             )
             .expect("could not make datastore");
@@ -147,9 +153,12 @@ impl Harness {
                 let _ = receiver.recv().await;
             });
 
+            let datastore = mise::datastore::Pool::new(connections);
+            let sb = Backend::new(&sv_index_path, datastore.clone()).unwrap();
+
             let server = mise::http::Server::new(
                 config,
-                mise::datastore::Pool::new(connections),
+                datastore,
                 mise::session_store::SessionStore::new(session_store, background_result_sender),
                 oidc,
                 ImageStore::new(Box::from(
@@ -157,6 +166,7 @@ impl Harness {
                         .await
                         .expect("could not make image backend"),
                 )),
+                sb,
             );
             if let Err(err) = server.start().await {
                 println!("Failed to start http server: {:?}", err);
@@ -173,6 +183,7 @@ impl Harness {
             db_path,
             session_db_path,
             images_path,
+            index_path,
             client,
             base_url: format!("http://localhost:{http_port}"),
             session_id: None,

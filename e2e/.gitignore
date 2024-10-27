@@ -4,6 +4,7 @@ node_modules/
 /blob-report/
 /playwright/.cache/
 
+search-index/
 images/
 mise.db*
 mise_sessions.db*

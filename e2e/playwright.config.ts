@@ -40,11 +40,11 @@ export default defineConfig({
     },
     {
       command:
-        '(cd ../ui && npm run build) && (cd ../server && MISE_CONFIG=../e2e/mise.toml cargo run --release)',
+        '(cd ../ui && npm run build) && (cd ../server && MISE_CONFIG=../e2e/mise.toml cargo run)',
       url: 'http://127.0.0.1:3000/health-check',
       reuseExistingServer: !process.env.CI,
       stdout: 'pipe',
-      timeout: 180000,
+      timeout: 300000,
     },
   ],
 });

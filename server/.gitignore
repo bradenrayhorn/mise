@@ -1,5 +1,6 @@
 target/
 images/
+search-index/
 mise.db*
 mise_sessions.db*
 mise.toml

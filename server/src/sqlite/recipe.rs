@@ -1,6 +1,5 @@
 use anyhow::Context;
 use rusqlite::{params, Connection};
-use sea_query::{Cond, Expr, Query, SqliteQueryBuilder};
 
 use crate::{
     datastore::{Error, HashedRecipeDocument, RecipeDocument, VersionedRecipeDocument},
@@ -133,79 +132,117 @@ pub fn update(
     Ok(())
 }
 
+pub fn dump_recipes_for_index(
+    conn: &Connection,
+    page_size: u64,
+    cursor: Option<domain::page::cursor::DumpedIndexableRecipe>,
+) -> Result<domain::page::DumpedIndexableRecipe, Error> {
+    struct QueryResult {
+        id: domain::recipe::Id,
+        document: Vec<u8>,
+    }
+
+    let query =
+        format!("SELECT id,document FROM recipes WHERE id > ? ORDER BY id ASC LIMIT {page_size}");
+
+    let mut stmt = conn.prepare_cached(&query)?;
+    let result = stmt.query_and_then(params![cursor.map_or(String::new(), |c| c.id)], |row| {
+        Ok(QueryResult {
+            id: (row.get::<_, String>("id")?.as_str()).try_into()?,
+            document: row.get("document")?,
+        })
+    })?;
+
+    let results: Result<Vec<QueryResult>, Error> = result.collect();
+    let results = results?;
+
+    let recipes: Result<Vec<domain::DumpedIndexableRecipe>, Error> = results
+        .into_iter()
+        .map(|result| -> Result<domain::DumpedIndexableRecipe, Error> {
+            let versioned_document: VersionedRecipeDocument =
+                postcard::from_bytes(&result.document).map_err(|err| Error::Unknown(err.into()))?;
+            let document: RecipeDocument = versioned_document.into();
+
+            Ok(RecipeDocument::to_dumped_indexable_recipe(
+                result.id, document,
+            )?)
+        })
+        .collect();
+    let recipes = recipes?;
+
+    let last =
+        if recipes.len() == usize::try_from(page_size).map_err(|err| Error::Unknown(err.into()))? {
+            recipes.last()
+        } else {
+            None
+        };
+
+    Ok(domain::page::DumpedIndexableRecipe {
+        next: last.map(|last| domain::page::cursor::DumpedIndexableRecipe {
+            id: last.id.to_string(),
+        }),
+        items: recipes,
+    })
+}
+
 pub fn list_recipes(
     conn: &Connection,
     page_size: u64,
-    filter: domain::filter::Recipe,
+    filter: &domain::filter::Recipe,
     cursor: Option<domain::page::cursor::Recipe>,
 ) -> Result<domain::page::Recipe, Error> {
     let tag_count =
         u64::try_from(filter.tag_ids.len()).context("could not convert vec len to u64")?;
 
-    let mut binding = Query::select();
-    let builder =
-        binding
-            .column((sea::Recipes::Table, sea::Recipes::Id))
-            .column(sea::Recipes::Title)
-            .column(sea::Recipes::ImageId)
-            .from(sea::Recipes::Table)
-            .left_join(
-                sea::RecipeTags::Table,
-                Expr::col((sea::Recipes::Table, sea::Recipes::Id))
-                    .equals((sea::RecipeTags::Table, sea::RecipeTags::RecipeId)),
-            )
-            .cond_where(
-                Cond::all()
-                    .add_option(cursor.map(|cursor| {
-                        Cond::any()
-                            .add(Expr::col(sea::Recipes::Title).gt(&cursor.name))
-                            .add(
-                                Cond::all()
-                                    .add(Expr::col(sea::Recipes::Title).eq(&cursor.name))
-                                    .add(
-                                        Expr::col((sea::Recipes::Table, sea::Recipes::Id))
-                                            .gt(&cursor.id),
-                                    ),
-                            )
-                    }))
-                    .add_option(filter.name.map(|name| {
-                        Expr::col(sea::Recipes::Title).like(format!("%{}%", name.trim()))
-                    }))
-                    .add_option(if filter.tag_ids.is_empty() {
-                        None
-                    } else {
-                        let tag_ids: Vec<String> = filter
-                            .tag_ids
-                            .into_iter()
-                            .map(Into::<String>::into)
-                            .collect();
-                        Some(Expr::col(sea::RecipeTags::TagId).is_in(tag_ids))
-                    }),
-            )
-            .group_by_columns([
-                (sea::Recipes::Table, sea::Recipes::Id),
-                (sea::Recipes::Table, sea::Recipes::Title),
-            ])
-            .order_by(
-                (sea::Recipes::Table, sea::Recipes::Title),
-                sea_query::Order::Asc,
-            )
-            .order_by(
-                (sea::Recipes::Table, sea::Recipes::Id),
-                sea_query::Order::Asc,
-            )
-            .limit(page_size);
+    let mut params = query::Params::new();
 
-    if tag_count > 0 {
-        builder.and_having(
-            Expr::col((sea::Recipes::Table, sea::Recipes::Id))
-                .count()
-                .eq(tag_count),
-        );
+    // WHERE
+    let mut wheres: Vec<String> = vec![];
+
+    if let Some(cursor) = cursor {
+        params.push(query::Param::String(cursor.name.clone()));
+        params.push(query::Param::String(cursor.name.clone()));
+        params.push(query::Param::String(cursor.id));
+        wheres.push("(recipes.title > ? OR (recipes.title = ? AND recipes.id > ?))".into());
     }
 
-    let (query, values) = builder.build(SqliteQueryBuilder);
-    let params: sea::Params = values.into();
+    if !filter.tag_ids.is_empty() {
+        for tag_id in &filter.tag_ids {
+            let tag_id = String::from(tag_id);
+            params.push(query::Param::String(tag_id));
+        }
+
+        let param_string = query::param_string(filter.tag_ids.len());
+        wheres.push(format!("recipe_tags.tag_id IN ({param_string})"));
+    }
+
+    let where_clause = if wheres.is_empty() {
+        ""
+    } else {
+        &format!("WHERE {}", wheres.join(" AND "))
+    };
+
+    // HAVING
+    let having_clause = if tag_count > 0 {
+        params.push(query::Param::U64(tag_count));
+
+        "HAVING count(recipes.id) = ?"
+    } else {
+        ""
+    };
+
+    let query = format!(
+        "
+        SELECT recipes.id, recipes.title, recipes.image_id
+        FROM recipes
+        LEFT JOIN recipe_tags ON recipes.id = recipe_tags.recipe_id
+        {where_clause}
+        GROUP BY recipes.id, recipes.title
+        {having_clause}
+        ORDER BY recipes.title ASC, recipes.id ASC
+        LIMIT {page_size}
+        ;",
+    );
 
     let mut stmt = conn.prepare_cached(&query)?;
     let result = stmt.query_and_then(&*params.to_params(), |row| {
@@ -335,17 +372,14 @@ fn get_tags_for_recipe(
 ) -> Result<Vec<domain::tag::OnRecipe>, Error> {
     let tag_ids: Vec<String> = tag_ids.into_iter().map(Into::<String>::into).collect();
 
-    let (query, values) = Query::select()
-        .column(sea::Tags::Id)
-        .column(sea::Tags::Name)
-        .from(sea::Tags::Table)
-        .and_where(Expr::col(sea::Tags::Id).is_in(tag_ids))
-        .order_by(sea::Tags::Name, sea_query::Order::Asc)
-        .build(SqliteQueryBuilder);
-    let params: sea::Params = values.into();
+    let query = format!(
+        "SELECT id, name FROM tags WHERE id IN ({}) ORDER BY name ASC",
+        query::param_string(tag_ids.len())
+    );
+
     let mut stmt = conn.prepare_cached(&query)?;
 
-    let result = stmt.query_and_then(&*params.to_params(), |row| {
+    let result = stmt.query_and_then(rusqlite::params_from_iter(tag_ids), |row| {
         let id: String = row.get("id")?;
         let name: String = row.get("name")?;
         Ok(domain::tag::OnRecipe {
@@ -397,41 +431,26 @@ fn apply_patch(current: &[u8], compressed_patch: &[u8]) -> Result<Vec<u8>, Error
     Ok(patched_text)
 }
 
-mod sea {
+mod query {
     use rusqlite::ToSql;
-    use sea_query::Iden;
 
-    #[derive(Iden)]
-    pub enum Recipes {
-        Table,
-        Id,
-        Title,
-        ImageId,
-    }
+    pub struct Params(Vec<Param>);
 
-    #[derive(Iden)]
-    pub enum RecipeTags {
-        Table,
-        RecipeId,
-        TagId,
-    }
-
-    #[derive(Iden)]
-    pub enum Tags {
-        Table,
-        Id,
-        Name,
-    }
-
-    pub struct Params(Vec<SeaValue>);
-
-    impl From<sea_query::Values> for Params {
-        fn from(value: sea_query::Values) -> Self {
-            Params(value.into_iter().map(SeaValue).collect())
-        }
+    #[derive(Clone, Debug)]
+    pub enum Param {
+        U64(u64),
+        String(String),
     }
 
     impl Params {
+        pub fn new() -> Params {
+            Params(vec![])
+        }
+
+        pub fn push(&mut self, param: Param) {
+            self.0.push(param);
+        }
+
         pub fn to_params(&self) -> Vec<&dyn ToSql> {
             self.0
                 .iter()
@@ -443,33 +462,17 @@ mod sea {
         }
     }
 
-    struct SeaValue(sea_query::Value);
-    impl ToSql for SeaValue {
+    pub fn param_string(count: usize) -> String {
+        let mut param_string = "?,".repeat(count);
+        param_string.pop();
+        param_string
+    }
+
+    impl ToSql for Param {
         fn to_sql(&self) -> rusqlite::Result<rusqlite::types::ToSqlOutput<'_>> {
-            match &self.0 {
-                sea_query::Value::Bool(value) => value.to_sql(),
-                sea_query::Value::TinyInt(value) => value.to_sql(),
-                sea_query::Value::SmallInt(value) => value.to_sql(),
-                sea_query::Value::Int(value) => value.to_sql(),
-                sea_query::Value::BigInt(value) => value.to_sql(),
-                sea_query::Value::TinyUnsigned(value) => value.to_sql(),
-                sea_query::Value::SmallUnsigned(value) => value.to_sql(),
-                sea_query::Value::Unsigned(value) => value.to_sql(),
-                sea_query::Value::BigUnsigned(value) => value.to_sql(),
-                sea_query::Value::Float(value) => value.to_sql(),
-                sea_query::Value::Double(value) => value.to_sql(),
-                sea_query::Value::String(value) => match value {
-                    Some(value) => value.as_ref().to_sql(),
-                    None => rusqlite::types::Null.to_sql(),
-                },
-                sea_query::Value::Char(value) => match value {
-                    Some(value) => Ok(rusqlite::types::ToSqlOutput::from(value.to_string())),
-                    None => rusqlite::types::Null.to_sql(),
-                },
-                sea_query::Value::Bytes(value) => match value {
-                    Some(value) => value.as_ref().to_sql(),
-                    None => rusqlite::types::Null.to_sql(),
-                },
+            match &self {
+                Param::U64(value) => value.to_sql(),
+                Param::String(value) => value.to_sql(),
             }
         }
     }

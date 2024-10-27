@@ -20,6 +20,7 @@ use crate::{
     http,
     imagestore::ImageStore,
     oidc,
+    search::Backend,
     session_store::SessionStore,
 };
 
@@ -29,6 +30,7 @@ pub struct Server {
     config: Config,
     datasource: Pool,
     session_store: SessionStore,
+    search_backend: Backend,
     oidc_provider: Arc<oidc::Provider>,
     image_store: Arc<ImageStore>,
 }
@@ -38,6 +40,7 @@ pub struct AppState {
     pub datasource: Pool,
     pub config: Config,
     pub session_store: SessionStore,
+    pub search_backend: Backend,
     pub key: ring::hmac::Key,
     pub oidc_provider: Arc<oidc::Provider>,
     pub image_store: Arc<ImageStore>,
@@ -51,6 +54,7 @@ impl Server {
         session_store: SessionStore,
         oidc_provider: oidc::Provider,
         image_store: ImageStore,
+        search_backend: Backend,
     ) -> Self {
         Server {
             config,
@@ -58,6 +62,7 @@ impl Server {
             session_store,
             oidc_provider: Arc::new(oidc_provider),
             image_store: Arc::new(image_store),
+            search_backend,
         }
     }
 
@@ -78,6 +83,7 @@ impl Server {
             datasource: self.datasource.clone(),
             oidc_provider: self.oidc_provider.clone(),
             image_store: self.image_store.clone(),
+            search_backend: self.search_backend.clone(),
         };
 
         let router: Router = Router::new()

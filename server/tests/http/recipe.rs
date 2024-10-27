@@ -274,7 +274,7 @@ async fn can_list_recipes() -> Result<()> {
 }
 
 #[tokio::test]
-async fn can_list_recipes_with_filters() -> Result<()> {
+async fn can_list_recipes_with_tag_filter() -> Result<()> {
     let harness = setup::with_auth().await?;
 
     let tag_1 = harness.create_tag("Tag1").await?;
@@ -326,7 +326,7 @@ async fn can_list_recipes_with_filters() -> Result<()> {
 
     // get page one
     let response = harness
-        .get(&format!("/api/v1/recipes?name=Alpha&tag_ids={tag_1}"))
+        .get(&format!("/api/v1/recipes?tag_ids={tag_1}"))
         .send()
         .await?;
     assert_eq!(StatusCode::OK, response.status());
@@ -351,7 +351,7 @@ async fn can_list_recipes_with_filters() -> Result<()> {
     // get page two
     let response = harness
         .get(&format!(
-            "/api/v1/recipes?name=Alpha&tag_ids={tag_1}&next={}",
+            "/api/v1/recipes?tag_ids={tag_1}&next={}",
             page_1_result.next.unwrap(),
         ))
         .send()
@@ -361,6 +361,95 @@ async fn can_list_recipes_with_filters() -> Result<()> {
     let page_2_result = response.json::<responses::ListRecipes>().await?;
     assert!(page_2_result.next.is_none());
     assert!(page_2_result.data.is_empty());
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn can_apply_search_and_multi_tag_filter_properly() -> Result<()> {
+    let harness = setup::with_auth().await?;
+
+    let tag_1 = harness.create_tag("Tag1").await?;
+    let tag_2 = harness.create_tag("Tag2").await?;
+
+    let response = harness
+        .post("/api/v1/recipes")
+        .json(&requests::CreateRecipe {
+            title: "Chicken Alpha".into(),
+            image_id: None,
+            ingredients: requests::IngredientBlock::new(&[]),
+            instructions: requests::InstructionBlock::new(&[]),
+            notes: None,
+            tag_ids: vec![tag_1.clone(), tag_2.clone()],
+        })
+        .send()
+        .await?;
+    assert_eq!(StatusCode::OK, response.status());
+    let recipe_id_1 = response.json::<responses::CreateRecipe>().await?.data;
+
+    let response = harness
+        .post("/api/v1/recipes")
+        .json(&requests::CreateRecipe {
+            title: "Butternut Squash".into(),
+            image_id: None,
+            ingredients: requests::IngredientBlock::new(&[]),
+            instructions: requests::InstructionBlock::new(&[]),
+            notes: None,
+            tag_ids: vec![tag_1.clone(), tag_2.clone()],
+        })
+        .send()
+        .await?;
+    assert_eq!(StatusCode::OK, response.status());
+    response.json::<responses::CreateRecipe>().await?.data;
+
+    let response = harness
+        .post("/api/v1/recipes")
+        .json(&requests::CreateRecipe {
+            title: "Chicken Gamma Alpha".into(),
+            image_id: None,
+            ingredients: requests::IngredientBlock::new(&[]),
+            instructions: requests::InstructionBlock::new(&[]),
+            notes: None,
+            tag_ids: vec![tag_1.clone()],
+        })
+        .send()
+        .await?;
+    assert_eq!(StatusCode::OK, response.status());
+    response.json::<responses::CreateRecipe>().await?.data;
+
+    let response = harness
+        .post("/api/v1/recipes")
+        .json(&requests::CreateRecipe {
+            title: "Chicken Beta Alpha".into(),
+            image_id: None,
+            ingredients: requests::IngredientBlock::new(&[]),
+            instructions: requests::InstructionBlock::new(&[]),
+            notes: None,
+            tag_ids: vec![tag_2.clone()],
+        })
+        .send()
+        .await?;
+    assert_eq!(StatusCode::OK, response.status());
+
+    // get page one
+    let response = harness
+        .get(&format!(
+            "/api/v1/recipes?title=Alpha&tag_ids={tag_1},{tag_2}"
+        ))
+        .send()
+        .await?;
+    assert_eq!(StatusCode::OK, response.status());
+
+    let page_1_result = response.json::<responses::ListRecipes>().await?;
+    assert_eq!(
+        vec![responses::ListedRecipe {
+            id: recipe_id_1.into(),
+            title: "Chicken Alpha".into(),
+            image_id: None,
+        },],
+        page_1_result.data
+    );
+    assert_eq!(page_1_result.next, None);
 
     Ok(())
 }

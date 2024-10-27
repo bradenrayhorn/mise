@@ -1,6 +1,10 @@
-use std::sync::{mpsc, Arc, Mutex};
+use std::{
+    sync::{mpsc, Arc, Mutex},
+    time::Duration,
+};
 
 use anyhow::anyhow;
+use rand::Rng;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use tokio::sync::oneshot;
@@ -63,6 +67,31 @@ impl From<RecipeDocument> for VersionedRecipeDocument {
             tag_ids: value.tag_ids,
             image_id: value.image_id,
         }
+    }
+}
+
+impl RecipeDocument {
+    pub fn to_dumped_indexable_recipe(
+        id: domain::recipe::Id,
+        value: RecipeDocument,
+    ) -> Result<domain::DumpedIndexableRecipe, domain::ValidationError> {
+        Ok(domain::DumpedIndexableRecipe {
+            id,
+            title: value.title.try_into()?,
+            ingredients: value
+                .ingredients
+                .into_iter()
+                .map(domain::recipe::IngredientBlock::try_from)
+                .collect::<Result<Vec<domain::recipe::IngredientBlock>, domain::ValidationError>>(
+                )?,
+            instructions: value
+                .instructions
+                .into_iter()
+                .map(domain::recipe::InstructionBlock::try_from)
+                .collect::<Result<Vec<domain::recipe::InstructionBlock>, domain::ValidationError>>(
+                )?,
+            tag_ids: value.tag_ids,
+        })
     }
 }
 
@@ -131,21 +160,39 @@ impl Pool {
         }
     }
 
-    fn conn(&self) -> Result<PoolConnection, Error> {
-        // TODO - should check if the connection is healthy before use.
-        // - benchmark the change before and after to make sure performance is still okay.
-        let mut connections = self.connections.lock().unwrap();
-        match connections.pop() {
-            Some(conn) => Ok(PoolConnection {
+    fn maybe_get_conn(&self) -> Option<PoolConnection> {
+        self.connections
+            .lock()
+            .unwrap()
+            .pop()
+            .map(|conn| PoolConnection {
                 sender: conn,
                 connections: self.connections.clone(),
-            }),
-            None => Err(Error::NoConnections),
+            })
+    }
+
+    async fn conn(&self) -> Result<PoolConnection, Error> {
+        // TODO - should check if the connection is healthy before use.
+        // - benchmark the change before and after to make sure performance is still okay.
+        //
+        let mut retries = 0;
+        while retries < 9 {
+            let conn = self.maybe_get_conn();
+
+            if let Some(conn) = conn {
+                return Ok(conn);
+            }
+
+            let delay_ms = (2_u64.pow(retries) * 2) + (rand::thread_rng().gen_range(0..3));
+            tokio::time::sleep(Duration::from_millis(delay_ms)).await;
+            retries += 1;
         }
+
+        Err(Error::NoConnections)
     }
 
     pub async fn get_user(&self, id: String) -> Result<User, Error> {
-        let conn = self.conn()?;
+        let conn = self.conn().await?;
         let (tx, rx) = oneshot::channel();
         let msg = Message::GetUser { id, respond_to: tx };
 
@@ -154,7 +201,7 @@ impl Pool {
     }
 
     pub async fn upsert_user_by_oauth_id(&self, user: RegisteringUser) -> Result<User, Error> {
-        let conn = self.conn()?;
+        let conn = self.conn().await?;
         let (tx, rx) = oneshot::channel();
         let msg = Message::UpsertUserByOauthId {
             user,
@@ -168,7 +215,7 @@ impl Pool {
     // recipe
 
     pub async fn get_recipe(&self, id: String) -> Result<domain::Recipe, Error> {
-        let conn = self.conn()?;
+        let conn = self.conn().await?;
         let (tx, rx) = oneshot::channel();
         let msg = Message::GetRecipe { id, respond_to: tx };
 
@@ -182,7 +229,7 @@ impl Pool {
         user_id: String,
         recipe: RecipeDocument,
     ) -> Result<(), Error> {
-        let conn = self.conn()?;
+        let conn = self.conn().await?;
         let (tx, rx) = oneshot::channel();
         let msg = Message::CreateRecipe {
             id,
@@ -202,7 +249,7 @@ impl Pool {
         recipe: RecipeDocument,
         current_hash: String,
     ) -> Result<(), Error> {
-        let conn = self.conn()?;
+        let conn = self.conn().await?;
         let (tx, rx) = oneshot::channel();
         let msg = Message::UpdateRecipe {
             id,
@@ -235,7 +282,7 @@ impl Pool {
         &self,
         recipe_id: String,
     ) -> Result<Vec<RecipeRevision>, Error> {
-        let conn = self.conn()?;
+        let conn = self.conn().await?;
         let (tx, rx) = oneshot::channel();
         let msg = Message::GetRevisions {
             recipe_id,
@@ -251,7 +298,7 @@ impl Pool {
         recipe_id: String,
         revision: usize,
     ) -> Result<domain::Recipe, Error> {
-        let conn = self.conn()?;
+        let conn = self.conn().await?;
         let (tx, rx) = oneshot::channel();
         let msg = Message::GetRevision {
             recipe_id,
@@ -261,6 +308,19 @@ impl Pool {
 
         let _ = conn.sender.send(msg);
         rx.await?
+    }
+
+    pub async fn dump_recipes_for_index(
+        &self,
+        cursor: Option<domain::page::cursor::DumpedIndexableRecipe>,
+    ) -> Result<domain::page::DumpedIndexableRecipe, Error> {
+        let (tx, rx) = oneshot::channel();
+        let msg = Message::DumpRecipesForIndex {
+            cursor,
+            respond_to: tx,
+        };
+
+        self.send_message(rx, msg).await
     }
 
     // tags
@@ -302,7 +362,7 @@ impl Pool {
         rx: oneshot::Receiver<Result<T, Error>>,
         msg: Message,
     ) -> Result<T, Error> {
-        let conn = self.conn()?;
+        let conn = self.conn().await?;
         let _ = conn.sender.send(msg);
         rx.await?
     }
@@ -354,6 +414,10 @@ pub enum Message {
         recipe_id: String,
         revision: usize,
         respond_to: oneshot::Sender<Result<Recipe, Error>>,
+    },
+    DumpRecipesForIndex {
+        cursor: Option<domain::page::cursor::DumpedIndexableRecipe>,
+        respond_to: oneshot::Sender<Result<domain::page::DumpedIndexableRecipe, Error>>,
     },
 
     // tags

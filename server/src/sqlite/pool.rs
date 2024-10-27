@@ -82,6 +82,7 @@ pub struct DatastoreHandler {}
 #[derive(Debug, Clone)]
 pub struct DatastoreConfig {
     pub recipe_page_size: u64,
+    pub recipe_dump_page_size: u64,
 }
 
 pub fn datastore_handler(
@@ -111,6 +112,7 @@ pub fn datastore_handler(
             )));
         }
     }
+
     tx.commit()?;
 
     let mut senders: Vec<mpsc::Sender<Message>> = Vec::new();
@@ -130,6 +132,7 @@ impl ThreadWorker {
         let (sender, receiver) = mpsc::channel();
 
         let recipe_page_size = config.recipe_page_size;
+        let recipe_dump_page_size = config.recipe_dump_page_size;
 
         let mut conn = Connection::open(path)?;
         prepare_connection(&conn)?;
@@ -158,7 +161,7 @@ impl ThreadWorker {
                         let _ = respond_to.send(recipe::list_recipes(
                             &conn,
                             recipe_page_size,
-                            filter,
+                            &filter,
                             cursor,
                         ));
                     }
@@ -197,6 +200,13 @@ impl ThreadWorker {
                         respond_to,
                     } => {
                         let _ = respond_to.send(recipe::get_revision(&conn, &recipe_id, revision));
+                    }
+                    Message::DumpRecipesForIndex { cursor, respond_to } => {
+                        let _ = respond_to.send(recipe::dump_recipes_for_index(
+                            &conn,
+                            recipe_dump_page_size,
+                            cursor,
+                        ));
                     }
                     Message::GetTags { respond_to } => {
                         let _ = respond_to.send(tag::get_all(&conn));

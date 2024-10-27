@@ -3,6 +3,7 @@ use mise::{
     http::Server,
     imagestore::{self, ImageBackend},
     oidc, s3,
+    search::Backend,
     session_store::{self, SessionStore},
     sqlite,
 };
@@ -21,7 +22,8 @@ async fn main() {
     let (_worker_pool, senders) = match sqlite::datastore_handler(
         &config.sqlite.db_path,
         &sqlite::DatastoreConfig {
-            recipe_page_size: 10,
+            recipe_page_size: 20,
+            recipe_dump_page_size: 250,
         },
     ) {
         Ok(pool) => pool,
@@ -76,12 +78,18 @@ async fn main() {
         }
     };
 
+    println!("indexing recipes...");
+    let sb = Backend::new(&config.search_index_directory, pool.clone()).unwrap();
+    sb.index_recipes().await.unwrap();
+    println!("recipe index complete.");
+
     let s = Server::new(
         config,
         pool,
         cache,
         oidc_provider,
         imagestore::ImageStore::new(image_backend),
+        sb,
     );
 
     if let Err(err) = s.start().await {
