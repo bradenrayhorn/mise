@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - test
 
 jobs:
   build-amd64:
@@ -18,11 +19,6 @@ jobs:
         with:
           ref: "${{ inputs.ref }}"
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@49b3bc8e6bdd4a60e6116a5414239cba5943d3cf # v3
-        with:
-          platforms: 'amd64'
-
       - name: Login to registry
         uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3
         with:
@@ -32,52 +28,6 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@c47758b77c9736f4b2ef4073d4d51994fabfe349 # v3
-
-      - name: Make cache IDs
-        id: run_number
-        run: |
-          RUN_NUMBER=${{ github.run_number }}
-          PREV_RN=$(( RUN_NUMBER - 1 ))
-          NEXT_RN=$(( RUN_NUMBER ))
-
-          echo "next_rn=$NEXT_RN" >> $GITHUB_OUTPUT
-          echo "prev_rn=$PREV_RN" >> $GITHUB_OUTPUT
-
-      - name: Restore cache
-        uses: actions/cache/restore@3624ceb22c1c5a301c8db4169662070a689d9ea8 # v4
-        id: cache-restore
-        with:
-          path: |
-            sccache
-          key: rust-sccache-amd64-${{ steps.run_number.outputs.prev_rn }}
-
-      - name: Delete old cache
-        run: |
-          gh extension install actions/gh-actions-cache
-
-          set +e
-          gh actions-cache delete "rust-sccache-amd64-${{ steps.run_number.outputs.prev_rn }}" -R $REPO -B main --confirm
-          echo "Done"
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          REPO: ${{ github.repository }}
-
-      - name: Setup cache save
-        uses: actions/cache@3624ceb22c1c5a301c8db4169662070a689d9ea8 # v4
-        id: cache-restore-save
-        with:
-          path: |
-            sccache
-          key: rust-sccache-amd64-${{ steps.run_number.outputs.next_rn }}
-          save-always: true
-
-      - name: Inject cache into docker
-        uses: reproducible-containers/buildkit-cache-dance@5b6db76d1da5c8b307d5d2e0706d266521b710de # v3.1.2
-        with:
-          cache-map: |
-            {
-              "sccache": "/sccache-cache"
-            }
 
       - name: Build and push
         uses: docker/build-push-action@4f58ea79222b3b9dc2c8bbdd6debcef730109a75 # v6
@@ -92,7 +42,7 @@ jobs:
 
   build-arm64:
     name: arm64 image
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, arm64]
     permissions:
       packages: write
       actions: write
@@ -101,11 +51,6 @@ jobs:
         uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # v4
         with:
           ref: "${{ inputs.ref }}"
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@49b3bc8e6bdd4a60e6116a5414239cba5943d3cf # v3
-        with:
-          platforms: 'arm64'
 
       - name: Login to registry
         uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3
@@ -116,52 +61,6 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@c47758b77c9736f4b2ef4073d4d51994fabfe349 # v3
-
-      - name: Make cache IDs
-        id: run_number
-        run: |
-          RUN_NUMBER=${{ github.run_number }}
-          PREV_RN=$(( RUN_NUMBER - 1 ))
-          NEXT_RN=$(( RUN_NUMBER ))
-
-          echo "next_rn=$NEXT_RN" >> $GITHUB_OUTPUT
-          echo "prev_rn=$PREV_RN" >> $GITHUB_OUTPUT
-
-      - name: Restore cache
-        uses: actions/cache/restore@3624ceb22c1c5a301c8db4169662070a689d9ea8 # v4
-        id: cache-restore
-        with:
-          path: |
-            sccache
-          key: rust-sccache-arm64-${{ steps.run_number.outputs.prev_rn }}
-
-      - name: Delete old cache
-        run: |
-          gh extension install actions/gh-actions-cache
-
-          set +e
-          gh actions-cache delete "rust-sccache-arm64-${{ steps.run_number.outputs.prev_rn }}" -R $REPO -B main --confirm
-          echo "Done"
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          REPO: ${{ github.repository }}
-
-      - name: Setup cache save
-        uses: actions/cache@3624ceb22c1c5a301c8db4169662070a689d9ea8 # v4
-        id: cache-restore-save
-        with:
-          path: |
-            sccache
-          key: rust-sccache-arm64-${{ steps.run_number.outputs.next_rn }}
-          save-always: true
-
-      - name: Inject cache into docker
-        uses: reproducible-containers/buildkit-cache-dance@5b6db76d1da5c8b307d5d2e0706d266521b710de # v3.1.2
-        with:
-          cache-map: |
-            {
-              "sccache": "/sccache-cache"
-            }
 
       - name: Build and push
         uses: docker/build-push-action@4f58ea79222b3b9dc2c8bbdd6debcef730109a75 # v6
@@ -174,29 +73,3 @@ jobs:
           cache-from: type=registry,ref=ghcr.io/bradenrayhorn/mise:buildcache-arm64
           cache-to: type=registry,ref=ghcr.io/bradenrayhorn/mise:buildcache-arm64,mode=max
 
-  retag-next:
-    name: Push multiarch image
-    runs-on: ubuntu-latest
-    permissions:
-      packages: write
-    needs: [build-arm64, build-amd64]
-    steps:
-      - name: Login to registry
-        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@c47758b77c9736f4b2ef4073d4d51994fabfe349 # v3
-
-      - name: Retag
-        run: |
-          IMAGE=ghcr.io/bradenrayhorn/mise
-
-          docker buildx imagetools create \
-            --tag $IMAGE:next \
-            --tag $IMAGE:next-${{ github.sha }} \
-            $IMAGE:building-block-amd64-${{ github.sha }} \
-            $IMAGE:building-block-arm64-${{ github.sha }}

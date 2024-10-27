@@ -31,19 +31,11 @@ RUN npm run build
 # build server
 FROM rust_base as server_builder
 
-RUN wget -O sccache.tar.gz https://github.com/mozilla/sccache/releases/download/v0.8.1/sccache-v0.8.1-$(uname -m)-unknown-linux-musl.tar.gz \
-    && tar xzf sccache.tar.gz \
-    && mv sccache-v0.8.1-$(uname -m)-unknown-linux-musl/sccache /usr/local/bin/sccache \
-    && chmod +x /usr/local/bin/sccache;
-
-ENV SCCACHE_DIR=/sccache-cache
-ENV RUSTC_WRAPPER="/usr/local/bin/sccache"
-
 RUN mkdir /app
 COPY /server app/
 WORKDIR /app
 
-RUN --mount=type=cache,target=/sccache-cache cargo build --release && sccache --show-stats
+RUN ls -lah && cargo build --release
 
 # assemble final image
 FROM alpine:3.20@sha256:beefdbd8a1da6d2915566fde36db9db0b524eb737fc57cd1367effd16dc0d06d
