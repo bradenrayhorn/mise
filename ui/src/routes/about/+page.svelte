@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { sticky } from '$lib/actions/sticky';
+
   async function getUILicenses() {
     const res = await fetch('/licenses/ui-licenses.txt');
     const values = await res.text();
@@ -16,9 +18,14 @@
   const serverLicenses = getServerLicenses();
 </script>
 
-<h1 class="font-serif text-3xl font-bold px-4 py-6">About</h1>
+<h1
+  use:sticky
+  class="font-serif text-3xl font-bold px-4 pb-6 ptsafe-6 sticky top-0 transition-all bg-base-500 stuck:bg-base-600 stuck:shadow-md"
+>
+  About
+</h1>
 
-<div class="prose px-4">
+<div class="prose px-4 pbsafe-4">
   <p>mise is a self-hosted recipe service.</p>
 
   <p>

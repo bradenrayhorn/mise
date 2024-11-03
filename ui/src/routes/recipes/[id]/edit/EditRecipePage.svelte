@@ -11,13 +11,13 @@
   import { handleSuperformError } from '$lib/error-to-superform';
   import InstructionsField from '$lib/components/recipes/form/InstructionsField.svelte';
   import { goto } from '$app/navigation';
-  import CloseIconButton from '$lib/components/CloseIconButton.svelte';
   import Button from '$lib/components/Button.svelte';
   import type { DetailedRecipe } from '$lib/types/recipe';
   import { useQueryClient } from '@tanstack/svelte-query';
   import { queryKeys } from '$lib/api/query-keys';
   import { useAuth } from '$lib/auth-context';
   import { uid } from 'uid';
+  import { sticky } from '$lib/actions/sticky';
 
   export let backURL: string;
   export let id: string;
@@ -69,15 +69,17 @@
   const instructionsSectionID = uid();
 </script>
 
-<div class="absolute top-1 left-1 z-10 flex items-center">
-  <CloseIconButton href={backURL} />
-</div>
+<form method="POST" use:enhance class="pbsafe-8">
+  <div
+    use:sticky
+    class="flex justify-between items-baseline sticky bg-base-500 top-0 z-10 px-4 md:px-8 lg:px-12 pb-4 ptsafe-4 md:ptsafe-8 transition-all stuck:shadow-md stuck:bg-base-600"
+  >
+    <h1 class="text-xl md:text-3xl font-serif font-bold">Edit Recipe</h1>
 
-<form method="POST" use:enhance class="pb-8">
-  <div class="flex justify-between mb-8 px-4 md:px-8 lg:px-12 pt-12">
-    <h1 class="font-bold text-3xl font-serif">Edit Recipe</h1>
-
-    <Button type="submit" class="btn-solid btn-primary" isLoading={$submitting}>Save</Button>
+    <div class="flex gap-2">
+      <a href={backURL} class="btn-solid btn-gray">Cancel</a>
+      <Button type="submit" class="btn-solid btn-primary" isLoading={$submitting}>Save</Button>
+    </div>
   </div>
 
   <div class="flex flex-col md:flex-row gap-8 px-4 md:px-8 lg:px-12">

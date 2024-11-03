@@ -7,8 +7,8 @@ test('can close page', async ({ login: user, page, request }) => {
   await createRecipe({ user, request, recipe: { title: 'A' } });
 
   await page.goto('/recipes');
-  await page.getByLabel('Search').fill(`${user}`);
-  await page.getByLabel('Search').press('Enter');
+  await page.getByRole('textbox', { name: 'Search' }).fill(`${user}`);
+  await page.getByRole('textbox', { name: 'Search' }).press('Enter');
 
   // to view page
   await page.getByRole('link', { name: `${user}A` }).click();
@@ -18,7 +18,7 @@ test('can close page', async ({ login: user, page, request }) => {
   await expect(page.getByRole('heading', { name: 'Edit Recipe' })).toBeVisible();
 
   // back to view page
-  await page.getByRole('link', { name: 'Back to previous page' }).click();
+  await page.getByRole('link', { name: 'Cancel' }).click();
   await expect(page.getByRole('heading', { name: `${user}A` })).toBeVisible();
 });
 

@@ -12,7 +12,7 @@
 
 <div class="w-full h-full">
   <div class="flex flex-col max-w-md mx-auto px-4 gap-8">
-    <div class="py-6">
+    <div class="ptsafe-6 pb-6">
       <h1 class="font-serif font-bold text-3xl mb-4">Settings</h1>
 
       <a href={backURL} class="flex items-center">
