@@ -63,8 +63,8 @@ test('can filter by tag and search', async ({ login: user, page, request, isMobi
   await expect(recipeList.getByRole('link')).toHaveText([`${user}Rho`, `${user}Tau`]);
 
   // add search for Rho
-  await page.getByLabel('Search').fill(`${user}Rho`);
-  await page.getByLabel('Search').press('Enter');
+  await page.getByRole('textbox', { name: 'Search' }).fill(`${user}Rho`);
+  await page.getByRole('textbox', { name: 'Search' }).press('Enter');
   await expect(recipeList.getByRole('link')).toHaveText([`${user}Rho`]);
 
   // remove Tag filter
@@ -155,8 +155,8 @@ test('mobile - can clear tag filters', async ({ login: user, page, request, isMo
   await page.goto('/recipes');
   const recipeList = page.getByRole('region', { name: 'Recipe list' });
 
-  await page.getByLabel('Search').fill(`${user}Rho`);
-  await page.getByLabel('Search').press('Enter');
+  await page.getByRole('textbox', { name: 'Search' }).fill(`${user}Rho`);
+  await page.getByRole('textbox', { name: 'Search' }).press('Enter');
 
   // add filter
   await addTagFilter({ page, user, isMobile, tags: ['Alpha', 'Beta'] });

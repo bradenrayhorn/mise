@@ -1,7 +1,30 @@
+import plugin from 'tailwindcss/plugin';
+
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ['./src/**/*.{html,js,svelte,ts}'],
   darkMode: 'selector',
+
+  plugins: [
+    plugin(function ({ addVariant }) {
+      addVariant('stuck', '&[data-stuck]');
+    }),
+
+    plugin(function ({ matchUtilities, theme }) {
+      matchUtilities(
+        {
+          pbsafe: (value) => ({
+            paddingBottom: `calc(env(safe-area-inset-bottom, 0px) + ${value})`,
+          }),
+          ptsafe: (value) => ({
+            paddingTop: `calc(env(safe-area-inset-top, 0px) + ${value})`,
+          }),
+        },
+        { values: theme('spacing') },
+      );
+    }),
+  ],
+
   theme: {
     colors: {
       food: {

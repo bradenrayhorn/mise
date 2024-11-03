@@ -6,11 +6,12 @@ import { assertRecipeView, fillRecipeForm } from '@tests/helpers';
 test('can close page', async ({ login: _, page }) => {
   await page.goto('/recipes');
 
-  await page.getByRole('link', { name: 'Add', exact: true }).click();
+  await page.getByRole('button', { name: 'More options' }).click();
+  await page.getByRole('menuitem', { name: 'Add recipe', exact: true }).click();
 
-  await page.getByRole('link', { name: 'Back to previous page' }).click();
+  await page.getByRole('link', { name: 'Cancel' }).click();
 
-  await expect(page.getByLabel('Search')).toBeVisible();
+  await expect(page.getByRole('textbox', { name: 'Search' })).toBeVisible();
 });
 
 test('can add new simple recipe', async ({ login: user, page, request }) => {
@@ -18,9 +19,7 @@ test('can add new simple recipe', async ({ login: user, page, request }) => {
   await createTag({ user, request, name: 'Quick' });
 
   // go to add form
-  await page.goto('/recipes');
-
-  await page.getByRole('link', { name: 'Add', exact: true }).click();
+  await page.goto('/recipes/new');
 
   // fill out form
   await fillRecipeForm({
@@ -39,8 +38,8 @@ test('can add new simple recipe', async ({ login: user, page, request }) => {
   await page.getByRole('button', { name: 'Save' }).click();
 
   // back to recipes page
-  await page.getByLabel('Search').fill(`${user}Dinner`);
-  await page.getByLabel('Search').press('Enter');
+  await page.getByRole('textbox', { name: 'Search' }).fill(`${user}Dinner`);
+  await page.getByRole('textbox', { name: 'Search' }).press('Enter');
 
   await page.getByRole('link', { name: `${user}Dinner` }).click();
 
@@ -63,9 +62,7 @@ test('can add complex recipe', async ({ login: user, page, request }) => {
   await createTag({ user, request, name: 'Good' });
 
   // go to add form
-  await page.goto('/recipes');
-
-  await page.getByRole('link', { name: 'Add', exact: true }).click();
+  await page.goto('/recipes/new');
 
   // fill out form
   await fillRecipeForm({
@@ -84,8 +81,8 @@ test('can add complex recipe', async ({ login: user, page, request }) => {
   await page.getByRole('button', { name: 'Save' }).click();
 
   // back to recipes page
-  await page.getByLabel('Search').fill(`${user}Glazed Bread`);
-  await page.getByLabel('Search').press('Enter');
+  await page.getByRole('textbox', { name: 'Search' }).fill(`${user}Glazed Bread`);
+  await page.getByRole('textbox', { name: 'Search' }).press('Enter');
 
   await page.getByRole('link', { name: `${user}Glazed Bread` }).click();
 
@@ -108,9 +105,7 @@ test('can add recipe with minimal details', async ({ login: user, page, request 
   await createTag({ user, request, name: 'Good' });
 
   // go to add form
-  await page.goto('/recipes');
-
-  await page.getByRole('link', { name: 'Add', exact: true }).click();
+  await page.goto('/recipes/new');
 
   // fill out form
   await fillRecipeForm({
@@ -130,8 +125,8 @@ test('can add recipe with minimal details', async ({ login: user, page, request 
   await page.getByRole('button', { name: 'Save' }).click();
 
   // back to recipes page
-  await page.getByLabel('Search').fill(`${user}Glazed Bread`);
-  await page.getByLabel('Search').press('Enter');
+  await page.getByRole('textbox', { name: 'Search' }).fill(`${user}Glazed Bread`);
+  await page.getByRole('textbox', { name: 'Search' }).press('Enter');
 
   await page.getByRole('link', { name: `${user}Glazed Bread` }).click();
 

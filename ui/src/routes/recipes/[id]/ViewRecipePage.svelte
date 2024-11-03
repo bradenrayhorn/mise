@@ -1,8 +1,10 @@
 <script lang="ts">
+  import IconLeft from '~icons/mdi/chevron-left';
+  import IconPencil from '~icons/mdi/pencil-outline';
   import SingleTag from '$lib/components/SingleTag.svelte';
-  import CloseIconButton from '$lib/components/CloseIconButton.svelte';
   import type { DetailedRecipe } from '$lib/types/recipe';
   import { uid } from 'uid';
+  import { sticky } from '$lib/actions/sticky';
 
   export let recipe: DetailedRecipe;
   export let backURL: string;
@@ -12,20 +14,33 @@
   const instructionsSectionID = uid();
 </script>
 
-<div class="absolute top-1 left-1 z-10 flex items-center">
-  <CloseIconButton href={backURL} />
-</div>
+<div class="w-full h-full flex flex-col pbsafe-8">
+  <div
+    use:sticky
+    class="flex flex-col sticky bg-base-500 top-0 z-10 px-4 md:px-8 lg:px-12 pb-4 ptsafe-4 transition-all stuck:shadow-md stuck:bg-base-600 stuck:ptsafe-0 stuck:-translate-y-6 md:stuck:translate-y-0 md:stuck:ptsafe-4"
+  >
+    <div
+      class="flex justify-between items-center mb-4 transition-transform stuck:scale-y-0 md:stuck:scale-y-100"
+    >
+      <a href={backURL} class="btn-link text-sm text-fg-muted flex items-center gap-1">
+        <IconLeft />
+        Back
+      </a>
+      <a
+        href={`/recipes/${id}/edit`}
+        class="btn-link text-sm text-fg-muted flex items-center gap-2"
+      >
+        Edit
+        <IconPencil />
+      </a>
+    </div>
 
-<div class="w-full h-full flex flex-col pb-8">
-  <div class="flex justify-between items-baseline px-4 md:px-8 lg:px-12 pb-8 pt-12">
-    <h1 class="text-3xl font-serif font-bold pr-4">
+    <h1 class="text-xl md:text-3xl font-serif font-bold">
       {recipe.title}
     </h1>
-
-    <a href={`/recipes/${id}/edit`} class="btn-link text-sm text-fg-muted">Edit</a>
   </div>
 
-  <div class="flex flex-col md:flex-row gap-8 px-4 md:px-8 lg:px-12">
+  <div class="flex flex-col md:flex-row gap-8 px-4 md:px-8 lg:px-12 mt-4">
     {#if recipe.image_id || (recipe.tags.length ?? 0) > 0 || recipe.rich_notes}
       <div class="flex-1 flex flex-col">
         {#if recipe.image_id}
