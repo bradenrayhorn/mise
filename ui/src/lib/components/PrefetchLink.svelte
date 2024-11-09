@@ -1,19 +1,23 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
-  import { useNavigating } from '$lib/navigating-context';
+  import { navigating } from '$lib/navigating.svelte';
+  import type { Snippet } from 'svelte';
+  import type { HTMLAnchorAttributes } from 'svelte/elements';
 
-  export let href: string;
-  export let prefetch: () => Promise<void>;
+  type Props = {
+    href: string;
+    prefetch: () => Promise<void>;
+    children?: Snippet<[{ isLoading: boolean }]>;
+  } & HTMLAnchorAttributes;
 
-  const navigating = useNavigating();
+  let { href, prefetch, children, ...rest }: Props = $props();
 
-  let isLoading = false;
+  const isLoading = $derived(navigating.to === href);
 
   async function onClick(e: MouseEvent) {
     e.preventDefault();
 
-    isLoading = true;
-    $navigating.to = href;
+    navigating.to = href;
 
     try {
       await prefetch();
@@ -23,20 +27,13 @@
     }
 
     // only navigate if another navigation hasn't triggered
-    if ($navigating.to === href) {
+    if (navigating.to === href) {
       await goto(href);
-      $navigating.to = undefined;
+      navigating.to = undefined;
     }
-
-    isLoading = false;
-  }
-
-  // the navigation is not going to proceed if another navigation has started
-  $: if ($navigating.to !== undefined && $navigating.to !== href) {
-    isLoading = false;
   }
 </script>
 
-<a {href} on:click={onClick} data-loading={isLoading ? true : undefined} {...$$restProps}
-  ><slot {isLoading} /></a
+<a {href} onclick={onClick} data-loading={isLoading ? true : undefined} {...rest}
+  >{@render children?.({ isLoading })}</a
 >

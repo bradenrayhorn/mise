@@ -1,14 +1,16 @@
 <script lang="ts">
-  import { useAuth } from '$lib/auth-context';
+  import { auth } from '$lib/auth.svelte';
   import type { MaybeError } from '$lib/types/error';
   import IconChef from '~icons/mdi/chef-hat';
 
-  export let error: MaybeError;
+  interface Props {
+    error: MaybeError;
+  }
 
-  const auth = useAuth();
+  let { error }: Props = $props();
 
   if (error?.status === 401) {
-    $auth.unauthenticated = true;
+    auth.unauthenticated = true;
   }
 </script>
 
@@ -20,7 +22,7 @@
 
     <button
       class="btn-link"
-      on:click={() => {
+      onclick={() => {
         window.location.reload();
       }}>Click here to try again.</button
     >

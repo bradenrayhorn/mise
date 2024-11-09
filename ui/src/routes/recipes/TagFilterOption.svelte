@@ -3,8 +3,12 @@
   import { createCheckbox, createSync, melt } from '@melt-ui/svelte';
   import IconCheck from '~icons/mdi/check-bold';
 
-  export let tag: Tag;
-  export let isChecked: boolean;
+  interface Props {
+    tag: Tag;
+    isChecked: boolean;
+  }
+
+  let { tag, isChecked = $bindable() }: Props = $props();
 
   const {
     elements: { root, input },
@@ -15,7 +19,7 @@
   });
 
   const sync = createSync(states);
-  $: sync.checked(isChecked, (v) => (isChecked = !!v));
+  sync.checked(isChecked, (v) => (isChecked = !!v));
 </script>
 
 <button

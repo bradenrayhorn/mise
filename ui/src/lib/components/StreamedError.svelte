@@ -1,19 +1,22 @@
 <script lang="ts">
-  import { useAuth } from '$lib/auth-context';
+  import { auth } from '$lib/auth.svelte';
   import type { MaybeError } from '$lib/types/error';
-  import { onMount } from 'svelte';
+  import { onMount, type Snippet } from 'svelte';
 
-  export let error: MaybeError;
+  type Props = {
+    error: MaybeError;
+    children?: Snippet;
+  };
 
-  const auth = useAuth();
+  const { error, children }: Props = $props();
 
   onMount(() => {
     console.error('streamed error: ', error);
 
     if (error?.status === 401) {
-      $auth.unauthenticated = true;
+      auth.unauthenticated = true;
     }
   });
 </script>
 
-<slot />
+{@render children?.()}

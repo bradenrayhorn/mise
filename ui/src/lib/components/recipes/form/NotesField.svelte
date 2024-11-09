@@ -2,7 +2,11 @@
   import { formFieldProxy, type Infer, type SuperForm } from 'sveltekit-superforms';
   import type { RecipeFormSchema } from './schema';
 
-  export let superform: SuperForm<Infer<RecipeFormSchema>>;
+  interface Props {
+    superform: SuperForm<Infer<RecipeFormSchema>>;
+  }
+
+  const { superform }: Props = $props();
 
   const { value, errors } = formFieldProxy(superform, 'notes');
 </script>
@@ -13,6 +17,6 @@
     class="input resize-none h-40"
     bind:value={$value}
     aria-invalid={$errors ? 'true' : undefined}
-  />
+  ></textarea>
 </label>
 {#if $errors}<span class="invalid">{$errors}</span>{/if}

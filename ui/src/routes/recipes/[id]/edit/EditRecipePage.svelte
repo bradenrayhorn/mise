@@ -15,18 +15,20 @@
   import type { DetailedRecipe } from '$lib/types/recipe';
   import { useQueryClient } from '@tanstack/svelte-query';
   import { queryKeys } from '$lib/api/query-keys';
-  import { useAuth } from '$lib/auth-context';
   import { uid } from 'uid';
   import { sticky } from '$lib/actions/sticky';
 
-  export let backURL: string;
-  export let id: string;
-  export let recipe: DetailedRecipe;
-  export let hash: string;
-  export let initialData: RecipeFormType;
+  interface Props {
+    backURL: string;
+    id: string;
+    recipe: DetailedRecipe;
+    hash: string;
+    initialData: RecipeFormType;
+  }
+
+  let { backURL, id, recipe, hash, initialData }: Props = $props();
 
   const client = useQueryClient();
-  const auth = useAuth();
 
   const superform = superForm(defaults(initialData, zod(schema)), {
     SPA: true,
@@ -58,7 +60,7 @@
         await client.invalidateQueries({ queryKey: [queryKeys.recipe.list] });
         await goto(backURL);
       } catch (error) {
-        await handleSuperformError(form, error, auth);
+        await handleSuperformError(form, error);
       }
     },
   });

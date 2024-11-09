@@ -6,9 +6,13 @@
   import { uid } from 'uid';
   import { sticky } from '$lib/actions/sticky';
 
-  export let recipe: DetailedRecipe;
-  export let backURL: string;
-  export let id: string;
+  type Props = {
+    recipe: DetailedRecipe;
+    backURL: string;
+    id: string;
+  };
+
+  const { recipe, backURL, id }: Props = $props();
 
   const ingredientsSectionID = uid();
   const instructionsSectionID = uid();

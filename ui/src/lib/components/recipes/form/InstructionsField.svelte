@@ -4,7 +4,11 @@
   import { type RecipeFormSchema } from './schema';
   import type { InstructionBlock } from '$lib/types/recipe';
 
-  export let superform: SuperForm<Infer<RecipeFormSchema>>;
+  interface Props {
+    superform: SuperForm<Infer<RecipeFormSchema>>;
+  }
+
+  const { superform }: Props = $props();
 
   const { values: blocks } = arrayProxy(superform, 'instruction_blocks');
 
@@ -28,7 +32,8 @@
           <button
             class="text-lg"
             aria-label={`Delete ${block.title ? `${block.title} instructions` : `instructions section ${i + 1}`}`}
-            on:click|preventDefault={() => {
+            onclick={(e) => {
+              e.preventDefault();
               const next = [...$blocks];
               next.splice(i, 1);
               $blocks = next;
@@ -54,7 +59,7 @@
             class="input resize-none h-36"
             bind:value={$blocks[i].instructions[j]}
             aria-label={makeInstructionLabel($blocks, i, j)}
-            on:paste={(e) => {
+            onpaste={(e) => {
               const pastedData = e.clipboardData?.getData('Text') ?? '';
 
               const lines = pastedData
@@ -68,7 +73,7 @@
                 $blocks[i].instructions = instructions;
               }
             }}
-            on:input={(e) => {
+            oninput={(e) => {
               const currentInstructions = $blocks[i].instructions;
               if (
                 e.currentTarget.value?.trim()?.length > 0 &&
@@ -77,7 +82,7 @@
                 $blocks[i].instructions = [...currentInstructions, ''];
               }
             }}
-            on:keydown={(e) => {
+            onkeydown={(e) => {
               const currentInstructions = $blocks[i].instructions;
               if (
                 e.key === 'Backspace' &&
@@ -90,7 +95,7 @@
                 $blocks[i].instructions = next;
               }
             }}
-          />
+          ></textarea>
         {/each}
       </div>
     </div>
@@ -99,7 +104,8 @@
 
 <button
   class="text-sm text-fg-muted text-right mt-4 w-full"
-  on:click|preventDefault={() => {
+  onclick={(e) => {
+    e.preventDefault();
     $blocks = [...$blocks, { title: '', instructions: [''] }];
   }}>Add additional section</button
 >

@@ -3,12 +3,12 @@
   import IconDark from '~icons/mdi/moon-and-stars';
   import { setTheme, isThemeDark } from '$lib/theme-switch';
 
-  let isDark = isThemeDark();
+  let isDark = $state(isThemeDark());
 </script>
 
 <button
   class="w-8 h-8 bg-base-500 shadow rounded-full flex items-center justify-center"
-  on:click={() => {
+  onclick={() => {
     setTheme(!isDark);
     isDark = !isDark;
   }}

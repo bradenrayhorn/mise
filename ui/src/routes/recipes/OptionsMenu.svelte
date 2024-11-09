@@ -29,7 +29,7 @@
       Add recipe
     </a>
 
-    <div class="h-px shrink-0 bg-divider-default my-2" use:melt={$separator} />
+    <div class="h-px shrink-0 bg-divider-default my-2" use:melt={$separator}></div>
 
     <a
       href="/settings"

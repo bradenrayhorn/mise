@@ -9,7 +9,11 @@
   import { useQueryClient } from '@tanstack/svelte-query';
   import { queryKeys } from '$lib/api/query-keys';
 
-  export let element: AnyMeltElement;
+  interface Props {
+    element: AnyMeltElement;
+  }
+
+  const { element }: Props = $props();
 
   const client = useQueryClient();
 
@@ -53,11 +57,12 @@
       use:melt={$overlay}
       class="fixed z-40 bg-base-backdrop top-0 bottom-0 right-0 left-0"
       aria-hidden="true"
-      on:click|stopPropagation={() => {
+      onclick={(e) => {
+        e.stopPropagation();
         $open = false;
       }}
       transition:fade={{ duration: 100 }}
-    />
+    ></div>
     <div
       use:melt={$content}
       class="fixed z-50 bottom-0 left-0 right-0 md:bottom-1/2 md:left-1/2 md:-translate-x-1/2 bg-base-500 rounded-t-xl md:rounded-lg md:max-w-96 flex flex-col"
@@ -71,7 +76,7 @@
             >
           </div>
           <h2 use:melt={$title} class="font-semibold">Create Tag</h2>
-          <div class="flex-1" />
+          <div class="flex-1"></div>
         </div>
 
         <div class="px-4 mb-6">

@@ -20,23 +20,27 @@
 
   const client = useQueryClient();
 
-  $: localStorage.setItem('last-recipes-query', $page.url.searchParams.toString());
-
-  $: hasCursor = $page.url.searchParams.has('cursor');
-  $: searchParams = $page.url.searchParams;
-
-  $: cursor = $page.url.searchParams.get('cursor') ?? '';
-  $: search = $page.url.searchParams.get('search') ?? '';
-  $: tags = $page.url.searchParams.get('tags') ?? '';
-
-  $: recipesQuery = createQuery<RecipePage>({
-    queryKey: [queryKeys.recipe.list, { cursor, search, tags }],
-    queryFn: () => getRecipes({ fetch, cursor, search, tags }),
+  $effect(() => {
+    localStorage.setItem('last-recipes-query', $page.url.searchParams.toString());
   });
 
-  $: hasSearch = search.trim().length > 0;
+  let hasCursor = $derived($page.url.searchParams.has('cursor'));
+  let searchParams = $derived($page.url.searchParams);
 
-  $: tagValues = ($page.url.searchParams.get('tags') ?? '').split(',').filter((t) => t);
+  let cursor = $derived($page.url.searchParams.get('cursor') ?? '');
+  let search = $derived($page.url.searchParams.get('search') ?? '');
+  let tags = $derived($page.url.searchParams.get('tags') ?? '');
+
+  let recipesQuery = $derived(
+    createQuery<RecipePage>({
+      queryKey: [queryKeys.recipe.list, { cursor, search, tags }],
+      queryFn: () => getRecipes({ fetch, cursor, search, tags }),
+    }),
+  );
+
+  let hasSearch = $derived(search.trim().length > 0);
+
+  let tagValues = $derived(($page.url.searchParams.get('tags') ?? '').split(',').filter((t) => t));
 </script>
 
 <div class="w-full min-h-dvh mx-auto flex flex-col justify-between">
@@ -58,9 +62,9 @@
       <div class="items-center flex md:hidden">
         <TagFilter
           defaultTagSet={tagValues}
-          on:applied={(event) => {
+          onapplied={(event) => {
             goto(
-              `/recipes?${setQueryParameters(searchParams, { cursor: '', tags: event.detail.tag_ids.join(',') })}`,
+              `/recipes?${setQueryParameters(searchParams, { cursor: '', tags: event.tag_ids.join(',') })}`,
               {
                 invalidateAll: false,
               },
@@ -76,9 +80,9 @@
       <div class="font-bold mb-4">Filter</div>
       <DesktopTagFilter
         defaultTagSet={tagValues}
-        on:applied={(event) => {
+        onapplied={(event) => {
           goto(
-            `/recipes?${setQueryParameters(searchParams, { cursor: '', tags: event.detail.tag_ids.join(',') })}`,
+            `/recipes?${setQueryParameters(searchParams, { cursor: '', tags: event.tag_ids.join(',') })}`,
             {
               invalidateAll: false,
             },
@@ -144,7 +148,7 @@
                 class="text-sm btn-link">Back to first</a
               >
             {:else}
-              <div />
+              <div></div>
             {/if}
 
             {#if $recipesQuery.data.next}
@@ -154,7 +158,7 @@
                 >Next<IconRight /></a
               >
             {:else}
-              <div />
+              <div></div>
             {/if}
           </div>
         {/if}

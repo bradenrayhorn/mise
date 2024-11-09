@@ -11,10 +11,12 @@
   const id = $page.params['id'];
   const backURL = `/recipes/${id}`;
 
-  $: query = createQuery<DetailedRecipeWithHash>({
-    queryKey: queryKeys.recipe.get(id),
-    queryFn: () => getRecipe({ fetch, id }),
-  });
+  let query = $derived(
+    createQuery<DetailedRecipeWithHash>({
+      queryKey: queryKeys.recipe.get(id),
+      queryFn: () => getRecipe({ fetch, id }),
+    }),
+  );
 
   function buildInitialData({ recipe }: DetailedRecipeWithHash) {
     const ingredient_blocks = recipe.ingredient_blocks.map((block) => ({
@@ -46,7 +48,7 @@
     };
   }
 
-  $: initialData = $query.data ? buildInitialData($query.data) : undefined;
+  let initialData = $derived($query.data ? buildInitialData($query.data) : undefined);
 </script>
 
 {#if $query.isPending}

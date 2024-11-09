@@ -11,10 +11,12 @@
   const backURL = `/recipes?${localStorage.getItem('last-recipes-query')}`;
   const id = $page.params['id'];
 
-  $: query = createQuery<DetailedRecipeWithHash>({
-    queryKey: queryKeys.recipe.get(id),
-    queryFn: () => getRecipe({ fetch, id }),
-  });
+  let query = $derived(
+    createQuery<DetailedRecipeWithHash>({
+      queryKey: queryKeys.recipe.get(id),
+      queryFn: () => getRecipe({ fetch, id }),
+    }),
+  );
 </script>
 
 {#if $query.isPending}

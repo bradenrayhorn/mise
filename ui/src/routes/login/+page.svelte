@@ -5,7 +5,7 @@
     <a class="btn-solid btn-primary" href="/auth/init?redirect_target=/recipes">Log in</a>
   </div>
 
-  <div class="w-full max-w-60 h-0.5 mt-16 bg-divider-default" />
+  <div class="w-full max-w-60 h-0.5 mt-16 bg-divider-default"></div>
 
   <div class="flex mt-8 text-xs">
     <a href="/about" class="hover:underline text-fg-muted">About</a>

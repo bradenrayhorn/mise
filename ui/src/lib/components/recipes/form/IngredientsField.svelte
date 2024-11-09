@@ -4,7 +4,11 @@
   import { type RecipeFormSchema } from './schema';
   import type { IngredientBlock } from '$lib/types/recipe';
 
-  export let superform: SuperForm<Infer<RecipeFormSchema>>;
+  interface Props {
+    superform: SuperForm<Infer<RecipeFormSchema>>;
+  }
+
+  const { superform }: Props = $props();
 
   const { values: blocks } = arrayProxy(superform, 'ingredient_blocks');
 
@@ -28,7 +32,8 @@
           <button
             class="text-lg"
             aria-label={`Delete ${block.title ? `${block.title} ingredients` : `ingredient section ${i + 1}`}`}
-            on:click|preventDefault={() => {
+            onclick={(e) => {
+              e.preventDefault();
               const next = [...$blocks];
               next.splice(i, 1);
               $blocks = next;
@@ -54,7 +59,7 @@
             class="input"
             bind:value={$blocks[i].ingredients[j]}
             aria-label={makeIngredientLabel($blocks, i, j)}
-            on:paste={(e) => {
+            onpaste={(e) => {
               const pastedData = e.clipboardData?.getData('Text') ?? '';
 
               const lines = pastedData
@@ -73,7 +78,7 @@
                 $blocks[i].ingredients = ingredients;
               }
             }}
-            on:input={(e) => {
+            oninput={(e) => {
               const currentIngredients = $blocks[i].ingredients;
               if (
                 e.currentTarget.value?.trim()?.length > 0 &&
@@ -82,7 +87,7 @@
                 $blocks[i].ingredients = [...currentIngredients, ''];
               }
             }}
-            on:keydown={(e) => {
+            onkeydown={(e) => {
               const currentIngredients = $blocks[i].ingredients;
               if (
                 e.key === 'Backspace' &&
@@ -104,7 +109,8 @@
 
 <button
   class="text-sm text-fg-muted text-right mt-4 w-full"
-  on:click|preventDefault={() => {
+  onclick={(e) => {
+    e.preventDefault();
     $blocks = [...$blocks, { title: '', ingredients: [''] }];
   }}>Add additional section</button
 >
