@@ -132,15 +132,16 @@ dependencies = [
 
 [[package]]
 name = "arroy"
-version = "0.4.0"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2ece9e5347e7fdaaea3181dec7f916677ad5f3fcbac183648ce1924eb4aeef9a"
+checksum = "dfc5f272f38fa063bbff0a7ab5219404e221493de005e2b4078c62d626ef567e"
 dependencies = [
  "bytemuck",
  "byteorder",
  "heed",
  "log",
  "memmap2",
+ "nohash",
  "ordered-float 4.4.0",
  "rand",
  "rayon",
@@ -1238,8 +1239,8 @@ checksum = "28dea519a9695b9977216879a3ebfddf92f1c08c05d984f8996aecd6ecdc811d"
 
 [[package]]
 name = "filter-parser"
-version = "1.10.3"
-source = "git+https://github.com/meilisearch/meilisearch?tag=v1.10.3#cf5aa630d2fd262ccbac86ad007da451fa4d72c6"
+version = "1.11.1"
+source = "git+https://github.com/meilisearch/meilisearch?tag=v1.11.1#13025594a8303b3445df89399a75db9d951031f3"
 dependencies = [
  "nom",
  "nom_locate",
@@ -1258,8 +1259,8 @@ dependencies = [
 
 [[package]]
 name = "flatten-serde-json"
-version = "1.10.3"
-source = "git+https://github.com/meilisearch/meilisearch?tag=v1.10.3#cf5aa630d2fd262ccbac86ad007da451fa4d72c6"
+version = "1.11.1"
+source = "git+https://github.com/meilisearch/meilisearch?tag=v1.11.1#13025594a8303b3445df89399a75db9d951031f3"
 dependencies = [
  "serde_json",
 ]
@@ -2095,8 +2096,8 @@ dependencies = [
 
 [[package]]
 name = "json-depth-checker"
-version = "1.10.3"
-source = "git+https://github.com/meilisearch/meilisearch?tag=v1.10.3#cf5aa630d2fd262ccbac86ad007da451fa4d72c6"
+version = "1.11.1"
+source = "git+https://github.com/meilisearch/meilisearch?tag=v1.11.1#13025594a8303b3445df89399a75db9d951031f3"
 dependencies = [
  "serde_json",
 ]
@@ -2318,8 +2319,8 @@ dependencies = [
 
 [[package]]
 name = "milli"
-version = "1.10.3"
-source = "git+https://github.com/meilisearch/meilisearch?tag=v1.10.3#cf5aa630d2fd262ccbac86ad007da451fa4d72c6"
+version = "1.11.1"
+source = "git+https://github.com/meilisearch/meilisearch?tag=v1.11.1#13025594a8303b3445df89399a75db9d951031f3"
 dependencies = [
  "arroy",
  "bimap",
@@ -2501,6 +2502,12 @@ name = "new_debug_unreachable"
 version = "1.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "650eef8c711430f1a879fdd01d4745a7deea475becfb90269c06775983bbf086"
+
+[[package]]
+name = "nohash"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a0f889fb66f7acdf83442c35775764b51fed3c606ab9cee51500dbde2cf528ca"
 
 [[package]]
 name = "nom"
@@ -3378,9 +3385,8 @@ dependencies = [
 
 [[package]]
 name = "rhai"
-version = "1.19.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "61797318be89b1a268a018a92a7657096d83f3ecb31418b9e9c16dcbb043b702"
+version = "1.20.0"
+source = "git+https://github.com/rhaiscript/rhai?rev=ef3df63121d27aacd838f366f2b83fd65f20a1e4#ef3df63121d27aacd838f366f2b83fd65f20a1e4"
 dependencies = [
  "ahash",
  "bitflags 2.6.0",
@@ -3397,8 +3403,7 @@ dependencies = [
 [[package]]
 name = "rhai_codegen"
 version = "2.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a5a11a05ee1ce44058fa3d5961d05194fdbe3ad6b40f904af764d81b86450e6b"
+source = "git+https://github.com/rhaiscript/rhai?rev=ef3df63121d27aacd838f366f2b83fd65f20a1e4#ef3df63121d27aacd838f366f2b83fd65f20a1e4"
 dependencies = [
  "proc-macro2",
  "quote",

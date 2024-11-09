@@ -21,8 +21,6 @@
     rightIcon,
     ...rest
   }: Props = $props();
-
-  const children_render = $derived(children);
 </script>
 
 <button class={`${className ?? ''}`} {...rest} disabled={isDisabled || isLoading}>
@@ -31,7 +29,7 @@
       {@render leftIcon?.()}
     {/if}
 
-    {@render children_render?.()}
+    {@render children?.()}
 
     {#if rightIcon && !isLoading}
       {@render rightIcon?.()}
