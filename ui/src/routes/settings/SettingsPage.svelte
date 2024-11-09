@@ -5,9 +5,12 @@
   import IconDark from '~icons/mdi/moon-and-stars';
   import { setTheme, isThemeDark } from '$lib/theme-switch';
 
-  export let backURL: string;
+  type Props = {
+    backURL: string;
+  };
+  const { backURL }: Props = $props();
 
-  let isDark = isThemeDark();
+  let isDark = $state(isThemeDark());
 </script>
 
 <div class="w-full h-full">
@@ -23,7 +26,7 @@
 
     <button
       class="flex items-center gap-2"
-      on:click={() => {
+      onclick={() => {
         setTheme(!isDark);
         isDark = !isDark;
       }}

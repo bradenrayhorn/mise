@@ -1,13 +1,15 @@
 <script lang="ts">
   import type { Tag } from '$lib/types/tag';
   import { createDropdownMenu, melt } from '@melt-ui/svelte';
-  import { createEventDispatcher } from 'svelte';
   import TagModal from './recipes/form/TagModal.svelte';
 
-  export let tags: Array<Tag>;
-  export let canCreate: boolean = false;
+  type Props = {
+    tags: Array<Tag>;
+    canCreate?: boolean;
+    onselect: (event: { tagID: string }) => void;
+  };
 
-  const dispatch = createEventDispatcher();
+  let { tags, onselect, canCreate = false }: Props = $props();
 
   const {
     elements: { trigger, menu, item, separator },
@@ -17,7 +19,7 @@
   });
 
   function onSelect(id: string) {
-    dispatch('select', { tagID: id });
+    onselect({ tagID: id });
   }
 </script>
 
@@ -38,7 +40,7 @@
       <button
         class="pl-3 data-[highlighted]:bg-base-primaryHover py-1 text-left"
         use:melt={$item}
-        on:m-click={() => {
+        onclick={() => {
           onSelect(tag.id);
         }}
       >
@@ -49,7 +51,7 @@
     {/each}
 
     {#if canCreate}
-      <div class="h-px shrink-0 bg-divider-default my-2" use:melt={$separator} />
+      <div class="h-px shrink-0 bg-divider-default my-2" use:melt={$separator}></div>
 
       <TagModal element={item} />
     {/if}

@@ -2,7 +2,11 @@
   import { formFieldProxy, type Infer, type SuperForm } from 'sveltekit-superforms';
   import type { RecipeFormSchema } from './schema';
 
-  export let superform: SuperForm<Infer<RecipeFormSchema>>;
+  interface Props {
+    superform: SuperForm<Infer<RecipeFormSchema>>;
+  }
+
+  const { superform }: Props = $props();
 
   const { value, errors } = formFieldProxy(superform, 'title');
 </script>

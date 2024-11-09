@@ -1,8 +1,14 @@
 <script lang="ts">
+  import type { MouseEventHandler } from 'svelte/elements';
   import DeleteIcon from '~icons/mdi/close';
 
-  export let canDelete: boolean;
-  export let name: string;
+  type Props = {
+    canDelete: boolean;
+    name: string;
+    onclick?: MouseEventHandler<HTMLButtonElement>;
+  };
+
+  let { canDelete, name, onclick }: Props = $props();
 </script>
 
 <li
@@ -16,7 +22,7 @@
       class="ml-2 px-2 border-l border-tag-divider"
       aria-label={`Delete tag ${name}`}
       type="button"
-      on:click
+      {onclick}
     >
       <DeleteIcon />
     </button>

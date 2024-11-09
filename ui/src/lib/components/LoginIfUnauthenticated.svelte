@@ -1,12 +1,17 @@
 <script lang="ts">
-  import { useAuth } from '$lib/auth-context';
   import PageReauthenticateState from './page-states/PageReauthenticateState.svelte';
+  import type { Snippet } from 'svelte';
+  import { auth } from '$lib/auth.svelte';
 
-  const auth = useAuth();
+  type Props = {
+    children: Snippet;
+  };
+
+  let { children }: Props = $props();
 </script>
 
-{#if $auth.unauthenticated}
+{#if auth.unauthenticated}
   <PageReauthenticateState />
 {:else}
-  <slot />
+  {@render children?.()}
 {/if}

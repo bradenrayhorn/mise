@@ -25,7 +25,11 @@
 
   const iconsMap = [Icon1, Icon2, Icon3, Icon4, Icon5, Icon6, Icon7, Icon8, Icon9, Icon10];
 
-  export let title: string;
+  interface Props {
+    title: string;
+  }
+
+  const { title }: Props = $props();
 
   function hashTitle(title: string): number {
     let hash = 0;
@@ -41,11 +45,13 @@
     return [hash % 10, (hash >> 3) % 10];
   }
 
-  $: indexes = randomIndexes(hashTitle(title));
+  const indexes = $derived(randomIndexes(hashTitle(title)));
+
+  const SvelteComponent = $derived(iconsMap[indexes[1]]);
 </script>
 
 <div
   class={`w-full h-full ${colorsMap[indexes[0]]} flex items-center justify-center text-[rgba(255,255,255,0.72)]`}
 >
-  <svelte:component this={iconsMap[indexes[1]]} />
+  <SvelteComponent />
 </div>

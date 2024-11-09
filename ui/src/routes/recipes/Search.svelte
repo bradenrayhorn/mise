@@ -3,8 +3,8 @@
   import { page } from '$app/stores';
   import { setQueryParameters } from '$lib/replace-query-parameter';
 
-  $: queryParams = $page.url.searchParams;
-  let searchValue = $page.url.searchParams.get('search') ?? '';
+  let queryParams = $derived($page.url.searchParams);
+  let searchValue = $state($page.url.searchParams.get('search') ?? '');
 
   page.subscribe((newPage) => {
     searchValue = newPage.url.searchParams.get('search') ?? '';
@@ -14,7 +14,7 @@
 <form
   class="grow"
   method="POST"
-  on:submit={(e) => {
+  onsubmit={(e) => {
     e.preventDefault();
     goto(`/recipes?${setQueryParameters(queryParams, { cursor: '', search: searchValue })}`);
   }}

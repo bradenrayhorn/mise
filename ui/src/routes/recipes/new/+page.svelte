@@ -14,14 +14,12 @@
   import Button from '$lib/components/Button.svelte';
   import { queryKeys } from '$lib/api/query-keys';
   import { useQueryClient } from '@tanstack/svelte-query';
-  import { useAuth } from '$lib/auth-context';
   import { uid } from 'uid';
   import { sticky } from '$lib/actions/sticky';
 
   const backURL = `/recipes?${localStorage.getItem('last-recipes-query')}`;
 
   const client = useQueryClient();
-  const auth = useAuth();
 
   const initialData = {
     title: '',
@@ -56,7 +54,7 @@
         await client.invalidateQueries({ queryKey: [queryKeys.recipe.list] });
         await goto('/recipes');
       } catch (error) {
-        await handleSuperformError(form, error, auth);
+        await handleSuperformError(form, error);
       }
     },
   });

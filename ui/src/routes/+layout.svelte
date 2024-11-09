@@ -4,10 +4,15 @@
   import LightSwitch from '$lib/components/LightSwitch.svelte';
   import { browser, dev } from '$app/environment';
   import { QueryClient, QueryClientProvider } from '@tanstack/svelte-query';
-  import NavigatingProvider from '$lib/NavigatingProvider.svelte';
   import type { MaybeError } from '$lib/types/error';
-  import AuthProvider from '$lib/AuthProvider.svelte';
   import LoginIfUnauthenticated from '$lib/components/LoginIfUnauthenticated.svelte';
+  import type { Snippet } from 'svelte';
+
+  type Props = {
+    children?: Snippet;
+  };
+
+  let { children }: Props = $props();
 
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -30,13 +35,9 @@
 </script>
 
 <QueryClientProvider client={queryClient}>
-  <NavigatingProvider>
-    <AuthProvider>
-      <LoginIfUnauthenticated>
-        <slot />
-      </LoginIfUnauthenticated>
-    </AuthProvider>
-  </NavigatingProvider>
+  <LoginIfUnauthenticated>
+    {@render children?.()}
+  </LoginIfUnauthenticated>
 </QueryClientProvider>
 
 {#if dev}

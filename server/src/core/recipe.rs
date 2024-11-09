@@ -1,3 +1,5 @@
+use anyhow::Context;
+
 use crate::{
     core::Error,
     datastore::{self, Pool, RecipeDocument},
@@ -114,20 +116,20 @@ pub async fn list(
             .await
             .map_err(|err| Error::Other(err.into()))?;
 
-        let recipes = futures::future::try_join_all(recipe_ids.into_iter().map(|id| async {
+        let recipes = futures::future::try_join_all(recipe_ids.into_iter().map(|id| async move {
             let recipe = datastore
-                .get_recipe(id.into())
+                .get_recipe(id.clone().into())
                 .await
-                .map_err(|err| Error::Other(err.into()))?;
+                .context(format!("get recipe: {id}"))?;
 
-            Ok(ListedRecipe {
+            Ok::<ListedRecipe, Error>(ListedRecipe {
                 id: recipe.id,
                 title: recipe.title,
                 image_id: recipe.image_id,
             })
         }))
         .await
-        .map_err(|err: Error| Error::Other(err.into()))?;
+        .context("recipes/list: get searched recipes")?;
 
         Ok(domain::page::Recipe {
             items: recipes,

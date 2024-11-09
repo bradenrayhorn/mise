@@ -4,7 +4,6 @@
   import IconClose from '~icons/mdi/close';
   import type { Tag } from '$lib/types/tag';
   import { createDialog, melt } from '@melt-ui/svelte';
-  import { createEventDispatcher } from 'svelte';
   import TagFilterOption from './TagFilterOption.svelte';
   import StreamedError from '$lib/components/StreamedError.svelte';
   import { fade, slide } from 'svelte/transition';
@@ -12,17 +11,19 @@
   import { getTags } from '$lib/api/load/tag';
   import { createQuery } from '@tanstack/svelte-query';
 
+  type Props = {
+    defaultTagSet: Array<string>;
+    onapplied: (event: { tag_ids: string[] }) => void;
+  };
+  const { defaultTagSet, onapplied }: Props = $props();
+
   const tagsQuery = createQuery<Array<Tag>>({
     queryKey: [queryKeys.tag.list],
     queryFn: () => getTags({ fetch }),
   });
-  $: tags = $tagsQuery.data;
+  const tags = $derived($tagsQuery.data);
 
-  export let defaultTagSet: Array<string>;
-
-  $: hasTagsApplied = defaultTagSet.length > 0;
-
-  const dispatch = createEventDispatcher();
+  const hasTagsApplied = $derived(defaultTagSet.length > 0);
 
   const {
     elements: { trigger, portalled, overlay, content, title, close },
@@ -37,13 +38,13 @@
     },
   });
 
-  let nextTags: { [id: string]: boolean } = Object.fromEntries(
-    defaultTagSet.map((id) => [id, true]),
+  let nextTags: { [id: string]: boolean } = $state(
+    Object.fromEntries(defaultTagSet.map((id) => [id, true])),
   );
 
   function onApply() {
     $open = false;
-    dispatch('applied', {
+    onapplied({
       tag_ids: Object.entries(nextTags)
         .filter(([k, v]) => v && k)
         .map(([k]) => k),
@@ -52,7 +53,7 @@
 
   function onClear() {
     $open = false;
-    dispatch('applied', { tag_ids: [] });
+    onapplied({ tag_ids: [] });
   }
 </script>
 
@@ -70,11 +71,12 @@
       use:melt={$overlay}
       class="fixed z-40 bg-base-backdrop top-0 bottom-0 right-0 left-0"
       aria-hidden="true"
-      on:click|stopPropagation={() => {
+      onclick={(e) => {
+        e.stopPropagation();
         $open = false;
       }}
       transition:fade={{ duration: 100 }}
-    />
+    ></div>
     <div
       use:melt={$content}
       class="fixed z-50 bottom-0 left-0 right-0 h-[min(clamp(24rem,50dvh,100dvh),100dvh)] bg-base-500 rounded-t-xl flex flex-col"
@@ -87,7 +89,7 @@
           >
         </div>
         <h2 use:melt={$title} class="font-semibold">Tags</h2>
-        <div class="flex-1" />
+        <div class="flex-1"></div>
       </div>
 
       <div class="flex flex-col flex-1 gap-2 overflow-y-auto px-4">
@@ -105,14 +107,10 @@
       </div>
 
       <div class="shrink-0 p-4 flex gap-2">
-        <button
-          on:click={onClear}
-          disabled={!hasTagsApplied}
-          class="btn-solid btn-gray btn-sm grow"
-        >
+        <button onclick={onClear} disabled={!hasTagsApplied} class="btn-solid btn-gray btn-sm grow">
           Clear
         </button>
-        <button on:click={onApply} class="btn-solid btn-primary btn-sm grow">Apply</button>
+        <button onclick={onApply} class="btn-solid btn-primary btn-sm grow">Apply</button>
       </div>
     </div>
   </div>

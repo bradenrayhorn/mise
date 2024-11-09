@@ -2,7 +2,11 @@
   import { type SuperForm, type Infer, fileProxy, formFieldProxy } from 'sveltekit-superforms';
   import { type RecipeFormSchema } from './schema';
 
-  export let superform: SuperForm<Infer<RecipeFormSchema>>;
+  interface Props {
+    superform: SuperForm<Infer<RecipeFormSchema>>;
+  }
+
+  const { superform }: Props = $props();
 
   const file = fileProxy(superform, 'image');
   const { errors } = formFieldProxy(superform, 'image');

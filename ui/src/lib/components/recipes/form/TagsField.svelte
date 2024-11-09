@@ -9,16 +9,20 @@
   import { queryKeys } from '$lib/api/query-keys';
   import { getTags } from '$lib/api/load/tag';
 
-  export let superform: SuperForm<Infer<RecipeFormSchema>>;
+  interface Props {
+    superform: SuperForm<Infer<RecipeFormSchema>>;
+  }
+
+  const { superform }: Props = $props();
   const tagsQuery = createQuery<Array<Tag>>({
     queryKey: [queryKeys.tag.list],
     queryFn: () => getTags({ fetch }),
   });
-  $: availableTags = $tagsQuery.data;
+  const availableTags = $derived($tagsQuery.data);
 
   const { values: tags } = arrayProxy(superform, 'tags');
 
-  $: selectedTagsSet = new Set($tags.map((t) => t.id));
+  const selectedTagsSet = $derived(new Set($tags.map((t) => t.id)));
 </script>
 
 {#if $tagsQuery.isPending}
@@ -29,7 +33,7 @@
   <TagPicker
     canCreate={true}
     tags={availableTags.filter((t) => !selectedTagsSet.has(t.id))}
-    on:select={({ detail: { tagID } }) => {
+    onselect={({ tagID }) => {
       const nextTag = availableTags.find((t) => t.id === tagID);
       if (nextTag) {
         $tags = [...$tags, nextTag];
@@ -43,7 +47,7 @@
     <SingleTag
       name={tag.name}
       canDelete={true}
-      on:click={() => {
+      onclick={() => {
         $tags = $tags.filter((t) => t.id !== tag.id);
       }}
     />
