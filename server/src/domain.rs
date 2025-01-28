@@ -121,9 +121,9 @@ pub struct DumpedIndexableRecipe {
 
 #[derive(thiserror::Error, Debug)]
 pub enum ValidationError {
-    #[error("{self}")]
+    #[error("{0}")]
     Constraint(String),
-    #[error("{self}")]
+    #[error("{0}")]
     Format(String),
 }
 
