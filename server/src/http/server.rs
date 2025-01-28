@@ -100,8 +100,8 @@ impl Server {
                     .route("/auth/me", axum::routing::get(get_me))
                     .route("/recipes", axum::routing::get(http::recipe::list))
                     .route("/recipes", axum::routing::post(http::recipe::create))
-                    .route("/recipes/:id", axum::routing::get(http::recipe::get))
-                    .route("/recipes/:id", axum::routing::put(http::recipe::update))
+                    .route("/recipes/{id}", axum::routing::get(http::recipe::get))
+                    .route("/recipes/{id}", axum::routing::put(http::recipe::update))
                     .route("/tags", axum::routing::post(http::tag::create))
                     .route("/tags", axum::routing::get(http::tag::get_all))
                     //
@@ -110,7 +110,7 @@ impl Server {
                         "/images",
                         Router::new()
                             .route("/", axum::routing::post(http::image::upload))
-                            .route("/:id", axum::routing::get(http::image::get))
+                            .route("/{id}", axum::routing::get(http::image::get))
                             .layer(DefaultBodyLimit::max(MAX_IMAGE_BODY_SIZE)),
                     )
                     .layer(middleware::from_fn_with_state(

@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use anyhow::{anyhow, Context};
-use axum::async_trait;
+use async_trait::async_trait;
 use chrono::Utc;
 use reqwest::StatusCode;
 

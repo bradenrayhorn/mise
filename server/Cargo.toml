@@ -11,7 +11,7 @@ tokio = { version = "1", features = ["full"] }
 rusqlite = { version = "0.32.0", features = ["bundled", "chrono"] }
 thiserror = "1.0"
 anyhow = "1.0"
-axum = { version = "0.7", features = [
+axum = { version = "0.8.1", features = [
 	"http1",
 	"json",
 	"multipart",
@@ -30,7 +30,7 @@ reqwest = { version = "0.12.4", default-features = false, features = [
 	"multipart",
 	"rustls-tls",
 ] }
-axum-extra = { version = "0.9.3", features = [
+axum-extra = { version = "0.10.0", features = [
 	"cookie-private",
 ], default-features = false }
 serde_json = "1.0.117"
