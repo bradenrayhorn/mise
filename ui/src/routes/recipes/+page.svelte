@@ -49,7 +49,7 @@
     class="ptsafe-4 p-4 sticky md:fixed transition-all top-0 left-0 right-0 bg-base-500 stuck:bg-base-600 stuck:shadow-md"
   >
     <div class="mb-4 md:mb-0 flex justify-between items-center gap-8">
-      <h1 class="font-bold text-3xl font-serif">Recipes</h1>
+      <h1 class="font-bold text-3xl text-fg-highlight font-serif">Recipes</h1>
 
       <div class="grow hidden md:block"><Search /></div>
 

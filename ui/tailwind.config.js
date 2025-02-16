@@ -69,6 +69,7 @@ export default {
       },
 
       fg: {
+        highlight: 'var(--color-fg-highlight)',
         default: 'var(--color-fg-default)',
         muted: 'var(--color-fg-muted)',
       },
@@ -96,10 +97,6 @@ export default {
       },
     },
     extend: {
-      fontFamily: {
-        sans: ['NotoSans', 'ui-sans-serif'],
-        serif: ['NotoSerif', 'ui-serif'],
-      },
       boxShadow: {
         outline: '0 0 0 1px',
       },
