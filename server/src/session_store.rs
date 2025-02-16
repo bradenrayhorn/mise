@@ -147,7 +147,7 @@ impl SessionStore {
                 return Ok(());
             }
 
-            let delay_ms = (2_u64.pow(retries) * 200) + (rand::thread_rng().gen_range(0..50));
+            let delay_ms = (2_u64.pow(retries) * 200) + (rand::rng().random_range(0..50));
             tokio::time::sleep(Duration::from_millis(delay_ms)).await;
 
             retries += 1;

@@ -183,7 +183,7 @@ impl Pool {
                 return Ok(conn);
             }
 
-            let delay_ms = (2_u64.pow(retries) * 2) + (rand::thread_rng().gen_range(0..3));
+            let delay_ms = (2_u64.pow(retries) * 2) + (rand::rng().random_range(0..3));
             tokio::time::sleep(Duration::from_millis(delay_ms)).await;
             retries += 1;
         }
