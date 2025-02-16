@@ -44,7 +44,7 @@
     </h1>
   </div>
 
-  <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 px-4 md:px-8 xl:px-12 mt-4">
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 px-4 md:px-8 xl:px-12 mt-4">
     {#if recipe.image_id || (recipe.tags.length ?? 0) > 0 || recipe.rich_notes}
       <div class="flex-1 flex flex-col lg:col-span-2">
         {#if recipe.image_id}
@@ -71,14 +71,19 @@
     {/if}
 
     <section class="flex-1" aria-labelledby={ingredientsSectionID}>
-      <h2 class="text-xl font-bold mb-4 md:mb-6" id={ingredientsSectionID}>Ingredients</h2>
+      <h2
+        class="text-xl font-bold mb-4 md:mb-6 border-b-2 pb-1 border-b-alpha-200"
+        id={ingredientsSectionID}
+      >
+        Ingredients
+      </h2>
 
-      <div class="flex flex-col gap-12">
+      <div class="flex flex-col gap-10">
         {#each recipe.ingredient_blocks as b}
           {@const id = uid()}
           <div class="flex flex-col">
             {#if b.title}
-              <h3 class="font-bold mb-4" {id}>
+              <h3 class="font-bold mb-4 text-lg" {id}>
                 {b.title}
               </h3>
             {/if}
@@ -99,24 +104,32 @@
     </section>
 
     <section class="flex-1" aria-labelledby={instructionsSectionID}>
-      <h2 class="text-xl font-bold mb-4 md:mb-6" id={instructionsSectionID}>Instructions</h2>
+      <h2
+        class="text-xl font-bold mb-4 md:mb-6 border-b-2 pb-1 border-b-alpha-200"
+        id={instructionsSectionID}
+      >
+        Directions
+      </h2>
 
-      <div class="flex flex-col gap-12">
+      <div class="flex flex-col gap-10">
         {#each recipe.instruction_blocks as b}
           {@const id = uid()}
           <div class="flex flex-col">
             {#if b.title}
-              <h3 class="font-bold mb-4" {id}>
+              <h3 class="font-bold mb-4 text-lg" {id}>
                 {b.title}
               </h3>
             {/if}
 
             <ol
-              class="list-decimal marker:text-lg marker:font-bold ml-4 flex flex-col gap-6"
+              class="list-none flex flex-col gap-6"
               aria-labelledby={b.title ? id : instructionsSectionID}
             >
-              {#each b.rich_instructions as instruction}
+              {#each b.rich_instructions as instruction, i}
                 <li>
+                  <div class="float-left font-bold text-xl pr-2 leading-6" aria-hidden="true">
+                    {i + 1}.
+                  </div>
                   <!-- eslint-disable svelte/no-at-html-tags -->
                   <div class="prose">{@html instruction}</div>
                 </li>

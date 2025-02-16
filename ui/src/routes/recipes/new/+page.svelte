@@ -96,7 +96,7 @@
     </section>
 
     <section class="flex-1 max-w-[75ch]" aria-labelledby={instructionsSectionID}>
-      <h2 class="text-xl font-bold mb-4 md:mb-6" id={instructionsSectionID}>Instructions</h2>
+      <h2 class="text-xl font-bold mb-4 md:mb-6" id={instructionsSectionID}>Directions</h2>
 
       <InstructionsField {superform} />
     </section>

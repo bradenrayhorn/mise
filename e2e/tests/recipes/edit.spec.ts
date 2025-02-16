@@ -56,7 +56,7 @@ test('can edit recipe to include simple details', async ({ login: user, page, re
       image: true,
       notes: 'Tastes good!',
       ingredients: { Ingredients: ['Apple sauce', 'Corn starch'] },
-      instructions: { Instructions: ['Stir the apple sauce and corn starch.', 'Bake at 350.'] },
+      instructions: { Directions: ['Stir the apple sauce and corn starch.', 'Bake at 350.'] },
       tags: ['Good', 'Quick'],
     },
   });
@@ -161,11 +161,11 @@ test('can remove details from recipe', async ({ login: user, page, request }) =>
   await page.getByLabel('Ingredient 2').clear();
 
   await page
-    .getByRole('region', { name: 'Instructions' })
-    .getByRole('button', { name: 'Delete Bread instructions' })
+    .getByRole('region', { name: 'Directions' })
+    .getByRole('button', { name: 'Delete Bread directions' })
     .click();
-  await page.getByLabel('Instruction 1').clear();
-  await page.getByLabel('Instruction 2').clear();
+  await page.getByLabel('Direction 1').clear();
+  await page.getByLabel('Direction 2').clear();
 
   await page.getByRole('button', { name: `Delete tag ${user}Good` }).click();
 

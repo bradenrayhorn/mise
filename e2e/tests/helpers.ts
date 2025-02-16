@@ -102,7 +102,7 @@ export async function fillRecipeForm({
   for (let i = 0; i < instructions.length; i++) {
     if (instructions.length > 1 && i < instructions.length - 1) {
       await page
-        .getByRole('region', { name: 'Instructions' })
+        .getByRole('region', { name: 'Directions' })
         .getByRole('button', { name: 'Add additional section' })
         .click();
     }
@@ -110,11 +110,11 @@ export async function fillRecipeForm({
     const [title, items] = instructions[i];
 
     if (title) {
-      await page.getByLabel(`Instruction section ${i + 1} title`).fill(title);
+      await page.getByLabel(`Directions section ${i + 1} title`).fill(title);
     }
     for (let j = 0; j < items.length; j++) {
       await page
-        .getByLabel(title ? `${title} instruction ${j + 1}` : `Instruction ${j + 1}`)
+        .getByLabel(title ? `${title} direction ${j + 1}` : `Direction ${j + 1}`)
         .fill(items[j]);
     }
   }
@@ -156,26 +156,34 @@ export async function assertRecipeView({
   }
 
   for (const [title, items] of Object.entries(recipe.ingredients)) {
-    await expect(
-      page
-        .getByRole('region', { name: 'Ingredients' })
-        .getByRole('list', { name: title })
-        .getByRole('listitem'),
-    ).toHaveText(items);
+    const locators = await page
+      .getByRole('region', { name: 'Ingredients' })
+      .getByRole('list', { name: title })
+      .getByRole('listitem')
+      .all();
+
+    expect(locators).toHaveLength(items.length);
+    locators.forEach((locator, i) => {
+      expect(locator.getByText(items[i])).toBeVisible();
+    });
   }
   await expect(page.getByRole('region', { name: 'Ingredients' }).getByRole('list')).toHaveCount(
     Object.entries(recipe.ingredients).length,
   );
 
   for (const [title, items] of Object.entries(recipe.instructions)) {
-    await expect(
-      page
-        .getByRole('region', { name: 'Instructions' })
-        .getByRole('list', { name: title })
-        .getByRole('listitem'),
-    ).toHaveText(items);
+    const locators = await page
+      .getByRole('region', { name: 'Directions' })
+      .getByRole('list', { name: title })
+      .getByRole('listitem')
+      .all();
+
+    expect(locators).toHaveLength(items.length);
+    locators.forEach((locator, i) => {
+      expect(locator.getByText(items[i])).toBeVisible();
+    });
   }
-  await expect(page.getByRole('region', { name: 'Instructions' }).getByRole('list')).toHaveCount(
+  await expect(page.getByRole('region', { name: 'Directions' }).getByRole('list')).toHaveCount(
     Object.entries(recipe.instructions).length,
   );
 
@@ -246,27 +254,27 @@ export async function assertRecipeForm({
     const [title, items] = instructions[i];
 
     if (title) {
-      await expect(page.getByLabel(`Instruction section ${i + 1} title`)).toHaveValue(title);
+      await expect(page.getByLabel(`Directions section ${i + 1} title`)).toHaveValue(title);
     } else {
-      expect(page.getByLabel(`Instruction section ${i + 1} title`)).not.toBeVisible();
+      expect(page.getByLabel(`Directions section ${i + 1} title`)).not.toBeVisible();
     }
 
     for (let j = 0; j < items.length; j++) {
       await expect(
-        page.getByLabel(title ? `${title} instruction ${j + 1}` : `Instruction ${j + 1}`),
+        page.getByLabel(title ? `${title} direction ${j + 1}` : `Direction ${j + 1}`),
       ).toHaveValue(items[j]);
     }
 
     // make sure that was the last instruction
     await expect(
       page.getByLabel(
-        title ? `${title} instruction ${items.length + 2}` : `Instruction ${items.length + 2}`,
+        title ? `${title} direction ${items.length + 2}` : `Direction ${items.length + 2}`,
       ),
     ).not.toBeVisible();
   }
 
   // make sure that was the last instruction block
-  await expect(page.getByLabel(`Instruction section ${instructions.length + 2}`)).not.toBeVisible();
+  await expect(page.getByLabel(`Directions section ${instructions.length + 2}`)).not.toBeVisible();
 
   await expect(page.getByRole('list', { name: 'Tags' }).getByRole('listitem')).toHaveText(
     recipe.tags.map((tag) => `${user}${tag}`),
