@@ -3,43 +3,6 @@
 @tailwind utilities;
 
 @layer base {
-  @font-face {
-    font-family: 'NotoSans';
-    font-display: swap;
-    src: url('/fonts/NotoSans-Regular.woff2') format('woff2');
-    font-weight: normal;
-    font-style: normal;
-  }
-  @font-face {
-    font-family: 'NotoSans';
-    font-display: swap;
-    src: url('/fonts/NotoSans-SemiBold.woff2') format('woff2');
-    font-weight: 600;
-    font-style: normal;
-  }
-  @font-face {
-    font-family: 'NotoSans';
-    font-display: swap;
-    src: url('/fonts/NotoSans-Bold.woff2') format('woff2');
-    font-weight: bold;
-    font-style: normal;
-  }
-
-  @font-face {
-    font-family: 'NotoSerif';
-    font-display: swap;
-    src: url('/fonts/NotoSerif-Regular.woff2') format('woff2');
-    font-weight: normal;
-    font-style: normal;
-  }
-  @font-face {
-    font-family: 'NotoSerif';
-    font-display: swap;
-    src: url('/fonts/NotoSerif-Bold.woff2') format('woff2');
-    font-weight: bold;
-    font-style: normal;
-  }
-
   :root {
     /* Color palettes */
     --color-primary-50: #c0e2d4;
@@ -90,6 +53,7 @@
     --color-divider-default: var(--color-alpha-200);
 
     /*  Text */
+    --color-fg-highlight: #1f2937;
     --color-fg-default: #1f2937;
     --color-fg-muted: #474f5a;
 
@@ -126,17 +90,18 @@
     --color-alpha-900: rgba(255, 255, 255, 0.92);
 
     /*  Backgrounds */
-    --color-base-500: #0e1118;
-    --color-base-600: #1b1f2a;
+    --color-base-500: #131316;
+    --color-base-600: #252628;
 
-    --color-base-skeleton: #2f3340;
+    --color-base-skeleton: #3a3b40;
 
     --color-base-primaryHover: rgba(52, 99, 76, 0.24);
     --color-base-backdrop: rgba(0, 0, 0, 0.75);
 
     /*  Text */
-    --color-fg-default: #e2e8f0;
-    --color-fg-muted: #bcc1c9;
+    --color-fg-highlight: #dcdfe3;
+    --color-fg-default: #bdc1c7;
+    --color-fg-muted: #afb2b6;
 
     /*  Links */
     --color-link-primary: #6da68b;
@@ -155,7 +120,7 @@
 
   .prose {
     & p {
-      @apply my-2 last-of-type:mb-0 first-of-type:mt-0;
+      @apply my-6 leading-relaxed max-w-[75ch] last-of-type:mb-0 first-of-type:mt-0;
     }
 
     & a {

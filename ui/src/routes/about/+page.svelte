@@ -20,7 +20,7 @@
 
 <h1
   use:sticky
-  class="font-serif text-3xl font-bold px-4 pb-6 ptsafe-6 sticky top-0 transition-all bg-base-500 stuck:bg-base-600 stuck:shadow-md"
+  class="font-serif text-fg-highlight text-3xl font-bold px-4 pb-6 ptsafe-6 sticky top-0 transition-all bg-base-500 stuck:bg-base-600 stuck:shadow-md"
 >
   About
 </h1>

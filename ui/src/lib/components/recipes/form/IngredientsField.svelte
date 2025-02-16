@@ -26,7 +26,7 @@
   {#each $blocks as block, i}
     <div>
       {#if $blocks.length > 1}
-        <div class="font-serif font-bold mb-4 flex justify-between">
+        <div class="font-bold mb-4 flex justify-between">
           {block.title ? block.title : `Section ${i + 1}`}
 
           <button
