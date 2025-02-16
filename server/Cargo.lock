@@ -2695,7 +2695,6 @@ dependencies = [
  "reqwest_cookie_store",
  "ring",
  "rusqlite",
- "semver",
  "serde",
  "serde_json",
  "sha256",

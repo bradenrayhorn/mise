@@ -23,7 +23,13 @@ pub async fn upload(
             .context("Could not read multipart bytes.")
             .map_err(Error::Invalid)?;
 
-        let id = core::image::upload(&state.datasource, &state.image_store, bytes.to_vec()).await?;
+        let id = core::image::upload(
+            &state.datasource,
+            &state.image_store,
+            &state.image_processor,
+            bytes.to_vec(),
+        )
+        .await?;
 
         Ok(axum::response::Json(responses::Data { data: id.into() }))
     } else {

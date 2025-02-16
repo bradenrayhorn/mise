@@ -1,6 +1,8 @@
+use anyhow::Context;
 use mise::{
     config, datastore, file,
     http::Server,
+    image_processing::ImageProcessor,
     imagestore::{self, ImageBackend},
     oidc, s3,
     search::Backend,
@@ -78,6 +80,11 @@ async fn main() {
         }
     };
 
+    let image_processor = ImageProcessor::new()
+        .await
+        .context("Initialize image processor.")
+        .unwrap();
+
     println!("indexing recipes...");
     let sb = Backend::new(&config.search_index_directory, pool.clone()).unwrap();
     sb.index_recipes().await.unwrap();
@@ -89,6 +96,7 @@ async fn main() {
         cache,
         oidc_provider,
         imagestore::ImageStore::new(image_backend),
+        image_processor,
         sb,
     );
 

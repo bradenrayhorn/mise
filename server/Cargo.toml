@@ -48,7 +48,6 @@ zstd = "0.13.1"
 ulid = { version = "1.1.2", features = ["serde"] }
 async-trait = "0.1.80"
 hex = { version = "0.4.3", default-features = false }
-semver = "1.0.23"
 reqwest_cookie_store = "0.8.0"
 tower-http = { version = "0.6.0", features = ["fs", "timeout"] }
 tower = "0.5"
