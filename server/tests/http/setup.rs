@@ -1,6 +1,6 @@
 use base64::Engine;
 use mise::{file, imagestore::ImageStore, oidc, search::Backend};
-use rand::{distributions::Alphanumeric, Rng};
+use rand::Rng;
 use std::{net::TcpListener, sync::Arc, time::Duration};
 
 use anyhow::{anyhow, Result};
@@ -96,8 +96,8 @@ impl Harness {
         let http_port = listener.local_addr()?.port();
         std::mem::drop(listener);
 
-        let random_prefix: String = rand::thread_rng()
-            .sample_iter(&Alphanumeric)
+        let random_prefix: String = rand::rng()
+            .sample_iter(&rand::distr::Alphanumeric)
             .take(8)
             .map(char::from)
             .collect();

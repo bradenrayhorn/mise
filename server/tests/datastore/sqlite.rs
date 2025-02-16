@@ -1,5 +1,5 @@
 use mise::{datastore, sqlite};
-use rand::{distributions::Alphanumeric, Rng};
+use rand::Rng;
 
 use crate::{images_tests, recipes_tests, tags_tests, users_tests};
 
@@ -27,8 +27,8 @@ pub struct SqliteCreator {}
 
 impl CreatesDatastore for SqliteCreator {
     fn new(&self) -> impl HoldsDatastore {
-        let file_name: String = rand::thread_rng()
-            .sample_iter(&Alphanumeric)
+        let file_name: String = rand::rng()
+            .sample_iter(&rand::distr::Alphanumeric)
             .take(8)
             .map(char::from)
             .collect();

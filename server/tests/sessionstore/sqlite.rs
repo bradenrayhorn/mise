@@ -1,7 +1,7 @@
 use anyhow::Result;
 use chrono::{TimeDelta, Utc};
 use mise::{domain, session_store::BackgroundResultMessage};
-use rand::{distributions::Alphanumeric, Rng};
+use rand::Rng;
 use rusqlite::{params, Connection};
 use tokio::sync::{mpsc, oneshot};
 
@@ -17,8 +17,8 @@ impl Drop for TestPool {
 }
 
 fn new() -> (TestPool, mpsc::Sender<mise::session_store::Message>) {
-    let file_name: String = rand::thread_rng()
-        .sample_iter(&Alphanumeric)
+    let file_name: String = rand::rng()
+        .sample_iter(&rand::distr::Alphanumeric)
         .take(8)
         .map(char::from)
         .collect();
