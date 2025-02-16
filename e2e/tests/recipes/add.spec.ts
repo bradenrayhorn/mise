@@ -52,7 +52,7 @@ test('can add new simple recipe', async ({ login: user, page, request }) => {
       image: true,
       notes: 'Tastes good!',
       ingredients: { Ingredients: ['Apple sauce', 'Corn starch'] },
-      instructions: { Instructions: ['Stir the apple sauce and corn starch.', 'Bake at 350.'] },
+      instructions: { Directions: ['Stir the apple sauce and corn starch.', 'Bake at 350.'] },
       tags: ['Good', 'Quick'],
     },
   });

@@ -14,10 +14,10 @@
 
   function makeInstructionLabel(blocks: InstructionBlock[], i: number, j: number) {
     if (blocks.length === 1) {
-      return `Instruction ${j + 1}`;
+      return `Direction ${j + 1}`;
     } else {
       const block = blocks[i]?.title ?? `Section ${i + 1}`;
-      return `${block} instruction ${j + 1}`;
+      return `${block} direction ${j + 1}`;
     }
   }
 </script>
@@ -31,7 +31,7 @@
 
           <button
             class="text-lg"
-            aria-label={`Delete ${block.title ? `${block.title} instructions` : `instructions section ${i + 1}`}`}
+            aria-label={`Delete ${block.title ? `${block.title} directions` : `directions section ${i + 1}`}`}
             onclick={(e) => {
               e.preventDefault();
               const next = [...$blocks];
@@ -47,7 +47,7 @@
               class="input"
               bind:value={$blocks[i].title}
               placeholder="Title"
-              aria-label={`Instruction section ${i + 1} title`}
+              aria-label={`Directions section ${i + 1} title`}
             />
           </label>
         </div>
