@@ -177,6 +177,7 @@ async fn load_recipes(index: &milli_v1::Index, store: &datastore::Pool) -> Resul
         "title".into(),
         "ingredients".into(),
         "instructions".into(),
+        "notes".into(),
     ]);
     let mut filterable_fields = HashSet::new();
     filterable_fields.insert("tag_ids".to_owned());
@@ -220,6 +221,13 @@ async fn load_recipes(index: &milli_v1::Index, store: &datastore::Pool) -> Resul
                 )),
             );
             obj.insert(
+                "notes".into(),
+                match recipe.notes {
+                    None => serde_json::Value::Null,
+                    Some(notes) => serde_json::Value::String(notes.into()),
+                },
+            );
+            obj.insert(
                 "tag_ids".into(),
                 serde_json::Value::Array(
                     recipe
@@ -240,15 +248,17 @@ async fn load_recipes(index: &milli_v1::Index, store: &datastore::Pool) -> Resul
         cursor = page.next;
     }
 
-    // TODO - remove unwraps
-    let vector = documents.into_inner().unwrap();
+    let vector = documents.into_inner().context("documents.into_inner")?;
 
-    let content = DocumentsBatchReader::from_reader(Cursor::new(vector)).unwrap();
-    let (builder, user_error) = builder.add_documents(content).unwrap();
-    user_error.unwrap();
-    builder.execute().unwrap();
+    let content = DocumentsBatchReader::from_reader(Cursor::new(vector))
+        .context("build DocumentsBatchReader")?;
+    let (builder, user_error) = builder
+        .add_documents(content)
+        .context("add to DocumentsBatchReader")?;
+    user_error.context("DocumentsBatchReader user error")?;
+    builder.execute().context("execute builder")?;
 
-    wtxn.commit().unwrap();
+    wtxn.commit().context("commit index changes")?;
 
     Ok(())
 }

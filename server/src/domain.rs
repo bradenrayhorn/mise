@@ -116,6 +116,7 @@ pub struct DumpedIndexableRecipe {
     pub title: recipe::Title,
     pub ingredients: Vec<recipe::IngredientBlock>,
     pub instructions: Vec<recipe::InstructionBlock>,
+    pub notes: Option<recipe::Notes>,
     pub tag_ids: Vec<tag::Id>,
 }
 

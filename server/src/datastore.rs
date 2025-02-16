@@ -90,6 +90,10 @@ impl RecipeDocument {
                 .map(domain::recipe::InstructionBlock::try_from)
                 .collect::<Result<Vec<domain::recipe::InstructionBlock>, domain::ValidationError>>(
                 )?,
+            notes: match value.notes {
+                None => None,
+                Some(s) => Some(s.try_into()?),
+            },
             tag_ids: value.tag_ids,
         })
     }
