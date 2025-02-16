@@ -1,5 +1,5 @@
 use base64::Engine;
-use mise::{file, imagestore::ImageStore, oidc, search::Backend};
+use mise::{file, image_processing::ImageProcessor, imagestore::ImageStore, oidc, search::Backend};
 use rand::Rng;
 use std::{net::TcpListener, sync::Arc, time::Duration};
 
@@ -166,6 +166,9 @@ impl Harness {
                         .await
                         .expect("could not make image backend"),
                 )),
+                ImageProcessor::new()
+                    .await
+                    .expect("could not init image processor"),
                 sb,
             );
             if let Err(err) = server.start().await {

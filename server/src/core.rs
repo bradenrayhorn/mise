@@ -1,4 +1,4 @@
-use crate::{domain, session_store};
+use crate::{domain, image_processing, session_store};
 
 pub mod image;
 pub mod recipe;
@@ -38,6 +38,12 @@ impl From<postcard::Error> for Error {
 
 impl From<base64::DecodeError> for Error {
     fn from(value: base64::DecodeError) -> Self {
+        Error::Other(value.into())
+    }
+}
+
+impl From<image_processing::Error> for Error {
+    fn from(value: image_processing::Error) -> Self {
         Error::Other(value.into())
     }
 }

@@ -18,6 +18,7 @@ use crate::{
     datastore::Pool,
     domain::{self, SessionKey},
     http,
+    image_processing::ImageProcessor,
     imagestore::ImageStore,
     oidc,
     search::Backend,
@@ -33,6 +34,7 @@ pub struct Server {
     search_backend: Backend,
     oidc_provider: Arc<oidc::Provider>,
     image_store: Arc<ImageStore>,
+    image_processor: Arc<ImageProcessor>,
 }
 
 #[derive(Clone)]
@@ -44,6 +46,7 @@ pub struct AppState {
     pub key: ring::hmac::Key,
     pub oidc_provider: Arc<oidc::Provider>,
     pub image_store: Arc<ImageStore>,
+    pub image_processor: Arc<ImageProcessor>,
 }
 
 impl Server {
@@ -54,6 +57,7 @@ impl Server {
         session_store: SessionStore,
         oidc_provider: oidc::Provider,
         image_store: ImageStore,
+        image_processor: ImageProcessor,
         search_backend: Backend,
     ) -> Self {
         Server {
@@ -62,6 +66,7 @@ impl Server {
             session_store,
             oidc_provider: Arc::new(oidc_provider),
             image_store: Arc::new(image_store),
+            image_processor: Arc::new(image_processor),
             search_backend,
         }
     }
@@ -83,6 +88,7 @@ impl Server {
             datasource: self.datasource.clone(),
             oidc_provider: self.oidc_provider.clone(),
             image_store: self.image_store.clone(),
+            image_processor: self.image_processor.clone(),
             search_backend: self.search_backend.clone(),
         };
 
