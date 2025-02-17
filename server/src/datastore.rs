@@ -361,6 +361,16 @@ impl Pool {
         self.send_message(rx, msg).await
     }
 
+    pub async fn get_image(&self, id: &domain::image::Id) -> Result<(), Error> {
+        let (tx, rx) = oneshot::channel();
+        let msg = Message::GetImage {
+            id: id.into(),
+            respond_to: tx,
+        };
+
+        self.send_message(rx, msg).await
+    }
+
     async fn send_message<T>(
         &self,
         rx: oneshot::Receiver<Result<T, Error>>,
@@ -436,6 +446,10 @@ pub enum Message {
 
     // images
     CreateImage {
+        id: String,
+        respond_to: oneshot::Sender<Result<(), Error>>,
+    },
+    GetImage {
         id: String,
         respond_to: oneshot::Sender<Result<(), Error>>,
     },
