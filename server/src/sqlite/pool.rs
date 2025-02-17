@@ -221,6 +221,9 @@ impl ThreadWorker {
                     Message::CreateImage { id, respond_to } => {
                         let _ = respond_to.send(image::insert(&conn, &id));
                     }
+                    Message::GetImage { id, respond_to } => {
+                        let _ = respond_to.send(image::get_image(&conn, &id));
+                    }
                 }
             }
         });

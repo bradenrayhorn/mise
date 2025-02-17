@@ -2,7 +2,7 @@ use anyhow::{anyhow, Context};
 
 use crate::{
     core::Error,
-    datastore::Pool,
+    datastore::{self, Pool},
     domain,
     image_processing::ImageProcessor,
     imagestore::{self, ImageStore},
@@ -40,6 +40,16 @@ pub async fn get(image_store: &ImageStore, image_id: &str) -> Result<Vec<u8>, Er
             imagestore::Error::NotFound(_) => Error::NotFound("Image not found.".into()),
             _ => Error::Other(anyhow!(err).context("Could not get image.")),
         })
+}
+
+pub async fn exists(datastore: &Pool, image_id: &str) -> Result<(), Error> {
+    let id = domain::image::Id::try_from(image_id)?;
+    datastore.get_image(&id).await.map_err(|err| match err {
+        datastore::Error::NotFound => Error::NotFound("Image not found.".into()),
+        _ => Error::Other(anyhow!(err).context("Could not get image.")),
+    })?;
+
+    Ok(())
 }
 
 fn original_path(id: &str) -> String {
