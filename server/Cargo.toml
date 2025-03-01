@@ -52,6 +52,6 @@ reqwest_cookie_store = "0.8.0"
 tower-http = { version = "0.6.0", features = ["fs", "timeout"] }
 tower = "0.5"
 ammonia = "4.0.0"
-pulldown-cmark = "0.12.0"
+pulldown-cmark = "0.13.0"
 milli_v1 = { git = "https://github.com/meilisearch/meilisearch", package = "milli", tag = "v1.12.8" }
 futures = "0.3.31"
