@@ -174,7 +174,7 @@ mod id {
 
     use super::ValidationError;
 
-    #[derive(Debug, Clone, PartialEq, Eq)]
+    #[derive(Debug, Clone, Hash, PartialEq, Eq)]
     pub struct Id {
         ulid: ulid::Ulid,
     }
@@ -478,13 +478,45 @@ mod common {
 
 pub mod tag {
     use super::ValidationError;
+    use crate::required_and_trimmed_string;
 
     pub use super::id::Id;
+
+    #[derive(Debug, Clone)]
+    pub struct Group {
+        pub id: Id,
+        pub name: Name,
+        pub color: Color,
+        pub is_required: bool,
+        pub is_multi_select: bool,
+        pub description: Option<Description>,
+    }
 
     #[derive(Debug, Clone)]
     pub struct Tag {
         pub id: Id,
         pub name: Name,
+        pub description: Option<Description>,
+    }
+
+    #[derive(Debug, Clone)]
+    pub struct Tree {
+        pub groups: Vec<(Group, Vec<Tag>)>,
+        pub ungrouped: Vec<Tag>,
+    }
+
+    #[derive(Debug, Clone)]
+    pub struct TreeWithStats {
+        pub groups: Vec<(Group, Vec<WithStats>)>,
+        pub ungrouped: Vec<WithStats>,
+    }
+
+    #[derive(Debug, Clone)]
+    pub struct WithStats {
+        pub id: Id,
+        pub name: Name,
+        pub description: Option<Description>,
+        pub recipe_count: u64,
     }
 
     #[derive(Debug, Clone)]
@@ -498,29 +530,9 @@ pub mod tag {
         pub name: Name,
     }
 
-    #[derive(Debug, Clone)]
-    pub struct Name(String);
-
-    impl TryFrom<String> for Name {
-        type Error = ValidationError;
-        fn try_from(value: String) -> Result<Self, Self::Error> {
-            let trimmed = value.trim();
-            let char_count = trimmed.chars().count();
-            if char_count < 1 {
-                Err(ValidationError::Constraint(format!(
-                    r#"Tag "{value}" must contain at least one character."#
-                )))
-            } else {
-                Ok(Name(trimmed.to_string()))
-            }
-        }
-    }
-
-    impl From<Name> for String {
-        fn from(value: Name) -> Self {
-            value.0
-        }
-    }
+    required_and_trimmed_string!(Name);
+    required_and_trimmed_string!(Description);
+    required_and_trimmed_string!(Color);
 }
 
 pub mod image {

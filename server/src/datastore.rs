@@ -350,6 +350,13 @@ impl Pool {
         self.send_message(rx, msg).await
     }
 
+    pub async fn get_tags_with_stats(&self) -> Result<Vec<domain::tag::WithStats>, Error> {
+        let (tx, rx) = oneshot::channel();
+        let msg = Message::GetTagsWithStats { respond_to: tx };
+
+        self.send_message(rx, msg).await
+    }
+
     // images
     pub async fn create_image(&self, id: &domain::image::Id) -> Result<(), Error> {
         let (tx, rx) = oneshot::channel();
@@ -435,13 +442,48 @@ pub enum Message {
     },
 
     // tags
-    GetTags {
-        respond_to: oneshot::Sender<Result<Vec<domain::tag::Tag>, Error>>,
+    GetTagTree {
+        respond_to: oneshot::Sender<Result<Vec<domain::tag::Tree>, Error>>,
+    },
+    GetTagTreeWithStats {
+        respond_to: oneshot::Sender<Result<Vec<domain::tag::TreeWithStats>, Error>>,
     },
     CreateTag {
-        user_id: String,
-        name: String,
+        name: domain::tag::Name,
+        description: Option<domain::tag::Description>,
         respond_to: oneshot::Sender<Result<domain::tag::Id, Error>>,
+    },
+    UpdateTag {
+        id: domain::tag::Id,
+        name: domain::tag::Name,
+        description: Option<domain::tag::Description>,
+        group_id: Option<domain::tag::Id>,
+        respond_to: oneshot::Sender<Result<(), Error>>,
+    },
+    DeleteTag {
+        id: domain::tag::Id,
+        respond_to: oneshot::Sender<Result<(), Error>>,
+    },
+    CreateTagGroup {
+        name: domain::tag::Name,
+        description: Option<domain::tag::Description>,
+        color: domain::tag::Color,
+        is_required: bool,
+        is_multi_select: bool,
+        respond_to: oneshot::Sender<Result<domain::tag::Id, Error>>,
+    },
+    UpdateTagGroup {
+        id: domain::tag::Id,
+        name: domain::tag::Name,
+        description: Option<domain::tag::Description>,
+        color: domain::tag::Color,
+        is_required: bool,
+        is_multi_select: bool,
+        respond_to: oneshot::Sender<Result<(), Error>>,
+    },
+    DeleteTagGroup {
+        id: domain::tag::Id,
+        respond_to: oneshot::Sender<Result<(), Error>>,
     },
 
     // images

@@ -110,6 +110,10 @@ impl Server {
                     .route("/recipes/{id}", axum::routing::put(http::recipe::update))
                     .route("/tags", axum::routing::post(http::tag::create))
                     .route("/tags", axum::routing::get(http::tag::get_all))
+                    .route(
+                        "/tags/stats",
+                        axum::routing::get(http::tag::get_all_with_stats),
+                    )
                     //
                     // Nested /images router with large max body size
                     .nest(

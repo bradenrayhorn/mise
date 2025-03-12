@@ -19,3 +19,10 @@ pub async fn get_all(datastore: &Pool) -> Result<Vec<domain::tag::Tag>, Error> {
         .await
         .map_err(|err| Error::Other(err.into()))
 }
+
+pub async fn get_all_with_stats(datastore: &Pool) -> Result<Vec<domain::tag::WithStats>, Error> {
+    datastore
+        .get_tags_with_stats()
+        .await
+        .map_err(|err| Error::Other(err.into()))
+}

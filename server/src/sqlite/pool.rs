@@ -19,7 +19,8 @@ impl From<rusqlite::Error> for Error {
     }
 }
 
-const MIGRATION: [&str; 6] = [
+const MIGRATION: [&str; 8] = [
+    // -- Add users table.
     "
 CREATE TABLE users (
     id TEXT PRIMARY KEY,
@@ -27,10 +28,12 @@ CREATE TABLE users (
     name TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );",
+    // -- Add images table.
     "
 CREATE TABLE images (
     id TEXT PRIMARY KEY
 );",
+    // -- Add recipes tables.
     "
 CREATE TABLE recipes (
     id TEXT PRIMARY KEY,
@@ -52,6 +55,7 @@ CREATE TABLE recipe_revisions (
     FOREIGN KEY (created_by_user_id) REFERENCES users (id) ON DELETE RESTRICT,
     FOREIGN KEY (recipe_id) REFERENCES recipes (id) ON DELETE CASCADE
 );",
+    // -- Add tags tables.
     "
 CREATE TABLE tags (
     id TEXT PRIMARY KEY,
@@ -69,6 +73,35 @@ CREATE TABLE recipe_tags (
     FOREIGN KEY (tag_id) REFERENCES tags (id) ON DELETE CASCADE,
     FOREIGN KEY (recipe_id) REFERENCES recipes (id) ON DELETE CASCADE
 );",
+    // -- Add tag groups tables.
+    "
+CREATE TABLE tag_groups (
+    id INTEGER PRIMARY KEY,
+    name TEXT NOT NULL,
+    description TEXT,
+    is_multi_select BOOL NOT NULL,
+    is_required BOOL NOT NULL,
+    color TEXT NOT NULL,
+    auto_classifier TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);",
+    // -- Add description and group columns to tags.
+    "
+    ALTER TABLE tags RENAME TO tags_old;
+    CREATE TABLE tags (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        description TEXT,
+        group_id TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        deleted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (group_id) REFERENCES tag_groups (id) ON DELETE SET NULL,
+    );
+    INSERT INTO tags (id, name, created_by_user_id, created_at)
+    SELECT id, name, created_at FROM tags_old;
+    DROP TABLE tags_old;
+",
 ];
 
 fn prepare_connection(conn: &Connection) -> Result<(), Error> {
@@ -93,6 +126,7 @@ pub fn datastore_handler(
     prepare_connection(&conn)?;
 
     // run migrations
+    conn.pragma_update(None, "foreign_keys", "OFF")?;
     let tx = conn.transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)?;
     let user_version: usize = tx.pragma_query_value(None, "user_version", |row| row.get(0))?;
     let desired_version = MIGRATION.len();
@@ -114,6 +148,7 @@ pub fn datastore_handler(
     }
 
     tx.commit()?;
+    conn.pragma_update(None, "foreign_keys", "ON")?;
 
     let mut senders: Vec<mpsc::Sender<Message>> = Vec::new();
 
@@ -210,6 +245,9 @@ impl ThreadWorker {
                     }
                     Message::GetTags { respond_to } => {
                         let _ = respond_to.send(tag::get_all(&conn));
+                    }
+                    Message::GetTagsWithStats { respond_to } => {
+                        let _ = respond_to.send(tag::get_all_with_stats(&conn));
                     }
                     Message::CreateTag {
                         user_id,
