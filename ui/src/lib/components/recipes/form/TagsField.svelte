@@ -43,7 +43,7 @@
 {/if}
 
 <ul class="flex flex-wrap gap-2" aria-label="Tags">
-  {#each $tags as tag}
+  {#each $tags as tag (tag.id)}
     <SingleTag
       name={tag.name}
       canDelete={true}

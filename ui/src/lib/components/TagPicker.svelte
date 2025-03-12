@@ -31,7 +31,7 @@
   Add Tag
 </button>
 
-{#if open}
+{#if $open}
   <div
     class="z-10 max-h-60 overflow-y-auto flex flex-col shadow rounded bg-base-600 p-1 min-w-40"
     use:melt={$menu}

@@ -23,7 +23,7 @@
 </script>
 
 <div class="flex flex-col gap-10">
-  {#each $blocks as block, i}
+  {#each $blocks as block, i (i)}
     <div>
       {#if $blocks.length > 1}
         <div class="font-bold mb-4 flex justify-between">
@@ -54,7 +54,7 @@
       {/if}
 
       <div class="flex flex-col gap-2">
-        {#each $blocks[i].instructions as _, j}
+        {#each $blocks[i].instructions as _, j (j)}
           <textarea
             class="input resize-none h-36"
             bind:value={$blocks[i].instructions[j]}

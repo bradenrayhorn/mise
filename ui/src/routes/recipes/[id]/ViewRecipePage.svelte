@@ -79,7 +79,7 @@
       </h2>
 
       <div class="flex flex-col gap-10">
-        {#each recipe.ingredient_blocks as b}
+        {#each recipe.ingredient_blocks as b, i (i)}
           {@const id = uid()}
           <div class="flex flex-col">
             {#if b.title}
@@ -92,7 +92,7 @@
               class="list-disc ml-4 flex flex-col gap-2"
               aria-labelledby={b.title ? id : ingredientsSectionID}
             >
-              {#each b.ingredients as ingredient}
+              {#each b.ingredients as ingredient, j (j)}
                 <li>
                   {ingredient}
                 </li>
@@ -112,7 +112,7 @@
       </h2>
 
       <div class="flex flex-col gap-10">
-        {#each recipe.instruction_blocks as b}
+        {#each recipe.instruction_blocks as b, i (i)}
           {@const id = uid()}
           <div class="flex flex-col">
             {#if b.title}
@@ -125,10 +125,10 @@
               class="list-none flex flex-col gap-6"
               aria-labelledby={b.title ? id : instructionsSectionID}
             >
-              {#each b.rich_instructions as instruction, i}
+              {#each b.rich_instructions as instruction, j (j)}
                 <li>
                   <div class="float-left font-bold text-xl pr-2 leading-6" aria-hidden="true">
-                    {i + 1}.
+                    {j + 1}.
                   </div>
                   <!-- eslint-disable svelte/no-at-html-tags -->
                   <div class="prose">{@html instruction}</div>
