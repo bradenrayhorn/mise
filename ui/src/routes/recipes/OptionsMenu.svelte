@@ -19,7 +19,7 @@
   <IconOptions aria-hidden="true" />
 </button>
 
-{#if open}
+{#if $open}
   <div class="z-10 flex flex-col shadow rounded bg-base-600 py-2 text-sm" use:melt={$menu}>
     <a
       href="/recipes/new"

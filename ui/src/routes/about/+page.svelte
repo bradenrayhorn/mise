@@ -29,8 +29,8 @@
   <p>mise is a self-hosted recipe service.</p>
 
   <p>
-    Source code is available on{' '}<a href="https://github.com/bradenrayhorn/mise">GitHub</a>.
-    Licensed under
+    Source code is available on <a href="https://github.com/bradenrayhorn/mise">GitHub</a>. Licensed
+    under
     <a href="https://github.com/bradenrayhorn/mise/blob/main/LICENSE">AGPLv3</a>.
   </p>
 
