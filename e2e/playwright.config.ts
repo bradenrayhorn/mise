@@ -34,7 +34,7 @@ export default defineConfig({
   /* Run your local dev server before starting the tests */
   webServer: [
     {
-      command: 'fake-oidc',
+      command: 'FAKE_OIDC_HTTP_HOST=127.0.0.1 fake-oidc',
       url: 'http://127.0.0.1:7835/health',
       reuseExistingServer: !process.env.CI,
     },

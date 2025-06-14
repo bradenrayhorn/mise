@@ -3,14 +3,14 @@ use std::time::Duration;
 use anyhow::Context;
 use chrono::Utc;
 use openidconnect::{
-    core::{
-        CoreAuthenticationFlow, CoreClient, CoreGenderClaim, CoreJweContentEncryptionAlgorithm,
-        CoreJwsSigningAlgorithm, CoreProviderMetadata,
-    },
     AuthorizationCode, ClientId, ClientSecret, CsrfToken, EmptyAdditionalClaims,
     EmptyExtraTokenFields, IdTokenFields, IssuerUrl, Nonce, OAuth2TokenResponse, PkceCodeChallenge,
     PkceCodeVerifier, RedirectUrl, RefreshToken, Scope, StandardTokenResponse, TokenResponse,
     TokenType,
+    core::{
+        CoreAuthenticationFlow, CoreClient, CoreGenderClaim, CoreJweContentEncryptionAlgorithm,
+        CoreJwsSigningAlgorithm, CoreProviderMetadata,
+    },
 };
 use serde::{Deserialize, Serialize};
 
@@ -189,10 +189,10 @@ pub fn begin_auth(
     ))
 }
 
-pub async fn complete_auth<'a>(
+pub async fn complete_auth(
     provider: &Provider,
     state: AuthState,
-    params: CallbackParams<'a>,
+    params: CallbackParams<'_>,
 ) -> Result<(Authenticated, Option<String>), Error> {
     if sha256::digest(state.csrf_token.secret()) != sha256::digest(params.state) {
         return Err(Error::CsrfMismatch);

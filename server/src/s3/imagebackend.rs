@@ -1,6 +1,7 @@
+use std::fmt::Write as _;
 use std::time::Duration;
 
-use anyhow::{anyhow, Context};
+use anyhow::{Context, anyhow};
 use async_trait::async_trait;
 use chrono::Utc;
 use reqwest::StatusCode;
@@ -221,7 +222,7 @@ fn encode_uri(bytes: &[u8]) -> String {
         {
             encoded_uri.push(*byte as char);
         } else {
-            encoded_uri.push_str(&format!("%{}", hex::encode_upper([*byte])));
+            let _ = write!(encoded_uri, "%{}", hex::encode_upper([*byte]));
         }
     }
     encoded_uri

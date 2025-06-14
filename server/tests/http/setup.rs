@@ -3,7 +3,7 @@ use mise::{file, image_processing::ImageProcessor, imagestore::ImageStore, oidc,
 use rand::Rng;
 use std::{net::TcpListener, sync::Arc, time::Duration};
 
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use reqwest::StatusCode;
 
 use crate::http::{requests, responses};

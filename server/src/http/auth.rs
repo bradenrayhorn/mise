@@ -4,8 +4,8 @@ use axum::{
     response::Redirect,
 };
 use axum_extra::extract::{
-    cookie::{Cookie, SameSite},
     CookieJar,
+    cookie::{Cookie, SameSite},
 };
 use serde::{Deserialize, Serialize};
 

@@ -9,7 +9,7 @@ macro_rules! tags_tests {
     ($cd:expr) => {
         mod tags {
             use crate::a_test;
-            use crate::datastore::common::{tags, CreatesDatastore, HoldsDatastore};
+            use crate::datastore::common::{CreatesDatastore, HoldsDatastore, tags};
             use anyhow::Result;
 
             a_test!($cd, tags, can_create);

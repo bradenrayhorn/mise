@@ -2,7 +2,7 @@ use anyhow::Result;
 use chrono::{TimeDelta, Utc};
 use mise::{domain, session_store::BackgroundResultMessage};
 use rand::Rng;
-use rusqlite::{params, Connection};
+use rusqlite::{Connection, params};
 use tokio::sync::{mpsc, oneshot};
 
 pub struct TestPool {

@@ -9,7 +9,7 @@ macro_rules! recipes_tests {
     ($cd:expr) => {
         mod recipes {
             use crate::a_test;
-            use crate::datastore::common::{recipes, CreatesDatastore, HoldsDatastore};
+            use crate::datastore::common::{CreatesDatastore, HoldsDatastore, recipes};
             use anyhow::Result;
 
             a_test!($cd, recipes, can_create_and_get);

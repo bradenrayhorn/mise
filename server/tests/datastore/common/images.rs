@@ -6,7 +6,7 @@ macro_rules! images_tests {
     ($cd:expr) => {
         mod images {
             use crate::a_test;
-            use crate::datastore::common::{images, CreatesDatastore, HoldsDatastore};
+            use crate::datastore::common::{CreatesDatastore, HoldsDatastore, images};
             use anyhow::Result;
 
             a_test!($cd, images, can_create);

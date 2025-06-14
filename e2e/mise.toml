@@ -4,7 +4,7 @@ insecure_cookies = true
 search_index_directory = "../e2e/search-index"
 
 [oidc]
-issuer_url = "http://[::]:7835"
+issuer_url = "http://127.0.0.1:7835"
 client_id = "dev-client"
 client_secret = "secure-secret"
 
