@@ -17,7 +17,7 @@ jobs:
 
       - name: Setup
         run: |
-          VS="0.16.1"
+          VS="0.18.3"
           NAME="cargo-deny"
 
           curl -L -o ./archive.tar.gz https://github.com/EmbarkStudios/$NAME/releases/download/$VS/$NAME-$VS-x86_64-unknown-linux-musl.tar.gz

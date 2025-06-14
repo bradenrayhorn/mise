@@ -1,6 +1,6 @@
-use std::{collections::HashSet, io::Cursor, thread};
+use std::{io::Cursor, thread};
 
-use anyhow::{anyhow, Context};
+use anyhow::{Context, anyhow};
 use milli_v1::{
     documents::{DocumentsBatchBuilder, DocumentsBatchReader},
     update::{IndexDocuments, IndexDocumentsConfig, IndexerConfig, Settings},
@@ -67,10 +67,11 @@ fn spawn_worker(index_path: &str, store: datastore::Pool) -> Result<mpsc::Sender
     }
     let file_path = std::path::Path::new(index_path);
 
-    let mut options = milli_v1::heed::EnvOpenOptions::new();
+    let options = milli_v1::heed::EnvOpenOptions::new();
+    let mut options = options.read_txn_without_tls();
     options.map_size(50 * 1024 * 1024);
 
-    let index = milli_v1::Index::new(options, file_path).context("open milli index")?;
+    let index = milli_v1::Index::new(options, file_path, true).context("open milli index")?;
 
     thread::spawn(move || {
         tokio::runtime::Builder::new_current_thread()
@@ -179,8 +180,8 @@ async fn load_recipes(index: &milli_v1::Index, store: &datastore::Pool) -> Resul
         "instructions".into(),
         "notes".into(),
     ]);
-    let mut filterable_fields = HashSet::new();
-    filterable_fields.insert("tag_ids".to_owned());
+    let mut filterable_fields = Vec::new();
+    filterable_fields.push(milli_v1::FilterableAttributesRule::Field("tag_ids".into()));
     builder.set_filterable_fields(filterable_fields);
     builder.set_displayed_fields(vec!["id".into()]);
 

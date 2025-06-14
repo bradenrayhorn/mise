@@ -4,7 +4,7 @@ use crate::{
     core::Error,
     datastore::{self, Pool, RecipeDocument},
     domain::{
-        self, recipe::StringifiedBlock, CreatingRecipe, ListedRecipe, Recipe, UpdatingRecipe,
+        self, CreatingRecipe, ListedRecipe, Recipe, UpdatingRecipe, recipe::StringifiedBlock,
     },
     search::Backend,
 };

@@ -6,7 +6,7 @@ macro_rules! users_tests {
     ($cd:expr) => {
         mod users {
             use crate::a_test;
-            use crate::datastore::common::{users, CreatesDatastore, HoldsDatastore};
+            use crate::datastore::common::{CreatesDatastore, HoldsDatastore, users};
             use anyhow::Result;
 
             a_test!($cd, users, can_upsert_new_user);

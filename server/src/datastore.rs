@@ -1,5 +1,5 @@
 use std::{
-    sync::{mpsc, Arc, Mutex},
+    sync::{Arc, Mutex, mpsc},
     time::Duration,
 };
 
@@ -10,7 +10,7 @@ use thiserror::Error;
 use tokio::sync::oneshot;
 
 use crate::domain::{
-    self, recipe::StringifiedBlock, Recipe, RecipeRevision, RegisteringUser, User,
+    self, Recipe, RecipeRevision, RegisteringUser, User, recipe::StringifiedBlock,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

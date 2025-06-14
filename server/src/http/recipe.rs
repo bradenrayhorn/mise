@@ -1,6 +1,6 @@
 use axum::{
-    extract::{Path, Query, State},
     Extension, Json,
+    extract::{Path, Query, State},
 };
 use base64::Engine;
 use serde::{Deserialize, Serialize};

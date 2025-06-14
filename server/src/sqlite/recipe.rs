@@ -1,5 +1,5 @@
 use anyhow::Context;
-use rusqlite::{params, Connection};
+use rusqlite::{Connection, params};
 
 use crate::{
     datastore::{Error, HashedRecipeDocument, RecipeDocument, VersionedRecipeDocument},

@@ -1,6 +1,6 @@
 use std::{thread, time::Duration};
 
-use rusqlite::{params, Connection, ToSql};
+use rusqlite::{Connection, ToSql, params};
 use tokio::sync::mpsc;
 
 use crate::{
