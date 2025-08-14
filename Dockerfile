@@ -1,4 +1,4 @@
-FROM rust:1.87-alpine@sha256:126df0f2a57e675f9306fe180b833982ffb996e90a92a793bb75253cfeed5475 AS rust_base
+FROM rust:1.89-alpine@sha256:4b800f2e72e04be908e5f634c504c741bd943b763d1d8ad7b096cc340e1b5b46 AS rust_base
 
 RUN apk add musl-dev pkgconfig wget
 
@@ -14,7 +14,7 @@ WORKDIR /app
 RUN cargo bundle-licenses --format json --output /app/server-licenses.json
 
 # build frontend
-FROM node:22-alpine@sha256:41e4389f3d988d2ed55392df4db1420ad048ae53324a8e2b7c6d19508288107e AS ui_builder
+FROM node:22-alpine@sha256:1b2479dd35a99687d6638f5976fd235e26c5b37e8122f786fcd5fe231d63de5b AS ui_builder
 
 RUN mkdir /app
 COPY /ui app/
@@ -38,7 +38,7 @@ WORKDIR /app
 RUN cargo build --release
 
 # assemble final image
-FROM alpine:3.22@sha256:8a1f59ffb675680d47db6337b49d22281a139e9d709335b492be023728e11715
+FROM alpine:3.22@sha256:4bcff63911fcb4448bd4fdacec207030997caf25e9bea4045fa6c8c44de311d1
 
 RUN apk add vips-tools
 
